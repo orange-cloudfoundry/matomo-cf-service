@@ -7,27 +7,11 @@ logging:
     com.orange.oss.matomocfservice: DEBUG
     org.cloudfoundry.operations: DEBUG
 #    org.springframework.cloud.servicebroker: DEBUG
-    com.jcraft.jsch: DEBUG
+#    com.jcraft.jsch: DEBUG
 
 spring:
   jpa:
-    show-sql: true
+    show-sql: false
     hibernate:
       ddl-auto: create-drop
 
-cf:
-  apiHost: api.redacted-domain
-  username: ypdi6235
-  password: Aa&23456
-  organization: orange
-  space: pdechamboux
-
-matomo-service:
-  max-service-instances: 10
-  service-domain: cf.redacted-domain
-  shared-db:
-    service-name: p-mysql
-    plan-name: 10mb
-  dedicated-db:
-    service-name: cf-mysql-ondemand
-    plan-name: toto

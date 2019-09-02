@@ -3,8 +3,12 @@ applications:
   memory: 1G
   instances: 1
   routes:
-    - route: matomoserv.cf.redacted-domain
+    - route: $YOUR_ROUTE$
   path: target/matomo-cf-service-0.0.1-SNAPSHOT.jar
   buildpacks:
     - java_buildpack
+  services:
+    - matomo-service-db
+  env:
+    JAVA_OPTS: "-Dcf.apiHost=$CF_API_HOST$p -Dcf.username=$USERNAME$ -Dcf.password=$PASSWORD$ -Dcf.organization=$CF_ORG$ -Dcf.space=$CF_SPACE$ -Dmatomo-service.max-service-instances=10 -Dmatomo-service.service-domain=$YOUR_DOMAIN$ -Dmatomo-service.shared-db.service-name=$YOUR_MYSQL_SHARED_SERVICE$ -Dmatomo-service.shared-db.plan-name=$YOUR_SHARED_DB_PLAN$ -Dmatomo-service.dedicated-db.service-name=$YOUR_MYSQL_DEDICATED_SERVICE$ -Dmatomo-service.dedicated-db.plan-name=$YOUR_MYSQL_DEDICATED_DB_PLAN"
   timeout: 180
