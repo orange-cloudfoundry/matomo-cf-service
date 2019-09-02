@@ -1,0 +1,10 @@
+applications:
+- name: matomo-service
+  memory: 1G
+  instances: 1
+  routes:
+    - route: matomoserv.cf.redacted-domain
+  path: target/matomo-cf-service-0.0.1-SNAPSHOT.jar
+  buildpacks:
+    - java_buildpack
+  timeout: 180

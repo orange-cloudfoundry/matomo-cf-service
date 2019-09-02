@@ -1,0 +1,590 @@
+swagger: "2.0"
+info:
+  description: "\n\n"
+  version: "0.1.0_inProgress"
+  title: "API Matomo-service"
+  x-logo:
+    url: "/redoc/logo.png"
+    backgroundColor: "#FFFFFF"
+host: "api.orange.com"
+basePath: "/"
+schemes:
+- "http"
+produces:
+- "application/json;charset=utf-8"
+tags:
+- name: "Platform"
+  description: ""
+- name: "MatomoInstance"
+  description: ""
+paths:
+  /platforms:
+    post:
+      tags:
+      - "Platform"
+      consumes:
+      - "application/json;charset=utf-8"
+      produces:
+      - "application/json;charset=utf-8"
+      operationId: "platformCreate"
+      summary: "create platform"
+      description: ""
+      deprecated: false
+      parameters:
+      - name: "Platform"
+        required: true
+        in: "body"
+        description: ""
+        schema:
+          $ref: "#/definitions/Platform"
+      responses:
+        201:
+          description: "Created"
+          schema:
+            $ref: "#/definitions/Platform"
+        400:
+          description: "Bad Request\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: "Unauthorized\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: "Not Found\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        408:
+          description: "Request Time-out\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: "Internal Server Error\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        503:
+          description: "Service Unavailable\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+    get:
+      tags:
+      - "Platform"
+      produces:
+      - "application/json;charset=utf-8"
+      operationId: "platformFind"
+      summary: "find platform"
+      description: ""
+      deprecated: false
+      responses:
+        200:
+          description: "Ok"
+          schema:
+            type: "array"
+            items:
+              $ref: "#/definitions/Platform"
+        400:
+          description: "Bad Request\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: "Unauthorized\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: "Not Found\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        408:
+          description: "Request Time-out\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: "Internal Server Error\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        503:
+          description: "Service Unavailable\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+  /platforms/{platformId}:
+    get:
+      tags:
+      - "Platform"
+      produces:
+      - "application/json;charset=utf-8"
+      operationId: "platformGet"
+      summary: "get platform"
+      description: ""
+      deprecated: false
+      parameters:
+      - name: "platformId"
+        required: true
+        in: "path"
+        description: ""
+        type: "string"
+      responses:
+        200:
+          description: "Ok"
+          schema:
+            $ref: "#/definitions/Platform"
+        400:
+          description: "Bad Request\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: "Unauthorized\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: "Not Found\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        408:
+          description: "Request Time-out\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: "Internal Server Error\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        503:
+          description: "Service Unavailable\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+    put:
+      tags:
+      - "Platform"
+      consumes:
+      - "application/json;charset=utf-8"
+      produces:
+      - "application/json;charset=utf-8"
+      operationId: "platformUpdate"
+      summary: "update platform"
+      description: ""
+      deprecated: false
+      parameters:
+      - name: "Platform"
+        required: true
+        in: "body"
+        description: ""
+        schema:
+          $ref: "#/definitions/Platform"
+      - name: "platformId"
+        required: true
+        in: "path"
+        description: ""
+        type: "string"
+      responses:
+        200:
+          description: "Ok"
+          schema:
+            $ref: "#/definitions/Platform"
+        400:
+          description: "Bad Request\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: "Unauthorized\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: "Not Found\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        408:
+          description: "Request Time-out\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: "Internal Server Error\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        503:
+          description: "Service Unavailable\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+    delete:
+      tags:
+      - "Platform"
+      operationId: "platformDelete"
+      summary: "delete platform"
+      description: ""
+      deprecated: false
+      parameters:
+      - name: "platformId"
+        required: true
+        in: "path"
+        description: ""
+        type: "string"
+      responses:
+        204:
+          description: "No Content"
+        400:
+          description: "Bad Request\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: "Unauthorized\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: "Not Found\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        408:
+          description: "Request Time-out\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: "Internal Server Error\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        503:
+          description: "Service Unavailable\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+  /platforms/{platformId}/matomo-instances:
+    get:
+      tags:
+      - "MatomoInstance"
+      produces:
+      - "application/json;charset=utf-8"
+      operationId: "matomoInstanceFind"
+      summary: "find matomoInstance"
+      description: ""
+      deprecated: false
+      parameters:
+      - name: "platformId"
+        in: "path"
+        required: true
+        type: "string"
+        description: ""
+      responses:
+        200:
+          description: "Ok"
+          schema:
+            type: "array"
+            items:
+              $ref: "#/definitions/MatomoInstance"
+        400:
+          description: "Bad Request\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: "Unauthorized\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: "Not Found\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        408:
+          description: "Request Time-out\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: "Internal Server Error\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        503:
+          description: "Service Unavailable\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+  /platforms/{platformId}/matomo-instances/{matomoInstanceId}:
+    get:
+      tags:
+      - "MatomoInstance"
+      produces:
+      - "application/json;charset=utf-8"
+      operationId: "matomoInstanceGet"
+      summary: "get matomoInstance"
+      description: ""
+      deprecated: false
+      parameters:
+      - name: "platformId"
+        in: "path"
+        required: true
+        type: "string"
+        description: ""
+      - name: "matomoInstanceId"
+        required: true
+        in: "path"
+        description: ""
+        type: "string"
+      responses:
+        200:
+          description: "Ok"
+          schema:
+            $ref: "#/definitions/MatomoInstance"
+        400:
+          description: "Bad Request\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: "Unauthorized\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: "Not Found\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        408:
+          description: "Request Time-out\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: "Internal Server Error\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        503:
+          description: "Service Unavailable\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+    put:
+      tags:
+      - "MatomoInstance"
+      consumes:
+      - "application/json;charset=utf-8"
+      produces:
+      - "application/json;charset=utf-8"
+      operationId: "matomoInstanceUpdate"
+      summary: "update matomoInstance"
+      description: ""
+      deprecated: false
+      parameters:
+      - name: "platformId"
+        in: "path"
+        required: true
+        type: "string"
+        description: ""
+      - name: "MatomoInstance"
+        required: true
+        in: "body"
+        description: ""
+        schema:
+          $ref: "#/definitions/MatomoInstance"
+      - name: "matomoInstanceId"
+        required: true
+        in: "path"
+        description: ""
+        type: "string"
+      responses:
+        200:
+          description: "Ok"
+          schema:
+            $ref: "#/definitions/MatomoInstance"
+        400:
+          description: "Bad Request\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: "Unauthorized\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: "Not Found\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        408:
+          description: "Request Time-out\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: "Internal Server Error\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        503:
+          description: "Service Unavailable\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+    delete:
+      tags:
+      - "MatomoInstance"
+      operationId: "matomoInstanceDelete"
+      summary: "delete matomoInstance"
+      description: ""
+      deprecated: false
+      parameters:
+      - name: "platformId"
+        in: "path"
+        required: true
+        type: "string"
+        description: ""
+      - name: "matomoInstanceId"
+        required: true
+        in: "path"
+        description: ""
+        type: "string"
+      responses:
+        204:
+          description: "No Content"
+        400:
+          description: "Bad Request\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: "Unauthorized\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: "Not Found\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        408:
+          description: "Request Time-out\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: "Internal Server Error\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+        503:
+          description: "Service Unavailable\n\n"
+          schema:
+            $ref: "#/definitions/Error"
+definitions:
+  ErrorCode:
+    description: ""
+    type: "string"
+    enum:
+    - "UNKNOWN_RESOURCE"
+    - "DUPLICATED_RESOURCE"
+    - "INVALID_INPUT"
+    - "TRANSACTION_ISSUE"
+    - "TECHNICAL_ERROR"
+  PlatformKind:
+    description: ""
+    type: "string"
+    enum:
+    - "CLOUDFOUNDRY"
+    - "KUBERNETES"
+    - "OPENSHIFT"
+    - "OTHER"
+  OpCode:
+    description: ""
+    type: "string"
+    enum:
+    - "CREATE"
+    - "READ"
+    - "UPDATE"
+    - "DELETE"
+  ErrorDetail:
+    description: ""
+    required:
+    - "code"
+    - "message"
+    type: "object"
+    properties:
+      code:
+        description: ""
+        type: "integer"
+        format: "int32"
+      message:
+        description: ""
+        type: "string"
+      description:
+        description: ""
+        type: "string"
+      infoURL:
+        description: ""
+        type: "string"
+  Error:
+    description: ""
+    required:
+    - "code"
+    - "message"
+    type: "object"
+    properties:
+      code:
+        $ref: "#/definitions/ErrorCode"
+      message:
+        description: ""
+        type: "string"
+      description:
+        description: ""
+        type: "string"
+      infoURL:
+        description: ""
+        type: "string"
+      details:
+        type: "array"
+        items:
+          $ref: "#/definitions/ErrorDetail"
+  Platform:
+    description: ""
+    required:
+    - "uuid"
+    - "name"
+    - "description"
+    type: "object"
+    properties:
+      uuid:
+        description: ""
+        type: "string"
+      name:
+        description: ""
+        type: "string"
+      description:
+        description: ""
+        type: "string"
+      createTime:
+        description: ""
+        type: "string"
+      updateTime:
+        description: ""
+        type: "string"
+  MatomoInstance:
+    description: ""
+    required:
+    - "uuid"
+    - "serviceDefinitionId"
+    - "name"
+    - "platformKind"
+    - "tenantId"
+    - "platformApiLocation"
+    - "planId"
+    type: "object"
+    properties:
+      uuid:
+        description: ""
+        type: "string"
+      serviceDefinitionId:
+        description: ""
+        type: "string"
+      name:
+        description: ""
+        type: "string"
+      createTime:
+        description: ""
+        type: "string"
+      updateTime:
+        description: ""
+        type: "string"
+      platformKind:
+        $ref: "#/definitions/PlatformKind"
+      tenantId:
+        description: ""
+        type: "string"
+      subtenantId:
+        description: ""
+        type: "string"
+      platformApiLocation:
+        description: ""
+        type: "string"
+      planId:
+        description: ""
+        type: "string"
+      platformId:
+        description: ""
+        type: "string"
+      lastOperation:
+        $ref: "#/definitions/OpCode"
+      lastOperationState:
+        description: ""
+        type: "string"
+      matomoVersion:
+        description: ""
+        type: "string"
+      matomoInitFile:
+        description: ""
+        type: "string"

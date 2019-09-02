@@ -1,0 +1,358 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>com.orange.oss</groupId>
+	<artifactId>matomo-cf-service</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>matomo-cf-service</name>
+	<description>An implementation of "Matomo as a Service" exposed through an OSB API and relying on SpringBoot and CloudFoundry</description>
+
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>2.2.0.M3</version>
+		<relativePath/> <!-- lookup parent from repository -->
+	</parent>
+
+	<properties>
+		<spring-cloud.version>Hoxton.BUILD-SNAPSHOT</spring-cloud.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <java.version>1.8</java.version>
+        <junit.version>4.12</junit.version>
+        <skip.assembly>false</skip.assembly>
+        <swagger.version>1.5.16</swagger.version>
+        <swagger-codegen.version>2.2.3</swagger-codegen.version>
+        <gson.version>2.8.1</gson.version>
+        <jodatime.version>2.9.9</jodatime.version>
+        <jackson.version>2.9.4</jackson.version>
+        <swagger-parser.version>1.0.25</swagger-parser.version>
+        <swagger2markup.version>1.3.3</swagger2markup.version>
+        <springfox.version>2.9.2</springfox.version>
+        <rest-assured.version>3.0.6</rest-assured.version>
+        <h2.version>1.4.195</h2.version>
+        <mariadb.version>2.2.5</mariadb.version>
+        <clooudfoundry-client.version>3.15.0.RELEASE</clooudfoundry-client.version>
+        <dependency.locations.enabled>false</dependency.locations.enabled>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+		<!--dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-oauth2</artifactId>
+		</dependency-->
+		<dependency>
+        	<groupId>org.springframework.plugin</groupId>
+        	<artifactId>spring-plugin-core</artifactId>
+        	<version>1.2.0.RELEASE</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-configuration-processor</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-open-service-broker</artifactId>
+			<version>3.0.1.RELEASE</version>
+		</dependency>
+	    <!--dependency>
+    	    <groupId>org.springframework.cloud</groupId>
+    	    <artifactId>spring-cloud-starter-open-service-broker-webmvc</artifactId>
+    	    <version>1.0.0.RELEASE</version>
+	    </dependency-->
+	    <!--dependency>
+    		<groupId>org.springframework.hateoas</groupId>
+    		<artifactId>spring-hateoas</artifactId>
+    		<version>0.25.1.RELEASE</version>
+		</dependency-->
+		<dependency>
+		    <groupId>io.projectreactor</groupId>
+		    <artifactId>reactor-core</artifactId>
+		</dependency>
+		<dependency>
+		    <groupId>org.json</groupId>
+		    <artifactId>json</artifactId>
+		    <version>20180813</version>
+		</dependency>
+		
+		<dependency>
+    		<groupId>org.cloudfoundry</groupId>
+    		<artifactId>cloudfoundry-client</artifactId>
+    		<version>${clooudfoundry-client.version}</version>
+		</dependency>
+		<dependency>
+    		<groupId>org.cloudfoundry</groupId>
+    		<artifactId>cloudfoundry-client-reactor</artifactId>
+    		<version>${clooudfoundry-client.version}</version>
+		</dependency>
+		<dependency>
+    		<groupId>org.cloudfoundry</groupId>
+    		<artifactId>cloudfoundry-operations</artifactId>
+    		<version>${clooudfoundry-client.version}</version>
+		</dependency>
+		<dependency>
+    		<groupId>org.cloudfoundry</groupId>
+    		<artifactId>cloudfoundry-util</artifactId>
+    		<version>${clooudfoundry-client.version}</version>
+		</dependency>
+ 		
+        <!-- Integrate Swagger-ui : /swagger-ui.html -->
+        <dependency>
+            <groupId>io.springfox</groupId>
+            <artifactId>springfox-swagger-ui</artifactId>
+            <version>${springfox.version}</version>
+        </dependency>
+        <!-- Expose API definition as Swagger/Json : /v2/apidocs -->
+        <dependency>
+            <groupId>io.springfox</groupId>
+            <artifactId>springfox-swagger2</artifactId>
+            <version>${springfox.version}</version>
+        </dependency>
+        <!-- Read Swagger definition to extract an expose API définition -->
+        <dependency>
+            <groupId>io.swagger</groupId>
+            <artifactId>swagger-parser</artifactId>
+            <version>${swagger-parser.version}</version>
+        </dependency>
+        <!-- Swagger-parser need swagger Version 1.5.8 and not 1.5.3 -->
+        <dependency>
+            <groupId>io.swagger</groupId>
+            <artifactId>swagger-core</artifactId>
+            <version>${swagger.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.swagger</groupId>
+            <artifactId>swagger-annotations</artifactId>
+            <version>${swagger.version}</version>
+        </dependency>
+        <!-- Swagger-parser need org/apache/commons/lang3/Validate -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.4</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mariadb.jdbc</groupId>
+            <artifactId>mariadb-java-client</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
+            <version>${rest-assured.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>json-schema-validator</artifactId>
+            <version>${rest-assured.version}</version>
+        </dependency>
+		
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+			<exclusions>
+				<exclusion>
+					<groupId>org.junit.vintage</groupId>
+					<artifactId>junit-vintage-engine</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>junit</groupId>
+					<artifactId>junit</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		
+		<dependency>
+		    <groupId>org.jsoup</groupId>
+		    <artifactId>jsoup</artifactId>
+		    <version>1.12.1</version>
+		</dependency>
+		
+		<dependency>
+		    <groupId>com.hierynomus</groupId>
+		    <artifactId>sshj</artifactId>
+		    <version>0.27.0</version>
+		</dependency>
+	</dependencies>
+
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-report-plugin</artifactId>
+                <version>2.22.1</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-project-info-reports-plugin</artifactId>
+                <version>3.0.0</version>
+                <reportSets>
+                    <reportSet>
+                        <reports>
+                            <report>ci-management</report>
+                            <report>dependencies</report>
+                            <report>dependency-info</report>
+                            <!-- <report>dependency-management</report> -->
+                            <report>distribution-management</report>
+                            <report>index</report>
+                            <report>issue-management</report>
+                            <report>licenses</report>
+                            <report>mailing-lists</report>
+                            <report>modules</report>
+                            <!-- <report>plugin-management</report> -->
+                            <report>plugins</report>
+                            <report>scm</report>
+                            <report>summary</report>
+                            <report>team</report>
+                        </reports>
+                    </reportSet>
+                </reportSets>
+            </plugin>
+        </plugins>
+    </reporting>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.springframework.cloud</groupId>
+				<artifactId>spring-cloud-dependencies</artifactId>
+				<version>${spring-cloud.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
+	<build>
+		<resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+		<plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.7.0</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+            <plugin>
+                <groupId>io.swagger</groupId>
+                <artifactId>swagger-codegen-maven-plugin</artifactId>
+                <version>${swagger-codegen.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <inputSpec>src/main/resources/swagger/matomo-service-admin.json</inputSpec>
+                            <apiPackage>com.orange.oss.matomocfservice.api</apiPackage>
+                            <modelPackage>com.orange.oss.matomocfservice.api.model</modelPackage>
+                            <language>spring</language>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>1.8</version>
+                <executions>
+                    <execution>
+                    	<id>clean-swagger-gen</id>
+                        <phase>process-sources</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <move file="${project.build.directory}/generated-sources/swagger/src/main/java/com/orange/oss/matomocfservice/api/PlatformsApiController.java" tofile="${project.build.directory}/generated-sources/swagger/src/main/java/com/orange/oss/matomocfservice/api/PlatformsApiController.java.orig"/>
+                                <move file="${project.build.directory}/generated-sources/swagger/src/main/java/io/swagger/Swagger2SpringBoot.java" tofile="${project.build.directory}/generated-sources/swagger/src/main/java/io/swagger/Swagger2SpringBoot.java.orig"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                    <execution>
+                    	<id>package-piwik-releases</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+         					<target>
+               					<exec executable="bash">
+              						<arg value="src/main/tools/piwik2cf.sh" />
+             						<!--arg value="inputOne" /-->
+								</exec>
+               					<exec executable="bash">
+              						<arg value="src/main/tools/createIndexHtml.sh" />
+             						<!--arg value="inputOne" /-->
+								</exec>
+							</target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+		</plugins>
+	</build>
+
+	<repositories>
+		<repository>
+			<id>spring-snapshots</id>
+			<name>Spring Snapshots</name>
+			<url>https://repo.spring.io/snapshot</url>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+		<repository>
+			<id>spring-milestones</id>
+			<name>Spring Milestones</name>
+			<url>https://repo.spring.io/milestone</url>
+		</repository>
+	</repositories>
+	<pluginRepositories>
+		<pluginRepository>
+			<id>spring-snapshots</id>
+			<name>Spring Snapshots</name>
+			<url>https://repo.spring.io/snapshot</url>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</pluginRepository>
+		<pluginRepository>
+			<id>spring-milestones</id>
+			<name>Spring Milestones</name>
+			<url>https://repo.spring.io/milestone</url>
+		</pluginRepository>
+	</pluginRepositories>
+
+</project>
