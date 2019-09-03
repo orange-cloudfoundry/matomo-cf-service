@@ -59,7 +59,21 @@ public class MatomoInstanceService {
 	private CloudFoundryMgrProperties properties;
 	@Autowired
 	private MatomoReleases matomoReleases;
-	private final static MatomoInstance nullInstance = new MatomoInstance().uuid("").name("").planId("").tenantId("").subtenantId("");
+
+	/**
+	 * Initialize CF manager and especially create the shared database for the dev flavor of
+	 * Matomo service instances.
+	 */
+	public void initialize() {
+		LOGGER.debug("SERV::MatomoInstanceService:initialize");
+		for (PMatomoInstance pmi : miRepo.findAll()) {
+			if (pmi.getConfigFileContent() != null) {
+				LOGGER.debug("SERV::initialize: reactivate instance {}", pmi.getIdUrlStr());
+				matomoReleases.activateVersionPath(pmi.getIdUrlStr(), pmi.getInstalledVersion());
+				matomoReleases.setConfigIni(pmi.getIdUrlStr(), pmi.getInstalledVersion(), pmi.getConfigFileContent());
+			}
+		}
+	}
 
 	public MatomoInstance createMatomoInstance(MatomoInstance matomoInstance) {
 		LOGGER.debug("SERV::createMatomoInstance: matomoInstance={}", matomoInstance.toString());
@@ -169,7 +183,7 @@ public class MatomoInstanceService {
 		PPlatform ppf = getPPlatform(platformId);
 		Optional<PMatomoInstance> opmi = miRepo.findById(instanceId);
 		if (!opmi.isPresent()) {
-			return nullInstance;
+			return new MatomoInstance().uuid("").name("").planId("").tenantId("").subtenantId("");
 		}
 		PMatomoInstance pmi = opmi.get();
 		if (pmi.getPlatform() != ppf) {

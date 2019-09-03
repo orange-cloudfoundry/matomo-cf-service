@@ -42,6 +42,7 @@ public class MatomoReleases {
 		try {
 			this.defaultRel = null;
 			this.tempDir = Files.createTempDirectory("matomo");
+			LOGGER.debug("CFMGR::MatomoReleases: initialize - tempDir={}", tempDir.toString());
 			File fsshd = new File("/home/vcap/.ssh");
 			if (!fsshd.exists()) {
 				fsshd.mkdir();
@@ -97,7 +98,17 @@ public class MatomoReleases {
 		return tempDir.toString() + File.separator + instId + "-" + version;
 	}
 
-	public void activateVersionPath(String version, String instId) {
+	public void setConfigIni(String instId, String version, byte filecontent[]) {
+		LOGGER.debug("CFMGR::setConfigIni: version={}, instId={}", version, instId);
+		try {
+			Files.write(Paths.get(getVersionPath(version, instId) + "/config/config.ini.php"), filecontent);
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new RuntimeException("IO pb in CFMGR::setConfigIni", e);
+		}
+	}
+
+	public void activateVersionPath(String instId, String version) {
 		LOGGER.debug("CFMGR::activateVersionPath: version={}, instId={}", version, instId);
 		String versdir = RELEASEPATH + File.separator + version;
 		String instdir = getVersionPath(version, instId);

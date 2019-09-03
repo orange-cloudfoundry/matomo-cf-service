@@ -110,7 +110,7 @@ public class CloudFoundryMgr {
 	 */
 	public Mono<Void> deployMatomoCfAppBindToGlobalSharedDb(String instid, String version, String expohost) {
 		LOGGER.debug("CFMGR::createMatomoCfAppBindToGlobalSharedDb: instId={}", instid);
-		matomoReleases.activateVersionPath(version, instid);
+		matomoReleases.activateVersionPath(instid, version);
 		String verspath = matomoReleases.getVersionPath(version, instid);
 		LOGGER.debug("File for Matomo bits: " + verspath);
 		String[] serviceList = { GLOBSHARDBINSTNAME };

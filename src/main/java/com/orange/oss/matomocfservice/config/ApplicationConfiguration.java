@@ -20,6 +20,7 @@ import com.orange.oss.matomocfservice.cfmgr.CloudFoundryMgr;
 import com.orange.oss.matomocfservice.cfmgr.MatomoReleases;
 import com.orange.oss.matomocfservice.web.service.ApplicationInformation;
 import com.orange.oss.matomocfservice.web.service.InstanceIdMgr;
+import com.orange.oss.matomocfservice.web.service.MatomoInstanceService;
 import com.orange.oss.matomocfservice.web.service.PlatformService;
 
 /**
@@ -30,6 +31,8 @@ import com.orange.oss.matomocfservice.web.service.PlatformService;
 public class ApplicationConfiguration {
 	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
 	public static final String ADMIN_API_PATH = "/adminapi";
+	@Autowired
+	MatomoInstanceService matomoInstanceService;
 	@Autowired
 	PlatformService platformService;
 	@Autowired
@@ -71,10 +74,11 @@ public class ApplicationConfiguration {
 	@EventListener(ApplicationReadyEvent.class)
 	public void doSomethingAfterStartup() {
 		LOGGER.debug("CONFIG - run initialization code after application startup has completed");
-		platformService.initialize();
 		matomoReleases.initialize();
 		cfMgr.initialize();
 		instanceIdMgr.initialize();
+		platformService.initialize();
+		matomoInstanceService.initialize();
 	}
 
 	public ApplicationInformation getApplicationInformation() {

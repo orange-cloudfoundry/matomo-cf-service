@@ -25,7 +25,7 @@ import com.orange.oss.matomocfservice.api.model.PlatformKind;
 @Table(name = "matomoinstances")
 public class PMatomoInstance {
 	private final static int LENGTH_ID = 36;
-	private final static int LENGTH_IDURL = 8;
+	private final static int LENGTH_IDURL = 16;
 	private final static int LENGTH_SERVDEFID = 128;
 	private final static int LENGTH_NAME = 80;
 	private final static int LENGTH_PFKIND = 16;
