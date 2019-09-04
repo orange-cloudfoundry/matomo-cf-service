@@ -31,6 +31,7 @@ import com.orange.oss.matomocfservice.web.service.PlatformService;
 public class ApplicationConfiguration {
 	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
 	public static final String ADMIN_API_PATH = "/adminapi";
+	public static final String DASHBOARD_PATH = "/dashboard";
 	@Autowired
 	MatomoInstanceService matomoInstanceService;
 	@Autowired

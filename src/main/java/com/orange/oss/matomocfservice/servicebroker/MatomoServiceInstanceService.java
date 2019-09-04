@@ -56,7 +56,7 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 			pfkind = PlatformKind.OTHER;
 			instn = tid = stid = "";
 		}
-		miServ.createMatomoInstance(new MatomoInstance()
+		MatomoInstance mi = miServ.createMatomoInstance(new MatomoInstance()
 				.uuid(request.getServiceInstanceId())
 				.serviceDefinitionId(request.getServiceDefinitionId())
 				.name(instn)
@@ -68,7 +68,7 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 				.platformId(request.getPlatformInstanceId()));
 		CreateServiceInstanceResponse resp = CreateServiceInstanceResponse.builder()
 				.async(true)
-				.dashboardUrl("")
+				.dashboardUrl(mi.getDashboardUrl())
 				.instanceExisted(false)
 				.operation("Create Matomo Service Instance \"" + instn + "\"")
 				.build();
@@ -95,7 +95,7 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 		GetServiceInstanceResponse resp = GetServiceInstanceResponse.builder()
 				.serviceDefinitionId("servicedefinitionid")
 				.planId(mi.getPlanId())
-				.dashboardUrl("")
+				.dashboardUrl(mi.getDashboardUrl())
 				.build();
 		return Mono.just(resp);
 	}

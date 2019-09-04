@@ -78,7 +78,9 @@ public class MatomoReleases {
 			String versions = new String(Files.readAllBytes(Paths.get(RELEASEPATH + VERSIONSFILE)));
 			LOGGER.debug("CFMGR::getReleaseList: versions=" + versions);
 			for (String vers : versions.split(";")) {
-				this.releases.add(new MatomoReleaseSpec(vers));
+				if (! vers.equals(defaultRel)) {
+					this.releases.add(new MatomoReleaseSpec(vers));
+				}
 			}
 		} catch (IOException e) {
 			// TODO
@@ -121,23 +123,23 @@ public class MatomoReleases {
 	}
 
 	public class MatomoReleaseSpec {
-		private String versName;
-		private boolean versDefault = false;
+		public String name;
+		public boolean isDefault = false;
 
 		MatomoReleaseSpec(String n) {
-			versName = n;
+			name = n;
 		}
 
 		public String getName() {
-			return versName;
+			return name;
 		}
 
 		public boolean  isDefault() {
-			return versDefault;
+			return isDefault;
 		}
 
 		MatomoReleaseSpec defaultRel() {
-			versDefault = true;
+			isDefault = true;
 			return this;
 		}
 	}

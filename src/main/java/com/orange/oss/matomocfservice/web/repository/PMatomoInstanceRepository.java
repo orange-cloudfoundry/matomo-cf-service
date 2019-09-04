@@ -19,5 +19,6 @@ import com.orange.oss.matomocfservice.web.domain.PPlatform;
 @Repository
 public interface PMatomoInstanceRepository extends JpaRepository<PMatomoInstance, String> {
 	Optional<PMatomoInstance> findById(String id);
+	List<PMatomoInstance> findByPlatform(PPlatform pf);
 	List<PMatomoInstance> findByPlatformAndLastOperation(PPlatform pf, String lastop);
 }

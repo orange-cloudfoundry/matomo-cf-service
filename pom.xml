@@ -47,7 +47,11 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
-		<!--dependency>
+		<dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-thymeleaf</artifactId>
+        </dependency>
+        <!--dependency>
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-starter-oauth2</artifactId>
 		</dependency-->
@@ -309,10 +313,6 @@
          					<target>
                					<exec executable="bash">
               						<arg value="src/main/tools/piwik2cf.sh" />
-             						<!--arg value="inputOne" /-->
-								</exec>
-               					<exec executable="bash">
-              						<arg value="src/main/tools/createIndexHtml.sh" />
              						<!--arg value="inputOne" /-->
 								</exec>
 							</target>

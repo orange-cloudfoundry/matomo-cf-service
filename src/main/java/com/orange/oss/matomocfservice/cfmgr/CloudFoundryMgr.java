@@ -121,12 +121,20 @@ public class CloudFoundryMgr {
 								.domain(properties.getDomain())
 								.buildpack(PHPBUILDPACK)
 								.name(getAppName(instid))
-								.host(instid.equals(expohost) ? getAppUrlPrefix(expohost) : expohost)
+								.host(getHost(instid, expohost))
 								.services(serviceList)
 								.memory(256)
 								.timeout(180)
 								.build())
 						.build());
+	}
+
+	private String getHost(String instid, String expohost) {
+		return instid.equals(expohost) ? getAppUrlPrefix(expohost) : expohost;
+	}
+
+	public String getInstanceUrl(String instid, String expohost) {
+		return "https://" + getHost(instid, expohost) + "." + properties.getDomain();
 	}
 
 	/**

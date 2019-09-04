@@ -30,6 +30,7 @@ import com.orange.oss.matomocfservice.cfmgr.CloudFoundryMgr;
 import com.orange.oss.matomocfservice.cfmgr.CloudFoundryMgr.AppConfHolder;
 import com.orange.oss.matomocfservice.cfmgr.CloudFoundryMgrProperties;
 import com.orange.oss.matomocfservice.cfmgr.MatomoReleases;
+import com.orange.oss.matomocfservice.config.ApplicationConfiguration;
 import com.orange.oss.matomocfservice.config.ServiceCatalogConfiguration;
 import com.orange.oss.matomocfservice.web.domain.PMatomoInstance;
 import com.orange.oss.matomocfservice.web.domain.PPlatform;
@@ -59,6 +60,8 @@ public class MatomoInstanceService {
 	private CloudFoundryMgrProperties properties;
 	@Autowired
 	private MatomoReleases matomoReleases;
+	@Autowired
+	private ApplicationConfiguration appConf;
 
 	/**
 	 * Initialize CF manager and especially create the shared database for the dev flavor of
@@ -172,7 +175,7 @@ public class MatomoInstanceService {
 	public List<MatomoInstance> findMatomoInstance(String platformId) {
 		LOGGER.debug("SERV::findMatomoInstance: platformId={}", platformId);
 		List<MatomoInstance> instances = new ArrayList<MatomoInstance>();
-		for (PMatomoInstance pmi : miRepo.findByPlatformAndLastOperation(getPPlatform(platformId), OpCode.DELETE.toString())) {
+		for (PMatomoInstance pmi : miRepo.findByPlatform(getPPlatform(platformId))) {
 			instances.add(toApiModel(pmi));
 		}
 		return instances;
@@ -226,6 +229,10 @@ public class MatomoInstanceService {
 		throw new UnsupportedOperationException("Update of Matomo instance is not currently supported");
 	}
 
+	public String getDashboardUrl(PMatomoInstance pmi) {
+		return cfMgr.getInstanceUrl(pmi.getIdUrlStr(), pmi.getId());
+	}
+
 	private MatomoInstance toApiModel(PMatomoInstance pmi) {
 		return new MatomoInstance()
 				.uuid(pmi.getId())
@@ -237,7 +244,9 @@ public class MatomoInstanceService {
 				.platformApiLocation(pmi.getPlatformApiLocation())
 				.planId(pmi.getPlanId())
 				.lastOperation(pmi.getLastOperation())
-				.lastOperationState(pmi.getLastOperationState().getValue());
+				.lastOperationState(pmi.getLastOperationState().getValue())
+				.matomoVersion(pmi.getInstalledVersion())
+				.dashboardUrl(getDashboardUrl(pmi));
 	}
 
 	private PPlatform getPPlatform(String platformId) {

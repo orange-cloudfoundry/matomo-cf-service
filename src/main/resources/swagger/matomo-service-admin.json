@@ -585,6 +585,6 @@ definitions:
       matomoVersion:
         description: ""
         type: "string"
-      matomoInitFile:
+      dashboardUrl:
         description: ""
         type: "string"
