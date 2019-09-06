@@ -93,7 +93,7 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 		LOGGER.debug("BROKER::getServiceInstance: platformId={}, instanceId={}", request.getPlatformInstanceId(), request.getServiceInstanceId());
 		MatomoInstance mi = miServ.getMatomoInstance(request.getPlatformInstanceId(), request.getServiceInstanceId());
 		GetServiceInstanceResponse resp = GetServiceInstanceResponse.builder()
-				.serviceDefinitionId("servicedefinitionid")
+				.serviceDefinitionId(mi.getServiceDefinitionId())
 				.planId(mi.getPlanId())
 				.dashboardUrl(mi.getDashboardUrl())
 				.build();
