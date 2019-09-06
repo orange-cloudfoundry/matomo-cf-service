@@ -40,8 +40,8 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 	@Override
 	public Mono<CreateServiceInstanceResponse> createServiceInstance(CreateServiceInstanceRequest request) {
 		LOGGER.debug("BROKER::createServiceInstance: platformId={} / serviceId={}", request.getPlatformInstanceId(), request.getServiceInstanceId());
-		LOGGER.debug("BROKER::   request=" + request.toString());
-		LOGGER.debug("BROKER::   platform={}", request.getContext().getPlatform());
+//		LOGGER.debug("BROKER::   request=" + request.toString());
+//		LOGGER.debug("BROKER::   platform={}", request.getContext().getPlatform());
 		PlatformKind pfkind;
 		String instn, tid, stid;
 		switch (request.getContext().getPlatform()) {
@@ -103,7 +103,7 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 	@Override
 	public Mono<DeleteServiceInstanceResponse> deleteServiceInstance(DeleteServiceInstanceRequest request) {
 		LOGGER.debug("BROKER::deleteServiceInstance: platformId={}, instanceId={}", request.getPlatformInstanceId(), request.getServiceInstanceId());
-		Mono resp;
+		Mono<DeleteServiceInstanceResponse> resp;
 		try {
 			miServ.deleteMatomoInstance(request.getPlatformInstanceId(), request.getServiceInstanceId());
 			resp = Mono.just(DeleteServiceInstanceResponse.builder()
@@ -118,7 +118,7 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 	@Override
 	public Mono<UpdateServiceInstanceResponse> updateServiceInstance(UpdateServiceInstanceRequest request) {
 		LOGGER.debug("BROKER::updateServiceInstance: platformId={}, instanceId={}", request.getPlatformInstanceId(), request.getServiceInstanceId());
-		Mono resp;
+		Mono<UpdateServiceInstanceResponse> resp;
 		try {
 			PlatformKind pfkind;
 			String instn, tid, stid;
@@ -144,7 +144,7 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 					.platformApiLocation(request.getApiInfoLocation())
 					.planId(request.getPlanId())
 					.platformId(request.getPlatformInstanceId()));
-			resp = Mono.just(DeleteServiceInstanceResponse.builder()
+			resp = Mono.just(UpdateServiceInstanceResponse.builder()
 					.async(true)
 					.build());
 		} catch (Exception e) {

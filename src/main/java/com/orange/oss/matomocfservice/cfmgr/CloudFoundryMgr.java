@@ -45,7 +45,7 @@ public class CloudFoundryMgr {
 	private ReactorCloudFoundryClient cfclient;
 	@Autowired
 	private CloudFoundryMgrProperties properties;
-	private final static String GLOBSHARDBINSTNAME = "matomo-service-db";
+	private final static String GLOBSHARDBINSTNAME = "matomo-globshared-db";
 	private final static String PHPBUILDPACK = "php_buildpack";
 	private final String MATOMO_ANPREFIX = "MATOMO_";
 	private final String MATOMO_AUPREFIX = "M";

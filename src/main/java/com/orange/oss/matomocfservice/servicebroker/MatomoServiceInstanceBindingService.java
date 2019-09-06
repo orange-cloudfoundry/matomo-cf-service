@@ -3,7 +3,8 @@
  */
 package com.orange.oss.matomocfservice.servicebroker;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cloud.servicebroker.model.binding.CreateServiceInstanceAppBindingResponse;
 import org.springframework.cloud.servicebroker.model.binding.CreateServiceInstanceBindingRequest;
 import org.springframework.cloud.servicebroker.model.binding.CreateServiceInstanceBindingResponse;
@@ -17,8 +18,6 @@ import org.springframework.cloud.servicebroker.model.binding.GetServiceInstanceB
 import org.springframework.cloud.servicebroker.service.ServiceInstanceBindingService;
 import org.springframework.stereotype.Service;
 
-//import com.orange.oss.matomocfservice.cfmgr.CfMgr;
-
 import reactor.core.publisher.Mono;
 
 /**
@@ -27,45 +26,46 @@ import reactor.core.publisher.Mono;
  */
 @Service
 public class MatomoServiceInstanceBindingService implements ServiceInstanceBindingService {
-//	@Autowired
-//	CfMgr cfMgr;
+	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
 
 	@Override
 	public Mono<CreateServiceInstanceBindingResponse> createServiceInstanceBinding(
 			CreateServiceInstanceBindingRequest request) {
-		
+		LOGGER.debug("BROKER::createServiceInstanceBinding: appId={}, appRoute={}, bindId={}, serviceInstId={}",
+				request.getBindResource().getAppGuid(),
+				request.getBindResource().getRoute(),
+				request.getBindingId(),
+				request.getServiceInstanceId());
 		CreateServiceInstanceBindingResponse resp = CreateServiceInstanceAppBindingResponse.builder()
+				.async(false)
+				.operation("bind")
 				.build();
-		
-		return null;
+		return Mono.just(resp);
 	}
 
 	@Override
 	public Mono<GetServiceInstanceBindingResponse> getServiceInstanceBinding(GetServiceInstanceBindingRequest request) {
-		
+		LOGGER.debug("BROKER::getServiceInstanceBinding");
 		GetServiceInstanceBindingResponse resp = GetServiceInstanceAppBindingResponse.builder()
 				.build();
-		
-		return null;
+		return Mono.just(resp);
 	}
 
 	@Override
 	public Mono<GetLastServiceBindingOperationResponse> getLastOperation(
 			GetLastServiceBindingOperationRequest request) {
-		
+		LOGGER.debug("BROKER::getLastOperation");
 		GetLastServiceBindingOperationResponse resp = GetLastServiceBindingOperationResponse.builder()
 				.build();
-		
-		return null;
+		return Mono.just(resp);
 	}
 
 	@Override
 	public Mono<DeleteServiceInstanceBindingResponse> deleteServiceInstanceBinding(
 			DeleteServiceInstanceBindingRequest request) {
-		
+		LOGGER.debug("BROKER::deleteServiceInstanceBinding");
 		DeleteServiceInstanceBindingResponse resp = DeleteServiceInstanceBindingResponse.builder()
 				.build();
-		
-		return null;
+		return Mono.just(resp);
 	}
 }

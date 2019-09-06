@@ -12,6 +12,7 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.cloud.servicebroker.model.instance.OperationState;
 
 import com.orange.oss.matomocfservice.api.model.OpCode;
@@ -34,6 +35,8 @@ public class PMatomoInstance {
 	private final static int LENGTH_OPCODE = 8;
 	private final static int LENGTH_OPSTATE = 12;
 	private final static int LENGTH_INSTVERS = 8;
+	private final static int LENGTH_PASSWORD = 16;
+	private final static int LENGTH_TOKENAUTH = 48;
 	private final static int LENGTH_INSTINITFILE = 4096;
 	@Id
 	@Column(length = LENGTH_ID)
@@ -69,6 +72,12 @@ public class PMatomoInstance {
 	@Column(length = LENGTH_INSTVERS)
 	private String installedVersion;
 	
+	@Column(length = LENGTH_PASSWORD)
+	private String password;
+	
+	@Column(length = LENGTH_TOKENAUTH)
+	private String tokenAuth;
+	
 	@Column(length = LENGTH_INSTINITFILE)
 	private byte[] configFileContent;
 	
@@ -89,6 +98,8 @@ public class PMatomoInstance {
 		this.planId = null;
 		this.platform = null;
 		this.installedVersion = null;
+		this.password = null;
+		this.tokenAuth = null;
 		this.configFileContent = null;
 	}
 
@@ -106,6 +117,8 @@ public class PMatomoInstance {
 		this.lastOperation = OpCode.CREATE.toString();
 		this.lastOperationState = OperationState.IN_PROGRESS.getValue();
 		this.installedVersion = version;
+		this.password = RandomStringUtils.randomAlphanumeric(LENGTH_PASSWORD);
+		this.tokenAuth = null;
 		this.configFileContent = null;
 	}
 
@@ -198,5 +211,17 @@ public class PMatomoInstance {
 
 	public String getInstalledVersion() {
 		return this.installedVersion;
+	}
+
+	public String getPassword() {
+		return this.password;
+	}
+
+	public void setTokenAuth(String ta) {
+		this.tokenAuth = ta;
+	}
+
+	public String getTokenAuth() {
+		return this.tokenAuth;
 	}
 }

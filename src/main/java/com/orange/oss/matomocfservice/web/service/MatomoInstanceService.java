@@ -3,15 +3,21 @@
  */
 package com.orange.oss.matomocfservice.web.service;
 
+import java.io.UnsupportedEncodingException;
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale.LanguageRange;
 import java.util.Optional;
 
 import javax.persistence.EntityExistsException;
 import javax.persistence.EntityNotFoundException;
+import javax.xml.bind.DatatypeConverter;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -19,8 +25,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.servicebroker.model.instance.OperationState;
+import org.springframework.http.CacheControl;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
@@ -46,6 +59,7 @@ import reactor.core.scheduler.Schedulers;
 @Service
 public class MatomoInstanceService {
 	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+	private final String MATOMOINSTANCE_ROOTUSER = "admin";
 	@Autowired
 	private PPlatformRepository pfRepo;
 	@Autowired
@@ -102,13 +116,14 @@ public class MatomoInstanceService {
 			cfMgr.deployMatomoCfAppBindToGlobalSharedDb(pmi.getIdUrlStr(), instversion, pmi.getId())
 			.doOnError(t -> {
 				LOGGER.debug("Async create app instance (phase 1) \"" + pmi.getId() + "\" failed -> " + t.getMessage());
+				t.printStackTrace();
 				pmi.setLastOperation(OpCode.CREATE);
 				pmi.setLastOperationState(OperationState.FAILED);
 				savePMatomoInstance(pmi);
 			})
 			.doOnSuccess(vv -> {
 				LOGGER.debug("Async create app instance (phase 1) \"" + pmi.getId() + "\" succeeded");
-				initializeMatomoInstance(pmi.getIdUrlStr(), pmi.getId());
+				initializeMatomoInstance(pmi.getIdUrlStr(), pmi.getId(), pmi.getPassword());
 				cfMgr.getInstanceConfigFile(pmi.getIdUrlStr(), instversion)
 				.doOnError(t -> {})
 				.doOnSuccess(ach -> {
@@ -122,6 +137,7 @@ public class MatomoInstanceService {
 					})
 					.doOnSuccess(vvv -> {
 						LOGGER.debug("Async create app instance (phase 2) \"" + pmi.getId() + "\" succeeded");
+						pmi.setTokenAuth(getApiAccessToken(pmi.getIdUrlStr(), pmi.getId(), pmi.getPassword()));
 						pmi.setLastOperation(OpCode.CREATE);
 						pmi.setLastOperationState(OperationState.SUCCEEDED);
 						savePMatomoInstance(pmi);
@@ -302,7 +318,7 @@ public class MatomoInstanceService {
 		}
 	}
 
-	private void initializeMatomoInstance(String appcode, String nuri) {
+	private void initializeMatomoInstance(String appcode, String nuri, String pwd) {
 		LOGGER.debug("SERV::initializeMatomoInstance: appCode={}", appcode);
 		RestTemplate restTemplate = new RestTemplate();
 		try {
@@ -332,9 +348,9 @@ public class MatomoInstanceService {
 			res = restTemplate.getForObject(calluri = URI.create(uri.toString() + "/index.php?action=setupSuperUser&module=Installation"), String.class);
 			LOGGER.debug("After GET on <{}>", calluri.toString());
 			mbb = new MultipartBodyBuilder();
-			mbb.part("login", "piwik");
-			mbb.part("password", "piwikpw");
-			mbb.part("password_bis", "piwikpw");
+			mbb.part("login", MATOMOINSTANCE_ROOTUSER);
+			mbb.part("password", pwd);
+			mbb.part("password_bis", pwd);
 			mbb.part("email", "piwik@orange.com");
 			mbb.part("subscribe_newsletter_piwikorg", "0");
 			mbb.part("subscribe_newsletter_professionalservices", "0");
@@ -369,16 +385,52 @@ public class MatomoInstanceService {
 			LOGGER.debug("After POST on <{}>", calluri.toString());
 			res = restTemplate.getForObject(calluri = uri, String.class);
 			LOGGER.debug("After GET on <{}>", calluri.toString());
-		} catch (RestClientException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		} catch (URISyntaxException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 
+	/**
+	 * 
+	 * @param appcode	Service instance internal app code
+	 * @param instid	GUID for the service instance
+	 * @param pwd		Password for instance admin
+	 * @return	The token to enable API access to this Matomo instance
+	 */
+	private String getApiAccessToken(String appcode, String instid, String pwd) {
+		String ta = null;
+		LOGGER.debug("SERV::initializeApiAccess: appCode={}, instId={}, pwd={}", appcode, instid, pwd);
+		try {
+			RestTemplate restTemplate = new RestTemplate();
+			URI uri = new URI("https://" + instid + "." + properties.getDomain()), calluri;
+			MultipartBodyBuilder mbb = new MultipartBodyBuilder();
+			mbb.part("module", "API");
+			mbb.part("method", "UsersManager.getTokenAuth");
+			mbb.part("userLogin", MATOMOINSTANCE_ROOTUSER);
+			mbb.part("md5Password",
+					DatatypeConverter.printHexBinary(MessageDigest.getInstance("MD5").digest(pwd.getBytes("UTF-8"))));
+			String res = restTemplate.postForObject(calluri = URI.create(uri.toString() + "/index.php"),
+					mbb.build(),
+					String.class);
+			LOGGER.debug("After POST on <{}>", calluri.toString());
+			Document d = Jsoup.parse(res);
+			ta = d.getElementsByTag("result").first().text();
+			LOGGER.debug("Token_auth=" + ta);
+		} catch (URISyntaxException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return ta;
+	}
+
 	private void deleteAssociatedDbSchema(String appcode) {
-		LOGGER.debug("SERV::initializeMatomoInstance: appCode={}", appcode);
+		LOGGER.debug("SERV::deleteAssociatedDbSchema: appCode={}", appcode);
 	}
 }
