@@ -23,7 +23,7 @@ import com.orange.oss.matomocfservice.api.model.MatomoInstance;
 import com.orange.oss.matomocfservice.api.model.OpCode;
 import com.orange.oss.matomocfservice.api.model.PlatformKind;
 import com.orange.oss.matomocfservice.web.service.MatomoInstanceService;
-import com.orange.oss.matomocfservice.web.service.MatomoInstanceService.OperationAndState;
+import com.orange.oss.matomocfservice.web.service.OperationStatusService.OperationAndState;
 
 import reactor.core.publisher.Mono;
 
@@ -77,9 +77,8 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 
 	@Override
 	public Mono<GetLastServiceOperationResponse> getLastOperation(GetLastServiceOperationRequest request) {
-		LOGGER.debug("BROKER::getServiceInstance: platformId={}, instanceId={}", request.getPlatformInstanceId(), request.getServiceInstanceId());
-		OperationAndState opandstate = new OperationAndState();
-		miServ.fillLastOperationAndState(request.getPlatformInstanceId(), request.getServiceInstanceId(), opandstate);
+		LOGGER.debug("BROKER::getLastOperation: platformId={}, instanceId={}", request.getPlatformInstanceId(), request.getServiceInstanceId());
+		OperationAndState opandstate = miServ.getLastOperationAndState(request.getPlatformInstanceId(), request.getServiceInstanceId());
 		GetLastServiceOperationResponse resp = GetLastServiceOperationResponse.builder()
 				.deleteOperation(opandstate.getOperation().equals(OpCode.DELETE))
 				.operationState(opandstate.getState())
@@ -103,16 +102,11 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 	@Override
 	public Mono<DeleteServiceInstanceResponse> deleteServiceInstance(DeleteServiceInstanceRequest request) {
 		LOGGER.debug("BROKER::deleteServiceInstance: platformId={}, instanceId={}", request.getPlatformInstanceId(), request.getServiceInstanceId());
-		Mono<DeleteServiceInstanceResponse> resp;
-		try {
-			miServ.deleteMatomoInstance(request.getPlatformInstanceId(), request.getServiceInstanceId());
-			resp = Mono.just(DeleteServiceInstanceResponse.builder()
-					.async(true)
-					.build());
-		} catch (Exception e) {
-			resp = Mono.error(e);
-		}
-		return resp;
+		String error = miServ.deleteMatomoInstance(request.getPlatformInstanceId(), request.getServiceInstanceId());
+		return Mono.just(DeleteServiceInstanceResponse.builder()
+				.async(true)
+				.operation(error == null ? "Deleting Matomo service instance" : error)
+				.build());
 	}
 
 	@Override

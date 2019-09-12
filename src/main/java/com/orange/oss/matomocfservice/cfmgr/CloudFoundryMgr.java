@@ -7,15 +7,21 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
+import java.util.Map;
+
+import javax.xml.ws.Holder;
 
 import org.cloudfoundry.client.v2.info.GetInfoRequest;
 import org.cloudfoundry.operations.CloudFoundryOperations;
 import org.cloudfoundry.operations.applications.ApplicationManifest;
 import org.cloudfoundry.operations.applications.DeleteApplicationRequest;
+import org.cloudfoundry.operations.applications.GetApplicationEnvironmentsRequest;
 import org.cloudfoundry.operations.applications.GetApplicationRequest;
 import org.cloudfoundry.operations.applications.PushApplicationManifestRequest;
 import org.cloudfoundry.operations.services.GetServiceInstanceRequest;
 import org.cloudfoundry.operations.services.ServiceInstance;
+import org.cloudfoundry.operations.services.UnbindServiceInstanceRequest;
 import org.cloudfoundry.reactor.client.ReactorCloudFoundryClient;
 import org.cloudfoundry.operations.services.CreateServiceInstanceRequest;
 import org.slf4j.Logger;
@@ -24,9 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import net.schmizz.sshj.SSHClient;
-import net.schmizz.sshj.transport.TransportException;
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
-import net.schmizz.sshj.userauth.UserAuthException;
 import net.schmizz.sshj.xfer.FileSystemFile;
 import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.Mono;
@@ -129,6 +133,20 @@ public class CloudFoundryMgr {
 						.build());
 	}
 
+	public Mono<Map<String, Object>> getApplicationEnv(String instid) {
+		LOGGER.debug("CFMGR::getApplicationEnv: instId={}", instid);
+		return Mono.create(sink -> {
+			cfops.applications().getEnvironments(GetApplicationEnvironmentsRequest.builder()
+					.name(getAppName(instid))
+					.build())
+			.doOnError(t -> {sink.error(t);})
+			.doOnSuccess(envs -> {
+				LOGGER.debug("ENVS: " + envs.toString());
+				sink.success(envs.getSystemProvided());
+			}).subscribe();
+		});
+	}
+
 	private String getHost(String instid, String expohost) {
 		return instid.equals(expohost) ? getAppUrlPrefix(expohost) : expohost;
 	}
@@ -144,11 +162,20 @@ public class CloudFoundryMgr {
 	 */
 	public Mono<Void> deleteMatomoCfAppBindToGlobalSharedDb(String instid) {
 		LOGGER.debug("CFMGR::deleteMatomoCfAppBindToGlobalSharedDb: instId={}", instid);
-		return cfops.applications().delete(
-				DeleteApplicationRequest.builder()
-				.deleteRoutes(true)
-				.name(getAppName(instid))
-				.build());
+		return cfops.services().unbind(UnbindServiceInstanceRequest.builder()
+				.serviceInstanceName(GLOBSHARDBINSTNAME)
+				.applicationName(getAppName(instid))
+				.build()).doOnSuccess(v -> {
+					cfops.applications().delete(DeleteApplicationRequest.builder()
+							.deleteRoutes(true)
+							.name(getAppName(instid))
+							.build()).subscribe();
+				});
+//		return cfops.applications().delete(
+//				DeleteApplicationRequest.builder()
+//				.deleteRoutes(true)
+//				.name(getAppName(instid))
+//				.build());
 	}
 
 	public Mono<AppConfHolder> getInstanceConfigFile(String instid, String version) {
@@ -163,6 +190,7 @@ public class CloudFoundryMgr {
 				.doOnError(t -> {sink.error(t);})
 				.doOnSuccess(pwd -> {
 					LOGGER.debug("CFMGR::getInstanceConfigFile: user={}, pwd={}", "cf:" + appidh.appId + "/0", pwd);
+					@SuppressWarnings("resource")
 					SSHClient ssh = new SSHClient();
 					ssh.addHostKeyVerifier(new PromiscuousVerifier());
 					try {
@@ -174,14 +202,12 @@ public class CloudFoundryMgr {
 						appidh.fileContent = Files.readAllBytes(Paths.get(target + "config.ini.php"));
 						sink.success(appidh);
 					} catch (Exception e) {
-						e.printStackTrace();
 						sink.error(e);
 					} finally {
 						try {
 							ssh.disconnect();
 						} catch (IOException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
+							sink.error(e);
 						}
 					}
 				})
@@ -189,6 +215,17 @@ public class CloudFoundryMgr {
 			})
 			.subscribe();
 		});
+	}
+
+	public List<String> getAppRoutes(String appid) {
+		LOGGER.debug("CFMGR::getAppRoutes: appid={}", appid);
+		Holder<List<String>> hres = new Holder<List<String>>();
+		cfops.applications().get(GetApplicationRequest.builder().name(appid).build())
+		.doOnError(t -> {})
+		.doOnSuccess(appinfo -> {
+			hres.value = appinfo.getUrls();
+		}).block();
+		return hres.value;
 	}
 
 	public class AppConfHolder {
@@ -201,7 +238,6 @@ public class CloudFoundryMgr {
 			try {
 				osub.wait();
 			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}		    	
