@@ -23,8 +23,8 @@ public class PBinding extends POperationStatus {
 	private final static int LENGTH_SITENAME = 128;
 	private final static int LENGTH_SITEURL = 1024;
 	private final static int LENGTH_ADMINEMAIL = 256;
-	private final static int LENGTH_USERNAME = 12;
-	private final static int LENGTH_PASSWORD = 12;
+	private final static int LENGTH_USERNAME = 16;
+	private final static int LENGTH_PASSWORD = 16;
 
 	@ManyToOne
 	private final PMatomoInstance pmatomoInstance;

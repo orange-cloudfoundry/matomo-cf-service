@@ -65,7 +65,8 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 				.platformKind(pfkind)
 				.platformApiLocation(request.getApiInfoLocation())
 				.planId(request.getPlanId())
-				.platformId(request.getPlatformInstanceId()));
+				.platformId(request.getPlatformInstanceId()),
+				request.getParameters());
 		CreateServiceInstanceResponse resp = CreateServiceInstanceResponse.builder()
 				.async(true)
 				.dashboardUrl(mi.getDashboardUrl())

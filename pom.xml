@@ -312,7 +312,7 @@
                         <configuration>
          					<target>
                					<exec executable="bash">
-              						<arg value="src/main/tools/piwik2cf.sh" />
+              						<arg value="src/main/tools/scanrel.sh" />
              						<!--arg value="inputOne" /-->
 								</exec>
 							</target>

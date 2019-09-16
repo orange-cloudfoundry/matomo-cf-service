@@ -47,6 +47,7 @@ import com.orange.oss.matomocfservice.web.repository.PMatomoInstanceRepository;
 @Service
 public class MatomoInstanceService extends OperationStatusService {
 	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+	private final String PARAM_VERSION = "matomoVersion";
 	private final String MATOMOINSTANCE_ROOTUSER = "admin";
 	@Autowired
 	private PMatomoInstanceRepository miRepo;
@@ -74,9 +75,9 @@ public class MatomoInstanceService extends OperationStatusService {
 	}
 
 	@SuppressWarnings("unchecked")
-	public MatomoInstance createMatomoInstance(MatomoInstance matomoInstance) {
+	public MatomoInstance createMatomoInstance(MatomoInstance matomoInstance, Map<String, Object> parameters) {
 		LOGGER.debug("SERV::createMatomoInstance: matomoInstance={}", matomoInstance.toString());
-		String instversion = matomoReleases.getDefaultReleaseName();
+		String instversion = getVersion(parameters);
 		PPlatform ppf = getPPlatform(matomoInstance.getPlatformId());
 		for (PMatomoInstance pmi : miRepo.findByPlatformAndLastOperation(ppf, OpCode.DELETE.toString())) {
 			if (pmi.getId().equals(matomoInstance.getUuid())) {
@@ -275,6 +276,18 @@ public class MatomoInstanceService extends OperationStatusService {
 		MatomoInstance mi = toApiModel(pmi);
 		miRepo.save(pmi);
 		return mi;
+	}
+
+	private String getVersion(Map<String, Object> parameters) {
+		String instversion = (String) parameters.get(PARAM_VERSION);
+		if (instversion == null) {
+			instversion = matomoReleases.getDefaultReleaseName();
+		} else {
+			if (! matomoReleases.isVersionAvailable(instversion)) {
+				throw new RuntimeException("Matomo version " + instversion + " is not available with the deployed service.");
+			}
+		}
+		return instversion;
 	}
 
 	private void initializeMatomoInstance(String appcode, String nuri, String pwd, String sname) {

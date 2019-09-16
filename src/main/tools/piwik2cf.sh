@@ -50,6 +50,7 @@ export YELLOW='\033[0;33m'
 
 GENERATE_DIR=`dirname $0`
 LPWD=`pwd`
+mkdir -p ${GENERATE_DIR}/../../../target/classes/static/matomo-releases
 cd ${GENERATE_DIR}/../../../target/classes/static/matomo-releases
 export GENERATE_DIR=`pwd`
 cd ${LPWD}
@@ -57,11 +58,13 @@ TMPDIR=${GENERATE_DIR}/tmp
 rm -rf ${TMPDIR}
 mkdir -p ${TMPDIR}
 SOURCEDIR=${TMPDIR}/matomo
-PIWIKVERSION=latest
+if [ -z ${PIWIKVERSION+x} ]; then
+	PIWIKVERSION=latest
+fi
 
 if [ -e ${GENERATE_DIR}/${PIWIKVERSION} ]; then
 	if [ -z ${FORCE+x} ]; then
-		echo "Matomo version ${PIWIKVERSION} has already been prepared: skip"
+		echo -e "	${RED}Matomo version ${PIWIKVERSION} has already been prepared: skip${NOCOL}"
 		rm -rf ${TMPDIR}
 		exit 0
 	fi
@@ -71,10 +74,10 @@ fi
 # Fetch PIWIK from Internet and adapt it to CF
 if [ -z ${PIWIKVERSION+x} ]; then
 	SOURCEURL="https://builds.matomo.org/matomo.zip"
-	echo -e "${YELLOW}Fetch latest Matomo release from Internet and adapt it to CF${NOCOL}"
+	echo -e "	- ${YELLOW}Fetch latest Matomo release from Internet${NOCOL}"
 else
 	SOURCEURL="https://builds.matomo.org/matomo-${PIWIKVERSION}.zip"
-	echo -e "${YELLOW}Fetch Matomo release ${PIWIKVERSION} from Internet and adapt it to CF${NOCOL}"
+	echo -e "	- ${YELLOW}Fetch Matomo release ${PIWIKVERSION} from Internet${NOCOL}"
 fi
 
 curl ${SOURCEURL} >${TMPDIR}/piwik.zip
@@ -84,6 +87,7 @@ if [ "`grep "404 Not Found" ${TMPDIR}/piwik.zip`" == "<title>404 Not Found</titl
 	rm -rf ${TMPDIR}
 	exit 0
 fi
+	echo -e "	- ${YELLOW}Unzip Matomo package${NOCOL}"
 unzip -d ${TMPDIR} ${TMPDIR}/piwik.zip >/dev/null
 rm ${TMPDIR}/piwik.zip
 if [ ${PIWIKVERSION} = "latest" ]; then
@@ -105,6 +109,7 @@ VMIN=`echo ${PIWIKVERSION} | awk -F '.' '{print $2}'`
 rm ${SOURCEDIR}/composer.json
 rm ${SOURCEDIR}/composer.lock
 
+echo -e "	- ${YELLOW}Adapt it to CloudFoundry${NOCOL}"
 # Create bootstrap.php file
 echo "<?php
   \$_ENV[\"SQLDB\"] = NULL;
@@ -231,6 +236,7 @@ extension=pdo_mysql.so
 extension=mbstring.so
 " >${SOURCEDIR}/.bp-config/php/php.ini.d/matomo.ini
 (cd ${SOURCEDIR}; cp -r . ${RELEASEDIR} >/dev/null)
+echo -e "	- ${YELLOW}Update supported versions${NOCOL}"
 if [ $LATEST -eq 1 ] ; then
 	(cd ${GENERATE_DIR}; ln -s ${PIWIKVERSION} latest)
 fi
@@ -243,9 +249,11 @@ addVersion()
 	if [ $1 = "." ] ; then
 		return
 	fi
+	VERSFROMDIR=`echo $1 | sed -e "s/^\.\///"`
 	echo -n $SEP >>${GENERATE_DIR}/Versions
-	echo -n $1 | sed -e "s/^\.\///" >>${GENERATE_DIR}/Versions
-	echo $1 | sed -e "s/^\.\///" >>${GENERATE_DIR}/VersionsCR
+	echo -n $VERSFROMDIR >>${GENERATE_DIR}/Versions
+	echo $VERSFROMDIR >>${GENERATE_DIR}/VersionsCR
 	SEP=";"
 }
 (cd ${GENERATE_DIR}; find . -maxdepth 1 -type d | while read dir; do addVersion "$dir"; done)
+echo -e "	${GREEN}DONE${NOCOL}"

@@ -96,6 +96,16 @@ public class MatomoReleases {
 		return defaultRel;
 	}
 
+	public boolean isVersionAvailable(String instversion) {
+		LOGGER.debug("CFMGR::isVersionAvailable: version={}", instversion);
+		for (MatomoReleaseSpec relsp : releases) {
+			if (relsp.getName().equals(instversion)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	public String getVersionPath(String version, String instId) {
 		return tempDir.toString() + File.separator + instId + "-" + version;
 	}
