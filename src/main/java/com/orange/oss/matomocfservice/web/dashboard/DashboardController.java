@@ -28,7 +28,7 @@ public class DashboardController {
     public String index(Model model) {
 		LOGGER.debug("DASHBOARD::index");
 		model.addAttribute("defRelease", matomoReleases.getDefaultReleaseName());
-		model.addAttribute("releases", matomoReleases.getReleaseList(false));
+		model.addAttribute("releases", matomoReleases.getReleaseList());
         return "index";
     }
 

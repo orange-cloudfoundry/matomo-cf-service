@@ -41,7 +41,7 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 	public Mono<CreateServiceInstanceResponse> createServiceInstance(CreateServiceInstanceRequest request) {
 		LOGGER.debug("BROKER::createServiceInstance: platformId={} / serviceId={}", request.getPlatformInstanceId(), request.getServiceInstanceId());
 //		LOGGER.debug("BROKER::   request=" + request.toString());
-//		LOGGER.debug("BROKER::   platform={}", request.getContext().getPlatform());
+		LOGGER.debug("BROKER::   platform={}", request.getContext().getPlatform());
 		PlatformKind pfkind;
 		String instn, tid, stid;
 		switch (request.getContext().getPlatform()) {

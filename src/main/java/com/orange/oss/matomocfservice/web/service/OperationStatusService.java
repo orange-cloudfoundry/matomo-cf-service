@@ -36,12 +36,15 @@ public abstract class OperationStatusService {
 		PPlatform ppf = getPPlatform(platformId);
 		Optional<POperationStatus> opms = osRepo.findById(instanceId);
 		if (! opms.isPresent()) {
+			LOGGER.error("SERV::getLastOperationAndState: unknow service instance.");
 			throw new EntityNotFoundException("Matomo Instance with ID=" + instanceId + " not known in Platform with ID=" + platformId);
 		}
 		POperationStatus pos = opms.get();
 		if (pos.getPlatform() != ppf) {
+			LOGGER.error("SERV::getLastOperationAndState: wrong platform.");
 			throw new IllegalArgumentException("Wrong platform with ID=" + platformId + " for Service Instance with ID=" + instanceId);
 		}
+		LOGGER.debug("SERV::getLastOperationAndState: Operation={} State={}", pos.getLastOperation().toString(), pos.getLastOperationState().toString());
 		OperationAndState opandst2fill = new OperationAndState();
 		opandst2fill.setOperation(pos.getLastOperation());
 		opandst2fill.setState(pos.getLastOperationState());
@@ -87,11 +90,13 @@ public abstract class OperationStatusService {
 	}
 
 	protected PPlatform getPPlatform(String platformId) {
+		LOGGER.debug("SERV::getPPlatform: platformId={}", platformId);
 		String id = platformId == null ? platformService.getUnknownPlatformId() : platformId;
 		Optional<PPlatform> oppf = pfRepo.findById(id);
 		if (oppf.isPresent()) {
 			return oppf.get();
 		}
+		LOGGER.error("SERV::getPPlatform: wrong platform.");
 		throw new EntityNotFoundException("Platform with ID=" + id + " not known");
 	}
 }

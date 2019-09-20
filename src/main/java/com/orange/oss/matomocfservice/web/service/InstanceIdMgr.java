@@ -65,7 +65,7 @@ public class InstanceIdMgr {
 				}
 			}
 			if (pii == null) {
-				freePiis = piiRepo.findByAllocatedAndIdGreaterThan(false, 0);
+				freePiis = piiRepo.findByAllocatedAndIdGreaterThan(false, -1);
 				for (PInstanceId spii : freePiis) {
 					if (!spii.isAllocated()) {
 						pii = spii;

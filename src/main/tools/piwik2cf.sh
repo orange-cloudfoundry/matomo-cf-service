@@ -242,7 +242,6 @@ if [ $LATEST -eq 1 ] ; then
 fi
 rm -rf ${TMPDIR}
 echo -n >${GENERATE_DIR}/Versions
-echo -n >${GENERATE_DIR}/VersionsCR
 SEP=""
 addVersion()
 {
@@ -252,7 +251,6 @@ addVersion()
 	VERSFROMDIR=`echo $1 | sed -e "s/^\.\///"`
 	echo -n $SEP >>${GENERATE_DIR}/Versions
 	echo -n $VERSFROMDIR >>${GENERATE_DIR}/Versions
-	echo $VERSFROMDIR >>${GENERATE_DIR}/VersionsCR
 	SEP=";"
 }
 (cd ${GENERATE_DIR}; find . -maxdepth 1 -type d | while read dir; do addVersion "$dir"; done)

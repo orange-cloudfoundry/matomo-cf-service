@@ -4,12 +4,15 @@
 package com.orange.oss.matomocfservice.cfmgr;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
+import java.nio.file.CopyOption;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.Assert;
 
 import com.orange.oss.matomocfservice.config.ApplicationConfiguration;
 
@@ -28,12 +32,12 @@ import com.orange.oss.matomocfservice.config.ApplicationConfiguration;
 @Service
 public class MatomoReleases {
 	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
-	private String defaultRel;
+	private final static String RELEASEPATH = "/home/vcap/app/BOOT-INF/classes/static/matomo-releases";
+	private final static String VERSIONSFILE = File.separator + "Versions";
+	private final static String DEFVERSIONFILE = File.separator + "DefaultVersion";
 	private Path tempDir;
-	private List<MatomoReleaseSpec> releases = new ArrayList<MatomoReleaseSpec>();
-	private static final String RELEASEPATH = "/home/vcap/app/BOOT-INF/classes/static/matomo-releases";
-	private static final String VERSIONSFILE = File.separator + "Versions";
-	private static final String DEFVERSIONFILE = File.separator + "DefaultVersion";
+	private String defaultRel;
+	private List<MatomoReleaseSpec> releases;
 	@Autowired
 	ApplicationConfiguration applicationConfiguration;
 
@@ -42,7 +46,7 @@ public class MatomoReleases {
 		try {
 			this.defaultRel = null;
 			this.tempDir = Files.createTempDirectory("matomo");
-			LOGGER.debug("CFMGR::MatomoReleases: initialize - tempDir={}", tempDir.toString());
+			LOGGER.debug("CFMGR::MatomoReleases: initialize - tempDir={}", this.tempDir.toString());
 			File fsshd = new File("/home/vcap/.ssh");
 			if (!fsshd.exists()) {
 				fsshd.mkdir();
@@ -56,24 +60,9 @@ public class MatomoReleases {
 				fkh.setReadable(true, true);
 				fkh.setWritable(true, true);
 			}
-		} catch (IOException e) {
-			LOGGER.error("CFMGR::MatomoReleases: cannot create matomo temporary directory -> " + e.getMessage());
-		}
-		getReleaseList(true);
-	}
-
-	public List<MatomoReleaseSpec> getReleaseList(boolean forcereload) {
-		LOGGER.debug("CFMGR::getReleaseList: forcedload=" + Boolean.toString(forcereload));
-		try {
-			if (forcereload) {
-				this.defaultRel = null;
-				this.releases = new ArrayList<MatomoReleaseSpec>();
-			}
-			if (this.defaultRel != null) {
-				return this.releases;
-			}
-			defaultRel = new String(Files.readAllBytes(Paths.get(RELEASEPATH + DEFVERSIONFILE)));
-			LOGGER.debug("CFMGR::getReleaseList: defaultVersion=" + defaultRel);
+			this.defaultRel = new String(Files.readAllBytes(Paths.get(RELEASEPATH + DEFVERSIONFILE)));
+			this.releases = new ArrayList<MatomoReleaseSpec>();
+			LOGGER.debug("CFMGR::getReleaseList: defaultVersion=" + this.defaultRel);
 			this.releases.add(new MatomoReleaseSpec(defaultRel).defaultRel());
 			String versions = new String(Files.readAllBytes(Paths.get(RELEASEPATH + VERSIONSFILE)));
 			LOGGER.debug("CFMGR::getReleaseList: versions=" + versions);
@@ -83,22 +72,27 @@ public class MatomoReleases {
 				}
 			}
 		} catch (IOException e) {
-			// TODO
-			LOGGER.debug("CFMGR::getReleaseList: problem while retrieving Matomo versions from release service -> " + e.getMessage());
+			LOGGER.error("CFMGR::MatomoReleases: initialize: problem while manipulating files within service container -> " + e.getMessage());
 			e.printStackTrace();
+			throw new RuntimeException("Cannot read versions file from the service bundle or create temp dir.");
 		}
-		return this.releases;
 	}
 
 	public String getDefaultReleaseName() {
 		LOGGER.debug("CFMGR::getDefaultReleaseName");
-		// defaultRel should not be null here
-		return defaultRel;
+		return this.defaultRel;
+	}
+
+	public List<MatomoReleaseSpec> getReleaseList() {
+		LOGGER.debug("CFMGR::getReleaseList");
+		return this.releases;
 	}
 
 	public boolean isVersionAvailable(String instversion) {
+		Assert.notNull(instversion, "a version should be defined");
 		LOGGER.debug("CFMGR::isVersionAvailable: version={}", instversion);
-		for (MatomoReleaseSpec relsp : releases) {
+		for (MatomoReleaseSpec relsp : this.releases) {
+			LOGGER.debug("CFMGR::isVersionAvailable: available version={}", relsp.getName());
 			if (relsp.getName().equals(instversion)) {
 				return true;
 			}
@@ -107,29 +101,92 @@ public class MatomoReleases {
 	}
 
 	public String getVersionPath(String version, String instId) {
-		return tempDir.toString() + File.separator + instId + "-" + version;
+		if (version == null) {
+			File [] files = new File(this.tempDir.toString()).listFiles(new FilenameFilter() {
+				@Override
+				public boolean accept(File dir, String name) {
+					return name.startsWith(instId);
+				}
+			});
+			if (files.length != 1) {
+				return null;
+			}
+			if (!files[0].isDirectory()) {
+				return null;
+			}
+			return files[0].getAbsolutePath();
+		}
+		return this.tempDir.toString() + File.separator + instId + "-" + version;
 	}
 
 	public void setConfigIni(String instId, String version, byte filecontent[]) {
-		LOGGER.debug("CFMGR::setConfigIni: version={}, instId={}", version, instId);
+		LOGGER.debug("CFMGR:: setConfigIni: version={}, instId={}", version, instId);
 		try {
 			Files.write(Paths.get(getVersionPath(version, instId) + "/config/config.ini.php"), filecontent);
 		} catch (IOException e) {
+			LOGGER.error("CFMGR::MatomoReleases: setConfigIni: problem while manipulating files within service container -> " + e.getMessage());
 			e.printStackTrace();
 			throw new RuntimeException("IO pb in CFMGR::setConfigIni", e);
 		}
 	}
 
-	public void activateVersionPath(String instId, String version) {
-		LOGGER.debug("CFMGR::activateVersionPath: version={}, instId={}", version, instId);
+	public void createLinkedTree(String instId, String version) {
+		LOGGER.debug("CFMGR::createLinkedTree: version={}, instId={}", version, instId);
 		String versdir = RELEASEPATH + File.separator + version;
 		String instdir = getVersionPath(version, instId);
 		try {
 			// create a copy of the version dir for the instance
-			createLinkedDir(versdir, instdir);
+			if (new File(instdir).exists()) {
+				return;
+			}
+			Path sourcePath = Paths.get(versdir);
+			Path targetPath = Paths.get(instdir);
+			Files.walkFileTree(sourcePath, new SimpleFileVisitor<Path>() {
+				@Override
+				public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attrs)
+						throws IOException {
+					Files.createDirectories(targetPath.resolve(sourcePath.relativize(dir)));
+					return FileVisitResult.CONTINUE;
+				}
+				@Override
+				public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
+					CopyOption[] options = new CopyOption[]{
+						      StandardCopyOption.REPLACE_EXISTING,
+						      StandardCopyOption.COPY_ATTRIBUTES
+						    };
+					Files.copy(file, targetPath.resolve(sourcePath.relativize(file)), options);
+//					Files.createLink(targetPath.resolve(sourcePath.relativize(file)), file);
+					return FileVisitResult.CONTINUE;
+				}
+			});
 		} catch (IOException e) {
-			throw new RuntimeException("IO pb in CFMGR::getVersionPath", e);
-		}		
+			LOGGER.error("CFMGR::MatomoReleases: createLinkedTree: problem while manipulating files within service container.", e);
+			throw new RuntimeException("IO pb in CFMGR::createLinkedTree", e);
+		}
+	}
+
+	public void deleteLinkedTree(String instId) {
+		LOGGER.debug("CFMGR::deleteLinkedTree: instId={}", instId);
+		String vpath = getVersionPath(null, instId);
+		Path sourcePath = Paths.get(vpath);
+		try {
+			Files.walkFileTree(sourcePath, new SimpleFileVisitor<Path>() {
+				@Override
+				public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
+					new File(file.toString()).delete();
+					return FileVisitResult.CONTINUE;
+				}
+				@Override
+				public FileVisitResult postVisitDirectory(final Path dir, final IOException exc) throws IOException {
+					new File(dir.toString()).delete();
+					return FileVisitResult.CONTINUE;
+				}
+			});
+		} catch (IOException e) {
+			LOGGER.error("CFMGR::MatomoReleases: deleteLinkedTree: problem while manipulating files within service container.", e);
+			throw new RuntimeException("IO pb in CFMGR::deleteLinkedTree", e);
+		}
+		new File(vpath).delete();
 	}
 
 	public class MatomoReleaseSpec {
@@ -152,27 +209,5 @@ public class MatomoReleases {
 			isDefault = true;
 			return this;
 		}
-	}
-
-	private void createLinkedDir(String sourcedir, String targetdir) throws IOException {
-		if (new File(targetdir).exists()) {
-			return;
-		}
-		Path sourcePath = Paths.get(sourcedir);
-		Path targetPath = Paths.get(targetdir);
-		Files.walkFileTree(sourcePath, new SimpleFileVisitor<Path>() {
-			@Override
-			public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attrs)
-					throws IOException {
-				Files.createDirectories(targetPath.resolve(sourcePath.relativize(dir)));
-				return FileVisitResult.CONTINUE;
-			}
-
-			@Override
-			public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
-				Files.createLink(targetPath.resolve(sourcePath.relativize(file)), file);
-				return FileVisitResult.CONTINUE;
-			}
-		});
 	}
 }
