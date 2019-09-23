@@ -1,25 +1,37 @@
-/**
- * Orange File HEADER
+/*
+ * Copyright 2019 Orange and the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
 package com.orange.oss.matomocfservice.config;
 
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.servicebroker.model.catalog.Catalog;
 import org.springframework.cloud.servicebroker.model.catalog.Plan;
 import org.springframework.cloud.servicebroker.model.catalog.ServiceDefinition;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import com.orange.oss.matomocfservice.cfmgr.MatomoReleases;
-import com.orange.oss.matomocfservice.cfmgr.MatomoReleases.MatomoReleaseSpec;
+import org.springframework.context.annotation.PropertySource;
 
 /**
  * @author P. Déchamboux
  *
  */
 @Configuration
+@PropertySource(name = "MatomoServiceProperties", value = "classpath:application.yml")
 public class ServiceCatalogConfiguration {
 	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
 	public final static String PLANGLOBSHARDB_NAME = "global-shared-db";
@@ -32,6 +44,9 @@ public class ServiceCatalogConfiguration {
 	@Bean
 	public Catalog catalog() {
 		LOGGER.debug("CONFIG - retrieve OSB catalog information.");
+		JSONObject jres = new JSONObject(System.getenv("VCAP_APPLICATION"));
+		String serviceName = jres.getString("name");
+		String serviceUri = jres.getJSONArray("uris").getString(0);
 		Plan plan1 = Plan.builder()
 				.name(PLANGLOBSHARDB_NAME)
 				.id(PLANGLOBSHARDB_UUID.toString())
@@ -52,14 +67,16 @@ public class ServiceCatalogConfiguration {
 				.build();
 		ServiceDefinition serviceDefinition = ServiceDefinition.builder()
 				.id("matomo-cf-service")
-				.name("matomo")
+				.name(serviceName)
 				.description("CloudFoundry-based \"Matomo as a Service\"")
 				.bindable(true)
 				.tags("Matomo", "web analytics")
 				.plans(plan1, plan2, plan3)
 				.metadata("displayName", "Matomo")
-				.metadata("longDescription", "Matomo as a Service")
+				.metadata("longDescription", "CloudFoundry-based Matomo as a Service")
 				.metadata("providerDisplayName", "Orange")
+				.metadata("documentationUrl", "https://" + serviceUri + "/doc/index.html")
+//				.metadata("supportUrl", "")
 				.build();
 		return Catalog.builder()
 				.serviceDefinitions(serviceDefinition)

@@ -333,8 +333,8 @@
              	   </execution>
 				</executions>
 				<configuration>
-					<inputDirectory>src/main/resources/mddoc</inputDirectory>
-					<outputDirectory>target/classes/static/doc</outputDirectory>
+					<inputDirectory>src/main/doc</inputDirectory>
+					<outputDirectory>target/classes/static</outputDirectory>
 				</configuration>
 			</plugin>
 		</plugins>

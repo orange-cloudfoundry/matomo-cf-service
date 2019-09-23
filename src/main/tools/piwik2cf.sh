@@ -1,8 +1,20 @@
 #!/bin/sh
-# turn on debugging as needed
-# display executed commands
 #set -x
+# Copyright 2019 Orange and the original author or authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
+FORCE=0
 while [[ $# -gt 0 ]]
 do
 key="$1"
@@ -63,7 +75,7 @@ if [ -z ${PIWIKVERSION+x} ]; then
 fi
 
 if [ -e ${GENERATE_DIR}/${PIWIKVERSION} ]; then
-	if [ -z ${FORCE+x} ]; then
+	if [ ${FORCE} -eq 0 ]; then
 		echo -e "	${RED}Matomo version ${PIWIKVERSION} has already been prepared: skip${NOCOL}"
 		rm -rf ${TMPDIR}
 		exit 0
@@ -85,9 +97,9 @@ if [ "`grep "404 Not Found" ${TMPDIR}/piwik.zip`" == "<title>404 Not Found</titl
 	echo "Matomo version ${PIWIKVERSION} does not exist"
 	rm ${TMPDIR}/piwik.zip
 	rm -rf ${TMPDIR}
-	exit 0
+	exit 1
 fi
-	echo -e "	- ${YELLOW}Unzip Matomo package${NOCOL}"
+echo -e "	- ${YELLOW}Unzip Matomo package${NOCOL}"
 unzip -d ${TMPDIR} ${TMPDIR}/piwik.zip >/dev/null
 rm ${TMPDIR}/piwik.zip
 if [ ${PIWIKVERSION} = "latest" ]; then
@@ -102,7 +114,7 @@ else
 	LATEST=0
 fi
 RELEASEDIR=${GENERATE_DIR}/${PIWIKVERSION}
-mkdir ${RELEASEDIR}
+mkdir -p ${RELEASEDIR}
 VMIN=`echo ${PIWIKVERSION} | awk -F '.' '{print $2}'`
 
 # Remove Composer files
@@ -238,7 +250,7 @@ extension=mbstring.so
 (cd ${SOURCEDIR}; cp -r . ${RELEASEDIR} >/dev/null)
 echo -e "	- ${YELLOW}Update supported versions${NOCOL}"
 if [ $LATEST -eq 1 ] ; then
-	(cd ${GENERATE_DIR}; ln -s ${PIWIKVERSION} latest)
+	(cd ${GENERATE_DIR}; rm -f latest; ln -s ${PIWIKVERSION} latest)
 fi
 rm -rf ${TMPDIR}
 echo -n >${GENERATE_DIR}/Versions
@@ -255,3 +267,4 @@ addVersion()
 }
 (cd ${GENERATE_DIR}; find . -maxdepth 1 -type d | while read dir; do addVersion "$dir"; done)
 echo -e "	${GREEN}DONE${NOCOL}"
+exit 0
