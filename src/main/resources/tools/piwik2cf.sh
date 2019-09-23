@@ -62,8 +62,8 @@ export YELLOW='\033[0;33m'
 
 GENERATE_DIR=`dirname $0`
 LPWD=`pwd`
-mkdir -p ${GENERATE_DIR}/../../../target/classes/static/matomo-releases
-cd ${GENERATE_DIR}/../../../target/classes/static/matomo-releases
+mkdir -p ${GENERATE_DIR}/../../../../target/classes/static/matomo-releases
+cd ${GENERATE_DIR}/../../../../target/classes/static/matomo-releases
 export GENERATE_DIR=`pwd`
 cd ${LPWD}
 TMPDIR=${GENERATE_DIR}/tmp

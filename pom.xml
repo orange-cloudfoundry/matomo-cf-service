@@ -5,7 +5,7 @@
 
 	<groupId>com.orange.oss</groupId>
 	<artifactId>matomo-cf-service</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.1.0</version>
 	<name>matomo-cf-service</name>
 	<description>An implementation of "Matomo as a Service" exposed through an OSB API and relying on SpringBoot and CloudFoundry</description>
 
@@ -312,7 +312,7 @@
                         <configuration>
          					<target>
                					<exec executable="bash">
-              						<arg value="src/main/tools/scanrel.sh" />
+              						<arg value="src/main/resources/tools/scanrel.sh" />
              						<!--arg value="inputOne" /-->
 								</exec>
 							</target>
