@@ -62,8 +62,8 @@ export YELLOW='\033[0;33m'
 
 GENERATE_DIR=`dirname $0`
 LPWD=`pwd`
-mkdir -p ${GENERATE_DIR}/../../../../target/classes/static/matomo-releases
-cd ${GENERATE_DIR}/../../../../target/classes/static/matomo-releases
+mkdir -p ${GENERATE_DIR}/../../../target/classes/static/matomo-releases
+cd ${GENERATE_DIR}/../../../target/classes/static/matomo-releases
 export GENERATE_DIR=`pwd`
 cd ${LPWD}
 TMPDIR=${GENERATE_DIR}/tmp
@@ -92,7 +92,7 @@ else
 	echo -e "	- ${YELLOW}Fetch Matomo release ${PIWIKVERSION} from Internet${NOCOL}"
 fi
 
-curl ${SOURCEURL} >${TMPDIR}/piwik.zip
+curl ${SOURCEURL} >${TMPDIR}/piwik.zip 2>/dev/null
 if [ "`grep "404 Not Found" ${TMPDIR}/piwik.zip`" == "<title>404 Not Found</title>" ]; then
 	echo "Matomo version ${PIWIKVERSION} does not exist"
 	rm ${TMPDIR}/piwik.zip

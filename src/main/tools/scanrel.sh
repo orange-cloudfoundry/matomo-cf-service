@@ -20,15 +20,15 @@ export RED='\033[0;31m'
 export BLUE='\033[0;34m'
 export YELLOW='\033[0;33m'
 
-TARGETDIR=`dirname $0`/../../../../target/classes/static/matomo-releases
+TARGETDIR=`dirname $0`/../../../target/classes/static/matomo-releases
 mkdir -p ${TARGETDIR}
-if [ -f `dirname $0`/../../../../releases.txt ] ; then
-	INREL=`dirname $0`/../../../../releases.txt
+if [ -f `dirname $0`/../../../releases.txt ] ; then
+	INREL=`dirname $0`/../../../releases.txt
 else
 	INREL=`dirname $0`/releases.txt
 fi
-if [ -f `dirname $0`/../../../../default-release.txt ] ; then
-	INDEFREL=`dirname $0`/../../../../default-release.txt
+if [ -f `dirname $0`/../../../default-release.txt ] ; then
+	INDEFREL=`dirname $0`/../../../default-release.txt
 else
 	INDEFREL=`dirname $0`/default-release.txt
 fi

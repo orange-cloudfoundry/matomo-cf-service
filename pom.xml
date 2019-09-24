@@ -312,7 +312,11 @@
                         <configuration>
          					<target>
                					<exec executable="bash">
-              						<arg value="src/main/resources/tools/scanrel.sh" />
+              						<arg value="src/main/tools/scanrel.sh" />
+             						<!--arg value="inputOne" /-->
+								</exec>
+               					<exec executable="bash">
+              						<arg value="src/main/tools/tools4depl.sh" />
              						<!--arg value="inputOne" /-->
 								</exec>
 							</target>
