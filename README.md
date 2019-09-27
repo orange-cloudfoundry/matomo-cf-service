@@ -60,7 +60,37 @@ If none of `releases.txt` and `default-release.txt` is found at repository root,
      It produces a jar file which contains the whole code for the service as well as the releases of Matomo to be proposed for service instanciation.
 
 4. Deploy the service to CloudFoundry.
-   * Configure your manifest file (for example copy the existing template `manifest.yml` to `mymanifest.yml`). The change the file to fit your context by replacing all $...$ strings accordingly:
+   * Configure your manifest file (for example copy the existing template `manifest.yml` to `mymanifest.yml`). This file has the following form:
+   ```yml
+applications:
+- name: matomo-service
+  memory: 1G
+  instances: 1
+  routes:
+    - route: $YOUR_ROUTE$
+  path: target/matomo-cf-service-0.0.1-SNAPSHOT.jar
+  buildpacks:
+    - java_buildpack
+  services:
+    - matomo-service-db
+  env:
+    CF_APIHOST: $CF_API_HOST$
+    CF_USERNAME: $USERNAME$
+    CF_PASSWORD: $PASSWORD$
+    CF_ORGANIZATION: $CF_ORG$
+    CF_SPACE: $CF_SPACE$
+    MATOMO-SERVICE_SECURITY_ADMINNAME: $ADMIN_NAME$
+    MATOMO-SERVICE_SECURITY_ADMINPASSWORD: $ADMIN_PASSWORD$
+    MATOMO-SERVICE_MAX-SERVICE-INSTANCES: $MAX_INSTANCES$
+    MATOMO-SERVICE_DOMAIN: $YOUR_DOMAIN$
+    MATOMO-SERVICE_SHARED-DB_SERVICE-NAME: $YOUR_SHARED_MYSQL_SERVICE$
+    MATOMO-SERVICE_SHARED-DB_PLAN-NAME: $YOUR_SHARED_MYSQL_SERVICE_PLAN$
+    MATOMO-SERVICE_DEDICATED-DB_SERVICE-NAME: $YOUR_MYSQL_DEDICATED_SERVICE$
+    MATOMO-SERVICE_DEDICATED-DB_PLAN-NAME: $YOUR_MYSQL_DEDICATED_DB_PLAN$
+  timeout: 180
+   ```
+
+   Change the file to fit your context by replacing all $...$ strings accordingly:
 
    | $...$ String | Role | Example |
    |--------------|------|---------|
@@ -70,6 +100,8 @@ If none of `releases.txt` and `default-release.txt` is found at repository root,
    | $PASSWORD$ | The password to complete authentication | helpme |
    | $CF_ORG$ | The CF org that contains the CF space for deployement | myorg |
    | $CF_SPACE$ | The CF space where service instance will be deployed | myspace |
+   | $ADMIN_NAME$ | The name of the admin user to be used for authentication before accessing the admin API | scott |
+   | $ADMIN_PASSWORD$ | The password of the admin user | tiger |
    | $YOUR_DOMAIN$ | The domain whitin which service instances are exposed | matomo.mycompany.com |
    | $YOUR_SHARED_MYSQL_SERVICE$ | The name of the MySQL service from your CF marketplace | p-mysql |
    | $YOUR_SHARED_MYSQL_SERVICE_PLAN$ | The name of the plan form the previous MySQL service to be instanciated to manage service instance data | 100MB |

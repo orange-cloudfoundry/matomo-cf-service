@@ -3,7 +3,7 @@ debug: false
 logging:
   level:
     root: error
-#    org.springframework: INFO
+#    org.springframework: DEBUG
     com.orange.oss.matomocfservice: DEBUG
     org.cloudfoundry.operations: DEBUG
 #    org.springframework.cloud.servicebroker: DEBUG
