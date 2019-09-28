@@ -61,14 +61,15 @@ If none of `releases.txt` and `default-release.txt` is found at repository root,
 
 4. Deploy the service to CloudFoundry.
    * Configure your manifest file (for example copy the existing template `manifest.yml` to `mymanifest.yml`). This file has the following form:
-   ```yml
+
+```
 applications:
 - name: matomo-service
   memory: 1G
   instances: 1
   routes:
     - route: $YOUR_ROUTE$
-  path: target/matomo-cf-service-0.0.1-SNAPSHOT.jar
+  path: target/matomo-cf-service-0.1.0.jar
   buildpacks:
     - java_buildpack
   services:
@@ -88,7 +89,7 @@ applications:
     MATOMO-SERVICE_DEDICATED-DB_SERVICE-NAME: $YOUR_MYSQL_DEDICATED_SERVICE$
     MATOMO-SERVICE_DEDICATED-DB_PLAN-NAME: $YOUR_MYSQL_DEDICATED_DB_PLAN$
   timeout: 180
-   ```
+```
 
    Change the file to fit your context by replacing all $...$ strings accordingly:
 
