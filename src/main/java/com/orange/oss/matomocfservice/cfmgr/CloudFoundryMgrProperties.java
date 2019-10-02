@@ -22,14 +22,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
 
 /**
  * @author P. Déchamboux
  *
  */
 @Configuration
-@PropertySource(name = "MatomoServiceProperties", value = "classpath:application.yml")
 public class CloudFoundryMgrProperties {
 	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
 	@Value("${matomo-service.domain}")

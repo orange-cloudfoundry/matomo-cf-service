@@ -57,4 +57,12 @@ public class PInstanceIdMgr {
 	public int getNbAllocated() {
 		return this.nbAllocated;
 	}
+
+	public void setMaxAllocatable(int max) {
+		this.maxAllocatable = max;
+	}
+
+	public int getMaxAllocatable() {
+		return this.maxAllocatable;
+	}
 }

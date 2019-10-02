@@ -50,12 +50,25 @@ public class InstanceIdMgr {
 	@Transactional
 	public void initialize() {
 		LOGGER.debug("SERV::InstanceIdMgr-initialize");
+		int startnew;
 		Optional<PInstanceIdMgr> opiim = piimRepo.findById(PInstanceIdMgr.UNIQUEID);
 		if (!opiim.isPresent()) {
 			PInstanceIdMgr piim = new PInstanceIdMgr(cfMgrProp.getMaxServiceInstances());
 			piimRepo.save(piim);
+			startnew = 0;
+		} else {
+			startnew = opiim.get().getMaxAllocatable();
+			if (cfMgrProp.getMaxServiceInstances() > opiim.get().getMaxAllocatable()) {
+				LOGGER.info("Increase service capacity from {} instances to {}",
+						opiim.get().getMaxAllocatable(), cfMgrProp.getMaxServiceInstances());
+				opiim.get().setMaxAllocatable(cfMgrProp.getMaxServiceInstances());
+				piimRepo.save(opiim.get());
+			} else if (cfMgrProp.getMaxServiceInstances() < opiim.get().getMaxAllocatable()) {
+				LOGGER.info("Cannot decrease service capacity: keep max instances to {}",
+						opiim.get().getMaxAllocatable());
+			}
 		}
-		for (int i = 0; i < cfMgrProp.getMaxServiceInstances(); i++) {
+		for (int i = startnew; i < cfMgrProp.getMaxServiceInstances(); i++) {
 			PInstanceId pii = new PInstanceId(i);
 			piiRepo.save(pii);
 		}

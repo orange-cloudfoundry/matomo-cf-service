@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.orange.oss.matomocfservice.config;
+package com.orange.oss.matomocfservice.servicebroker;
 
 import org.springframework.cloud.servicebroker.model.BrokerApiVersion;
 import org.springframework.context.annotation.Bean;

@@ -70,7 +70,7 @@ public class ServiceCatalogConfiguration {
 				.name(serviceName)
 				.description("CloudFoundry-based \"Matomo as a Service\" (experimental / no SLA)")
 				.bindable(true)
-				.tags("Matomo", "web analytics")
+				.tags("Matomo", "Web Analytics")
 				.plans(plan1, plan2, plan3)
 				.metadata("displayName", "Matomo")
 				.metadata("longDescription", "CloudFoundry-based Matomo as a Service")

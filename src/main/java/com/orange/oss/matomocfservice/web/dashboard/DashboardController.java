@@ -21,7 +21,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
@@ -37,18 +36,17 @@ public class DashboardController {
 	@Autowired
 	MatomoReleases matomoReleases;
 
+	@RequestMapping(value = { "/index.html", "/" }, method = RequestMethod.GET)
+    public String index() {
+		LOGGER.debug("DASHBOARD::index");
+        return "index.html";
+    }
+
 	@RequestMapping(value = { "/releases.html" }, method = RequestMethod.GET)
     public String releases(Model model) {
 		LOGGER.debug("DASHBOARD::releases");
 		model.addAttribute("defRelease", matomoReleases.getDefaultReleaseName());
 		model.addAttribute("releases", matomoReleases.getReleaseList());
-        return "releases";
+        return "releases.html";
     }
-
-//	@RequestMapping(value = { ApplicationConfiguration.DASHBOARD_PATH + "/{instid}" }, method = RequestMethod.GET)
-//    public String dashboard(Model model, @PathVariable("instid") String instid) {
-//		LOGGER.debug("DASHBOARD::dashboard: instid={}", instid);
-//        model.addAttribute("message", "ça marche - instid=" + instid);
-//        return "dashboard";
-//    }
 }
