@@ -18,19 +18,19 @@
 <html xmlns:th="http://www.thymeleaf.org">
 	<head>
 		<meta charset="UTF-8" />
-		<title>Matomo CF Releases</title>
+		<title>Matomo CF Service Releases</title>
 		<link rel="stylesheet" type="text/css" th:href="@{/css/style.css}"/>
 	</head>
 
 	<body>
 		<table style="width:100%">
-			<tr>
+			<tr bgcolor="White">
 				<th align="left" width="25%">
 					<a href="https://matomo.org/">
 						<img src="img/Matomo_Logo.png" alt="Matomo Logo" style="width:256px;height:128px;border:0">
 					</a>
 				</th>
-				<th width="50%"><h1><a href="index.html">Matomo CloudFoundry Service</a> - Releases Supported</h1></th>
+				<th width="50%" color="Black" font-size="40px">Matomo CloudFoundry Service</th>
 				<th align="right" width="25%">
 					<a href="https://www.cloudfoundry.org/">
 						<img src="img/CloudFoundryCorp_vertical.png" alt="CloudFoundry Logo" style="width:256px;height:128px;border:0">
@@ -38,14 +38,17 @@
 				</th>
 			</tr>
 			<tr>
-				<td colspan="3"><h2>This page provides the list of Matomo releases that have been prepared to be deployed on CloudFoundry by the Matomo service broker. Change Log file for each release is available for download.</h2></td>
+				<td></td>
+				<td align="center"><h1>Releases Supported</h1></td>
+				<td></td>
+			</tr>			
+			<tr>
+				<td colspan="3"><h3>This page provides the list of Matomo releases that have been prepared to be deployed on CloudFoundry by the Matomo service broker. Change Log file for each release is available for download.</h3></td>
 			</tr>
 			<tr>
-				<td align="left">
+				<td colspan="3" align="left">
 					Available versions are (default is <nobr th:text="${defRelease}">3.6.1</nobr>):
 				</td>
-				<td></td>
-				<td></td>
 			</tr>
 			<tr th:each="release : ${releases}">
 				<td></td>

@@ -104,6 +104,8 @@ applications:
    | $CF_SPACE$ | The CF space where service instance will be deployed | myspace |
    | $ADMIN_NAME$ | The name of the admin user to be used for authentication before accessing the admin API | scott |
    | $ADMIN_PASSWORD$ | The password of the admin user | tiger |
+   | $ADMIN_SESSIONTIMEOUT$ | The timeout in minutes for admin session (default is 15) | 30 |
+   | $MAX_INSTANCES$ | The maximum number of instances that can be created by the service (note that it can be increased when redeploying) | 100 |
    | $YOUR_DOMAIN$ | The domain whitin which service instances are exposed | matomo.mycompany.com |
    | $YOUR_SHARED_MYSQL_SERVICE$ | The name of the MySQL service from your CF marketplace | p-mysql |
    | $YOUR_SHARED_MYSQL_SERVICE_PLAN$ | The name of the plan form the previous MySQL service to be instanciated to manage service instance data | 100MB |
@@ -117,11 +119,6 @@ applications:
    cf push -f mymanifest.yml
    ```
 
-   * Register the service to CF (example with space scoped for service testing):
-   ```
-    cf create-service-broker matomo-broker $USERNAME$ $PASSWORD$ $YOUR_ROUTE$ --space-scoped
-   ```
-
 5. You're done!!
 
 ### Register the broker
@@ -129,7 +126,7 @@ applications:
 As soon as you have your Matomo service up and running, you have to register its associated broker to the marketplace with which you will consume it. Going on playing with a CF platform, you can register it in the scope of your own space for testing purpose:
 
 ```
-cf create-service-broker matomo-broker yourusername yourpassword matomoserv.cf.mycompany.com --space-scoped
+cf create-service-broker matomo-broker $ADMIN_NAME$ $ADMIN_PASSWORD$ $YOUR_ROUTE$ --space-scoped
 ```
 
 Then the service should be available in your CF marketplace and you can start envoy with your Matomo instances. For the time being, the only available actions are create/delete service instances and bind/unbind a service instance to an application.

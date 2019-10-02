@@ -53,6 +53,8 @@ public class InstanceIdMgr {
 		int startnew;
 		Optional<PInstanceIdMgr> opiim = piimRepo.findById(PInstanceIdMgr.UNIQUEID);
 		if (!opiim.isPresent()) {
+			LOGGER.info("Initialize service capacity to {} max instances",
+					cfMgrProp.getMaxServiceInstances());
 			PInstanceIdMgr piim = new PInstanceIdMgr(cfMgrProp.getMaxServiceInstances());
 			piimRepo.save(piim);
 			startnew = 0;

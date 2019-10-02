@@ -1,15 +1,29 @@
+body {
+	background-color: Black;
+	color: White;
+	font-size: 20px;
+}
+
+a {
+	color: Wheat;
+}
+
 h1 {
-    color:#0000FF;
+	color: OrangeRed;
 }
  
 h2 {
-    color:#FF0000;
+	color: OrangeRed;
+}
+
+hr {
+	color: OrangeRed;
 }
  
 table {
-    border-collapse: collapse;
+	border-collapse: collapse;
 }
  
 table th, table td {
-    padding: 5px;
+	padding: 5px;
 }

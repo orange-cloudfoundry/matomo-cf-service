@@ -5,7 +5,7 @@
 
 	<groupId>com.orange.oss</groupId>
 	<artifactId>matomo-cf-service</artifactId>
-	<version>0.1.0</version>
+	<version>0.2.0</version>
 	<name>matomo-cf-service</name>
 	<description>An implementation of "Matomo as a Service" exposed through an OSB API and relying on SpringBoot and CloudFoundry</description>
 
@@ -346,8 +346,11 @@
              	   </execution>
 				</executions>
 				<configuration>
-					<inputDirectory>src/main/doc</inputDirectory>
+					<inputDirectory>src/main/doc/markdown</inputDirectory>
 					<outputDirectory>target/classes/templates</outputDirectory>
+					<headerHtmlFile>src/main/doc/markdown/html/header.html</headerHtmlFile>
+					<footerHtmlFile>src/main/doc/markdown/html/footer.html</footerHtmlFile>
+					<pegdownExtensions>TABLES,FENCED_CODE_BLOCKS,AUTOLINKS,TASKLISTITEMS,SMARTYPANTS</pegdownExtensions>
 				</configuration>
 			</plugin>
 		</plugins>
