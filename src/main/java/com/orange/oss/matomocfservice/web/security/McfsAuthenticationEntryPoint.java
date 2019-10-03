@@ -43,7 +43,7 @@ public class McfsAuthenticationEntryPoint extends BasicAuthenticationEntryPoint 
 	}
 
 	@Override
-	public void afterPropertiesSet() {
+	public void afterPropertiesSet() throws Exception {
 		LOGGER.debug("CONFIG::security: set realm name");
 		setRealmName(SecurityConfig.REALM_NAME);
 		super.afterPropertiesSet();

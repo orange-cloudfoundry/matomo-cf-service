@@ -1,4 +1,4 @@
-# matomo-cf-service: user guide
+# User Guide
 
 ---
 
@@ -55,8 +55,7 @@ Indeed both user name and password allow you to logged in the related Matomo ins
 Example of the result of a binding setup with a CloudFoundry platform (i.e., service is consumed through a CF marketplace):
 
 ```
-System-Provided:
-{
+System-Provided: {
 	"VCAP_SERVICES": {
 		"matomo": [
 			{
