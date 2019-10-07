@@ -28,6 +28,6 @@ import com.orange.oss.matomocfservice.web.domain.PInstanceIdMgr;
  *
  */
 @Repository
-public interface PInstanceIdMgrRepository extends JpaRepository<PInstanceIdMgr, String> {
-	Optional<PInstanceIdMgr> findById(int id);
+public interface PInstanceIdMgrRepository extends JpaRepository<PInstanceIdMgr, Integer> {
+	Optional<PInstanceIdMgr> findById(Integer id);
 }

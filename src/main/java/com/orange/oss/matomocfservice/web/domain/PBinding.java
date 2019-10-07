@@ -18,6 +18,7 @@ package com.orange.oss.matomocfservice.web.domain;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
@@ -40,6 +41,7 @@ public class PBinding extends POperationStatus {
 	private final static int LENGTH_PASSWORD = 16;
 
 	@ManyToOne
+	@JoinColumn(name = "matomo_instance_id")
 	private final PMatomoInstance pmatomoInstance;
 	
 	@Column(length = LENGTH_ID)
@@ -53,6 +55,9 @@ public class PBinding extends POperationStatus {
 
 	@Column(length = LENGTH_SITEURL)
     private String trackedUrl;
+
+	@Column(length = LENGTH_SITEURL)
+    private final String matomoUrl;
 
 	private int siteId;
 
@@ -70,18 +75,20 @@ public class PBinding extends POperationStatus {
 		this.siteName = null;
 		this.trackedUrl = null;
 		this.adminEmail = null;
+		this.matomoUrl = null;
 		this.siteId = -1;
 		this.userName = null;
 		this.password = null;
 	}
 
-	public PBinding(String id, PMatomoInstance pmi, String appid, String sitename, String trackedurl, String adminemail, PPlatform ppf) {
+	public PBinding(String id, PMatomoInstance pmi, String appid, String sitename, String trackedurl, String adminemail, PPlatform ppf, String matomoUrl) {
 		super(id, OpCode.CREATE.toString(), OperationState.IN_PROGRESS.getValue(), ppf);
 		this.pmatomoInstance = pmi;
 		this.appId = appid;
 		this.siteName = sitename;
 		this.trackedUrl = trackedurl;
 		this.adminEmail = adminemail;
+		this.matomoUrl = matomoUrl;
 		this.siteId = -1;
 		this.userName = RandomStringUtils.randomAlphanumeric(LENGTH_USERNAME);
 		this.password = RandomStringUtils.randomAlphanumeric(LENGTH_PASSWORD);
@@ -105,6 +112,10 @@ public class PBinding extends POperationStatus {
 
 	public void setSiteId(int siteid) {
 		this.siteId = siteid;
+	}
+
+	public String getMatomoUrl() {
+		return this.matomoUrl;
 	}
 
 	public int getSiteId() {

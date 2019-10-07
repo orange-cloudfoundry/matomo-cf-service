@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ * Copyright 2019 Orange and the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+-->
+
+<databaseChangeLog
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+	xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+	xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd
+		http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+	<changeSet author="admin" id="400.1">
+		<createTable tableName="matomoinstances">
+			<column name="id" type="varchar(36)">
+				<constraints primaryKey="true" nullable="false"/>
+			</column>
+			<column name="create_time" type="datetime">
+				<constraints nullable="false"/>
+			</column>
+			<column name="update_time" type="datetime">
+				<constraints nullable="false"/>
+			</column>
+			<column name="last_operation" type="varchar(8)">
+				<constraints nullable="false"/>
+			</column>
+			<column name="last_operation_state" type="varchar(12)">
+				<constraints nullable="false"/>
+			</column>
+			<column name="name" type="varchar(80)">
+				<constraints nullable="false"/>
+			</column>
+			<column name="id_url" type="integer">
+				<constraints nullable="false"/>
+			</column>
+			<column name="platform_id" type="varchar(36)">
+				<constraints nullable="false"/>
+			</column>
+			<column name="platform_kind" type="varchar(16)">
+				<constraints nullable="false"/>
+			</column>
+			<column name="platform_api_location" type="varchar(256)">
+				<constraints nullable="false"/>
+			</column>
+			<column name="service_definition_id" type="varchar(128)">
+				<constraints nullable="false"/>
+			</column>
+			<column name="plan_id" type="varchar(64)">
+				<constraints nullable="false"/>
+			</column>
+			<column name="password" type="varchar(12)">
+				<constraints nullable="true"/>
+			</column>
+			<column name="installed_version" type="varchar(8)">
+				<constraints nullable="false"/>
+			</column>
+			<column name="config_file_content" type="blob">
+				<constraints nullable="true"/>
+			</column>
+			<column name="db_cred" type="varchar(512)">
+				<constraints nullable="true"/>
+			</column>
+			<column name="token_auth" type="varchar(48)">
+				<constraints nullable="true"/>
+			</column>
+		</createTable>
+		<addForeignKeyConstraint baseColumnNames="platform_id"
+            baseTableName="matomoinstances"
+            constraintName="RefPlatformFromInstances"
+            deferrable="false"
+            initiallyDeferred="false"
+            onDelete="NO ACTION"
+            onUpdate="RESTRICT"
+            referencedColumnNames="id"
+            referencedTableName="platforms"/>
+		<rollback>
+			<dropAllForeignKeyConstraints baseTableName="matomoinstances"/>
+			<dropTable tableName="matomoinstances"/>
+		</rollback>
+	</changeSet>
+</databaseChangeLog>

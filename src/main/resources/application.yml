@@ -8,10 +8,13 @@ logging:
     org.cloudfoundry.operations: DEBUG
 #    org.springframework.cloud.servicebroker: DEBUG
 #    com.jcraft.jsch: DEBUG
+    liquibase: INFO
 
 spring:
   jpa:
     show-sql: false
     hibernate:
-      ddl-auto: update
-
+      ddl-auto: none
+  liquibase:
+    change-log: classpath:/db/changelog/changelog-master.xml
+#    drop-first: true

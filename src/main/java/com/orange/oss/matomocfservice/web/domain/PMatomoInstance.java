@@ -16,12 +16,8 @@
 
 package com.orange.oss.matomocfservice.web.domain;
 
-import java.time.ZonedDateTime;
-
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
 import org.springframework.cloud.servicebroker.model.instance.OperationState;
@@ -47,6 +43,7 @@ public class PMatomoInstance extends POperationStatus {
 	private final static int LENGTH_DBCRED = 512;
 	private final static int LENGTH_TOKENAUTH = 48;
 	private final static int LENGTH_INSTINITFILE = 4096;
+	
 	private int idUrl;
 
 	@Column(length = LENGTH_SERVDEFID)
@@ -54,10 +51,6 @@ public class PMatomoInstance extends POperationStatus {
 
 	@Column(length = LENGTH_NAME)
 	private final String name;
-
-	private final ZonedDateTime createTime;
-
-	private ZonedDateTime updateTime;
 	
 	@Column(length = LENGTH_PFKIND)
 	private String platformKind;
@@ -89,8 +82,6 @@ public class PMatomoInstance extends POperationStatus {
 		this.idUrl = -1;
 		this.serviceDefinitionId = null;
 		this.name = null;
-		this.createTime = null;
-		this.updateTime = null;
 		this.platformKind = null;
 		this.platformApiLocation = null;
 		this.planId = null;
@@ -107,8 +98,6 @@ public class PMatomoInstance extends POperationStatus {
 		this.idUrl = idUrl;
 		this.serviceDefinitionId = servDefId;
 		this.name = name;
-		this.createTime = ZonedDateTime.now();
-		this.updateTime = this.createTime;
 		this.platformKind = pfkind.toString();
 		this.platformApiLocation = pfapi;
 		this.planId = planid;
@@ -139,14 +128,6 @@ public class PMatomoInstance extends POperationStatus {
 		return this.name;
 	}
 
-	public ZonedDateTime getCreateTime() {
-		return this.createTime;
-	}
-
-	public ZonedDateTime getUpdateTime() {
-		return this.updateTime;
-	}
-
 	public PlatformKind getPlatformKind() {
 		return PlatformKind.fromValue(platformKind);
 	}
@@ -165,6 +146,7 @@ public class PMatomoInstance extends POperationStatus {
 
 	public void setConfigFileContent(byte cfc[]) {
 		this.configFileContent = cfc;
+		super.touch();
 	}
 
 	public String getInstalledVersion() {
@@ -177,6 +159,7 @@ public class PMatomoInstance extends POperationStatus {
 
 	public void setDbCred(String dbc) {
 		this.dbCred = dbc;
+		super.touch();
 	}
 
 	public String getDbCred() {
@@ -185,6 +168,7 @@ public class PMatomoInstance extends POperationStatus {
 
 	public void setTokenAuth(String ta) {
 		this.tokenAuth = ta;
+		super.touch();
 	}
 
 	public String getTokenAuth() {

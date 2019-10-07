@@ -41,8 +41,11 @@ While you have created a service instance, you can access it through the dashboa
 
 You can bind a Matomo service instance to an application, meaning that you want to track its usage. Meanwhile, binding creates a site for you within this Matomo instance as well as a user with "admin" role to manage it. All the required information to use this Matomo site is provided by the credential of the binding associated with the application concerned. Credentials contain:
 
+* mcfs-matomoUrl
+  This is the URL of the Matomo instance to be used when usage information are published (usually by browsers). It is defined within the script that is added to Web pages so that analytics information can be pushed to this Matomo instance.
+
 * mcfs-siteId
-  This is the site id, assigned by Matomo at site creation (which occurs at binding time), as expected by the Matomo instance when it gets usage information (mainly from browsers). This information is produced by scripts that are added to Web pages, such script including the site id for identifying the Matomo site that you've setup to produce analysis.
+  This is the site id, assigned by Matomo at site creation (which occurs at binding time), as expected by the Matomo instance when it gets usage information (mainly from browsers). This information is produced by the script that is added to Web pages, such script including the site id for identifying the Matomo site that you've setup to produce analysis.
 
 * mcfs-userName
   This is the user name of the admin of the created Matomo site. It is created at binding time as well.

@@ -27,10 +27,10 @@ import javax.persistence.Table;
 @Entity
 @Table(name = "instanceidmgr")
 public class PInstanceIdMgr {
-	public final static int UNIQUEID = 1;
+	public final static Integer UNIQUEID = 1;
 
 	@Id
-	private final int id;
+	private Integer id;
 
 	private int maxAllocatable;
 

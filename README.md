@@ -106,7 +106,8 @@ applications:
    | $ADMIN_PASSWORD$ | The password of the admin user | tiger |
    | $ADMIN_SESSIONTIMEOUT$ | The timeout in minutes for admin session (default is 15) | 30 |
    | $MAX_INSTANCES$ | The maximum number of instances that can be created by the service (note that it can be increased when redeploying) | 100 |
-   | $YOUR_DOMAIN$ | The domain whitin which service instances are exposed | matomo.mycompany.com |
+   | $YOUR_DOMAIN$ | The domain within which service instances are exposed | matomo.mycompany.com |
+   | $PHP_BUILDPACK$ | The PHP buildpack to be used to push Matomo instance to CF | php_buildpack |
    | $YOUR_SHARED_MYSQL_SERVICE$ | The name of the MySQL service from your CF marketplace | p-mysql |
    | $YOUR_SHARED_MYSQL_SERVICE_PLAN$ | The name of the plan form the previous MySQL service to be instanciated to manage service instance data | 100MB |
    | $YOUR_DEDICATED_MYSQL_SERVICE$ | The name of the MySQL service that provides dedicated database platform from your CF marketplace | my-mysql |

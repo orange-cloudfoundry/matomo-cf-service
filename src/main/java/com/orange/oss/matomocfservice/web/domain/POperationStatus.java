@@ -16,6 +16,8 @@
 
 package com.orange.oss.matomocfservice.web.domain;
 
+import java.time.ZonedDateTime;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
@@ -45,6 +47,10 @@ public abstract class POperationStatus {
 	@Column(length = LENGTH_ID, updatable = false, nullable = false)
 	private final String id;
 
+	private final ZonedDateTime createTime;
+
+	private ZonedDateTime updateTime;
+
 	@Column(length = LENGTH_OPCODE)
 	private String lastOperation;
 
@@ -58,10 +64,13 @@ public abstract class POperationStatus {
 	@SuppressWarnings("unused")
 	protected POperationStatus() {
 		this.id = null;
+		this.createTime = null;
 	}
 
 	public POperationStatus(String id, String opcode, String opstate, PPlatform ppf) {
 		this.id = id;
+		this.createTime = ZonedDateTime.now();
+		this.updateTime = this.createTime;		
 		this.lastOperation = opcode;
 		this.lastOperationState = opstate;
 		this.platform = ppf;
@@ -69,6 +78,18 @@ public abstract class POperationStatus {
 
 	public String getId() {
 		return this.id;
+	}
+
+	public ZonedDateTime getCreateTime() {
+		return this.createTime;
+	}
+
+	public ZonedDateTime getUpdateTime() {
+		return this.updateTime;
+	}
+
+	protected void touch() {
+		this.updateTime = ZonedDateTime.now();
 	}
 
 	public void setLastOperation(OpCode opCode) {

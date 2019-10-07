@@ -32,6 +32,8 @@ public class CloudFoundryMgrProperties {
 	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
 	@Value("${matomo-service.domain}")
 	private String serviceDomain;
+	@Value("${matomo-service.phpBuildpack}")
+	private String servicePhpBuildpack;
 	@Value("${matomo-service.max-service-instances}")
 	private int maxServiceInstances;
 	@Value("${matomo-service.shared-db.service-name}")
@@ -45,6 +47,10 @@ public class CloudFoundryMgrProperties {
 
 	public String getDomain() {
 		return serviceDomain;
+	}
+
+	public String getPhpBuildpack() {
+		return servicePhpBuildpack;
 	}
 
 	public int getMaxServiceInstances() {

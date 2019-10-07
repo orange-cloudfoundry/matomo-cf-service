@@ -61,7 +61,6 @@ import reactor.core.publisher.SignalType;
 public class CloudFoundryMgr {
 	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
 	private final static String GLOBSHARDBINSTNAME = "matomo-globshared-db";
-	private final static String PHPBUILDPACK = "php_buildpack";
 	private final static String MATOMO_ANPREFIX = "MATOMO_";
 	private final static String MATOMO_AUPREFIX = "M";
 	private String sshHost;
@@ -152,7 +151,7 @@ public class CloudFoundryMgr {
 								.name(getAppName(instid))
 								.path(Paths.get(verspath))
 								.route(Route.builder().route(getHost(instid, expohost) + "." + properties.getDomain()).build())
-								.buildpack(PHPBUILDPACK)
+								.buildpack(properties.getPhpBuildpack())
 								.services(services)
 								.memory(256)
 								.timeout(180)
