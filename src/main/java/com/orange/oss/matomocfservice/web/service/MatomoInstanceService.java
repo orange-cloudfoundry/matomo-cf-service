@@ -113,7 +113,7 @@ public class MatomoInstanceService extends OperationStatusService {
 				})
 				.doOnSuccess(vv -> {
 					LOGGER.debug("Async create app instance (phase 1) \"" + pmi.getId() + "\" succeeded");
-					if (!initializeMatomoInstance(pmi.getIdUrlStr(), pmi.getId(), pmi.getPassword(), matomoInstance.getName())) {
+					if (!initializeMatomoInstance(pmi.getIdUrlStr(), pmi.getId(), pmi.getPassword())) {
 						pmi.setLastOperationState(OperationState.FAILED);
 						matomoReleases.deleteLinkedTree(pmi.getIdUrlStr());
 						savePMatomoInstance(pmi);
@@ -226,6 +226,7 @@ public class MatomoInstanceService extends OperationStatusService {
 				instanceIdMgr.freeInstanceId(pmi.getIdUrl());
 				pmi.setLastOperation(OpCode.DELETE);
 				pmi.setLastOperationState(OperationState.SUCCEEDED);
+				pmi.setConfigFileContent(null);
 				savePMatomoInstance(pmi);
 			})
 			.subscribe();
@@ -291,10 +292,9 @@ public class MatomoInstanceService extends OperationStatusService {
 	 * @param appcode
 	 * @param nuri
 	 * @param pwd
-	 * @param sname
 	 * @return		true if the instance has been intialized correctly
 	 */
-	private boolean initializeMatomoInstance(String appcode, String nuri, String pwd, String sname) {
+	private boolean initializeMatomoInstance(String appcode, String nuri, String pwd) {
 		LOGGER.debug("SERV::initializeMatomoInstance: appCode={}", appcode);
 		RestTemplate restTemplate = new RestTemplate();
 		try {
@@ -309,6 +309,10 @@ public class MatomoInstanceService extends OperationStatusService {
 					String.class);
 			LOGGER.debug("After GET on <{}>", calluri.toString());
 			Document d = Jsoup.parse(res);
+			if (d == null) {
+				LOGGER.error("SERV::initializeMatomoInstance: error while decoding JSON from GET databaseSetup.");
+				return false;
+			}
 			MultipartBodyBuilder mbb = new MultipartBodyBuilder();
 			mbb.part("type", d.getElementById("type-0").attr("value"));
 			mbb.part("host", d.getElementById("host-0").attr("value"));
@@ -342,7 +346,7 @@ public class MatomoInstanceService extends OperationStatusService {
 					mbb.build(), String.class);
 			LOGGER.debug("After POST on <{}>", calluri.toString());
 			mbb = new MultipartBodyBuilder();
-			mbb.part("siteName", sname);
+			mbb.part("siteName", appcode);
 			mbb.part("url", uri.toASCIIString());
 			mbb.part("timezone", "Europe/Paris");
 			mbb.part("ecommerce", "0");

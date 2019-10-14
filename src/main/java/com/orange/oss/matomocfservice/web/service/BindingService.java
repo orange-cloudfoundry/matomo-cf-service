@@ -98,15 +98,27 @@ public class BindingService extends OperationStatusService {
 			throw new RuntimeException("Cannot bind: Matomo service instance does not exist!!");
 		}
 		PBinding pb = null;
+		LOGGER.debug("PARAMETERS: " + parameters.toString());
+		String sn = (String) parameters.get(PARAM_SITENAME);
+		if (sn == null) {
+			throw new RuntimeException("Cannot bind: site name parameter should be provided");
+		}
+		String tu = (String) parameters.get(PARAM_TRACKEDURL);
+		if (tu == null) {
+			throw new RuntimeException("Cannot bind: tracked URL parameter should be provided");
+		}
+		String am = (String) parameters.get(PARAM_ADMINEMAIL);
+		if (am == null) {
+			throw new RuntimeException("Cannot bind: admin email parameter should be provided");
+		}
 		try {
-			LOGGER.debug("PARAMETERS: " + parameters.toString());
 			pb = new PBinding(
 					bindid,
 					opmi.get(),
 					appid,
-					(String) parameters.get(PARAM_SITENAME),
-					(String) parameters.get(PARAM_TRACKEDURL),
-					(String) parameters.get(PARAM_ADMINEMAIL),
+					sn,
+					tu,
+					am,
 					opmi.get().getPlatform(),
 					getMatomoUrl(opmi.get().getId()));
 			pbindingRepo.save(pb);
@@ -151,7 +163,7 @@ public class BindingService extends OperationStatusService {
 		LOGGER.debug("SERV::defineNewMatomoSite: instId={}, siteName{}, trackedUrl={}", pmi.getId(), sitename, trackedurl);
 		RestTemplate restTemplate = new RestTemplate();
 		try {
-			URI uri = new URI(getMatomoUrl(pmi.getId()));
+			URI uri = new URI("https://" + getMatomoUrl(pb.getPMatomoInstance().getId()) + "/index.php");
 			MultipartBodyBuilder mbb = new MultipartBodyBuilder();
 			mbb.part("module", "API");
 			mbb.part("method", "SitesManager.addSite");
@@ -195,7 +207,7 @@ public class BindingService extends OperationStatusService {
 		LOGGER.debug("SERV::deleteMatomoSite: instId={}", pb.getPMatomoInstance().getId());
 		RestTemplate restTemplate = new RestTemplate();
 		try {
-			URI uri = new URI(getMatomoUrl(pb.getPMatomoInstance().getId()));
+			URI uri = new URI("https://" + getMatomoUrl(pb.getPMatomoInstance().getId()) + "/index.php");
 			MultipartBodyBuilder mbb = new MultipartBodyBuilder();
 			mbb.part("module", "API");
 			mbb.part("method", "SitesManager.deleteSite");
@@ -220,6 +232,6 @@ public class BindingService extends OperationStatusService {
 	}
 
 	private String getMatomoUrl(String miid) {
-		return "https://" + miid + "." + properties.getDomain() + "/index.php";
+		return miid + "." + properties.getDomain();
 	}
 }

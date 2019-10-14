@@ -10,6 +10,15 @@ logging:
 #    com.jcraft.jsch: DEBUG
     liquibase: INFO
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    mappings:
+      enabled: true
+
 spring:
   jpa:
     show-sql: false

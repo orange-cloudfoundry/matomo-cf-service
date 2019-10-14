@@ -83,6 +83,9 @@ applications:
     MATOMO-SERVICE_SECURITY_ADMINNAME: $ADMIN_NAME$
     MATOMO-SERVICE_SECURITY_ADMINPASSWORD: $ADMIN_PASSWORD$
     MATOMO-SERVICE_SECURITY_ADMINSESSIONTIMEOUT: $ADMIN_SESSION_TIMEOUT$
+    MATOMO-SERVICE_CONTACT_NAME: $CONTACT_NAME$
+    MATOMO-SERVICE_CONTACT_URL: $CONTACT_URL$
+    MATOMO-SERVICE_CONTACT_EMAIL: $CONTACT_EMAIL$
     MATOMO-SERVICE_MAX-SERVICE-INSTANCES: $MAX_INSTANCES$
     MATOMO-SERVICE_DOMAIN: $YOUR_DOMAIN$
     MATOMO-SERVICE_SHARED-DB_SERVICE-NAME: $YOUR_SHARED_MYSQL_SERVICE$
@@ -105,6 +108,9 @@ applications:
    | $ADMIN_NAME$ | The name of the admin user to be used for authentication before accessing the admin API | scott |
    | $ADMIN_PASSWORD$ | The password of the admin user | tiger |
    | $ADMIN_SESSIONTIMEOUT$ | The timeout in minutes for admin session (default is 15) | 30 |
+   | $CONTACT_NAME$ | The contact name of the responsible entity for the admin API | API Provider |
+   | $CONTACT_URL$ | The contact URL of the responsible entity for the admin API | https://github.com/orange-cloudfoundry/matomo-cf-service |
+   | $CONTACT_EMAIL$ | The contact URL of the responsible entity for the admin API | dilbert@mycompany.org |
    | $MAX_INSTANCES$ | The maximum number of instances that can be created by the service (note that it can be increased when redeploying) | 100 |
    | $YOUR_DOMAIN$ | The domain within which service instances are exposed | matomo.mycompany.com |
    | $PHP_BUILDPACK$ | The PHP buildpack to be used to push Matomo instance to CF | php_buildpack |

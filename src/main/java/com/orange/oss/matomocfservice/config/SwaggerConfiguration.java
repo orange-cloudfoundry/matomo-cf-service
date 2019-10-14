@@ -16,8 +16,6 @@
 
 package com.orange.oss.matomocfservice.config;
 
-import static springfox.documentation.builders.PathSelectors.regex;
-
 import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.Date;
@@ -27,6 +25,7 @@ import javax.xml.datatype.XMLGregorianCalendar;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.domain.Pageable;
@@ -35,6 +34,8 @@ import com.fasterxml.classmate.ResolvedType;
 import com.fasterxml.classmate.TypeResolver;
 
 import springfox.documentation.builders.ApiInfoBuilder;
+import springfox.documentation.builders.PathSelectors;
+import springfox.documentation.builders.RequestHandlerSelectors;
 import springfox.documentation.schema.AlternateTypeRule;
 import springfox.documentation.schema.WildcardType;
 import springfox.documentation.service.ApiInfo;
@@ -51,27 +52,34 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
 @Configuration
 @EnableSwagger2
 public class SwaggerConfiguration {
+	private static final Logger LOGGER = LoggerFactory.getLogger(SwaggerConfiguration.class);
+	@Value("${matomo-service.contact.name:\"Matomo by Orange Open Source\"}")
+	private String contactName;
+	@Value("${matomo-service.contact.url:\"https://github.com/orange-cloudfoundry/matomo-cf-service\"}")
+	private String contactUrl;
+	@Value("${matomo-service.contact.email:\"none\"}")
+	private String contactEmail;
 
-private static final Logger LOGGER = LoggerFactory.getLogger(SwaggerConfiguration.class);
-	
 	public SwaggerConfiguration(){
-		LOGGER.debug("CONFIG - Initializing Swagger");
+		LOGGER.debug("CONFIG::Swagger: Initializing Swagger");
 	}
 
 	@Bean
 	public Docket platformApi() {
 		return new Docket(DocumentationType.SWAGGER_2)
-					.apiInfo(apiInfo())
-					.tags(new Tag("Platforms and Matomo Instances Admin", "Manage Platforms and Matomo Instances"))					
-	                .select()
-	                .paths(regex("/adminapi/platforms.*"))
-	                .build()
+				.select()
+                	.apis(RequestHandlerSelectors.basePackage("com.orange.oss.matomocfservice.api"))
+                	.paths(PathSelectors.regex("/adminapi/platforms.*"))
+					.build()
+				.tags(new Tag("Platforms and Matomo Instances Admin", "Manage Platforms and Matomo Instances"))					
+				.apiInfo(apiInfo())
 	                .forCodeGeneration(true)
 	                .alternateTypeRules(
 	                		getAlternateTypeRule(Collection.class, WildcardType.class, List.class, WildcardType.class)	                
 					)        
 	                .directModelSubstitute(XMLGregorianCalendar.class, Date.class)
-	                .ignoredParameterTypes(Pageable.class);
+	                .ignoredParameterTypes(Pageable.class)
+	                ;
 	    
    }
 	   	    
@@ -83,19 +91,11 @@ private static final Logger LOGGER = LoggerFactory.getLogger(SwaggerConfiguratio
    }
 
    private ApiInfo apiInfo() {
+	   LOGGER.info("CONFIG::Swagger: contactName={}, contactUrl={}, contactEmail={}", contactName, contactUrl, contactEmail);
 	   return new ApiInfoBuilder()
 			   .title("Platforms and Matomo Instances Management API")
-	           .contact(new Contact("Orange-OLS","",""))
+	           .contact(new Contact(contactName, contactUrl, contactEmail))
 	           .version("0.1")
 	           .build();
    }	   
-
-   /*@Override
-   protected void addResourceHandlers(ResourceHandlerRegistry registry) {
-       registry.addResourceHandler("swagger-ui.html")
-               .addResourceLocations("classpath:/META-INF/resources/");
-
-       registry.addResourceHandler("/webjars/**")
-               .addResourceLocations("classpath:/META-INF/resources/webjars/");
-   }*/
 }

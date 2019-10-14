@@ -44,8 +44,8 @@ public class McfsSecurityConfigurerAdapter extends WebSecurityConfigurerAdapter 
 		LOGGER.debug("CONFIG::security: configure security for admin accesses");
 		http
 		.authorizeRequests()
-			.antMatchers("/", "/img/**", "/css/**", "/index.html", "/releases.html", "/login").permitAll()
-			.anyRequest().hasRole(SecurityConfig.ROLE_ADMIN)
+			.antMatchers("/", "/img/**", "/css/**", "/index.html", "/releases.html", "/actuator/**", "/login").permitAll()
+//			.anyRequest().hasRole(SecurityConfig.ROLE_ADMIN)
 		.and().httpBasic()
 			.realmName(SecurityConfig.REALM_NAME).authenticationEntryPoint(new McfsAuthenticationEntryPoint())
         .and().formLogin()

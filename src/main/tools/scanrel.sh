@@ -35,7 +35,7 @@ fi
 while IFS= read -r vers; do
 	echo -e "${BLUE}Prepare release $vers to be used in Matomo CF service:${NOCOL}"
 	if [ $vers = "latest" ] ; then
-		`dirname $0`/piwik2cf.sh
+		`dirname $0`/piwik2cf.sh $@
 		RES=$?
 		LATEST=`ls -al ${TARGETDIR}/latest | awk -F '-> ' '{print $2}'`
 		if [ ${RES} -eq 0 ] ; then
@@ -44,7 +44,7 @@ while IFS= read -r vers; do
 			fi
 		fi
 	else
-		`dirname $0`/piwik2cf.sh -v $vers
+		`dirname $0`/piwik2cf.sh -v $vers $@
 		if [ $? -eq 0 ] ; then
 			if [ -z ${FIRST+x} ]; then
 				FIRST=$vers

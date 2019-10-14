@@ -27,16 +27,21 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 
 /**
  * @author P. Déchamboux
  *
  */
-public class McfsAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
+public class McfsAuthenticationSuccessHandler
+	extends SimpleUrlAuthenticationSuccessHandler 
+	implements AuthenticationSuccessHandler {
 	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
 	private int adminSessionTimeout;
 
 	McfsAuthenticationSuccessHandler(int adminSessionTimeout) {
+        super();
+        setUseReferer(true);
 		this.adminSessionTimeout = adminSessionTimeout;
 	}
 

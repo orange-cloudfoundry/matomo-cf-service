@@ -15,6 +15,7 @@
 # limitations under the License.
 
 FORCE=0
+DEBUG=0
 while [[ $# -gt 0 ]]
 do
 key="$1"
@@ -35,7 +36,11 @@ OPTIONS
 
     -f
     --force
-    		If Matomo release has already been prepared, force overiding previous preparation.
+    		If Matomo releases have already been prepared, force overiding previous preparation.
+
+    -d
+    --debug
+    		Prepare Matomo releases to be run in debug mode.
     "
     exit 0
     ;;
@@ -45,7 +50,11 @@ OPTIONS
     shift # past value
     ;;
     -f|--force)
-    FORCE="1"
+    FORCE=1
+    shift # past argument
+    ;;
+    -d|--debug)
+    DEBUG=1
     shift # past argument
     ;;
     *)    # unknown option
@@ -231,7 +240,11 @@ sed -n ${LNSRCH},\$p ${TMPDIR}/workingfile >>${SOURCEDIR}/plugins/Installation/C
 
 # Force SSL mode
 cp ${SOURCEDIR}/config/global.ini.php ${TMPDIR}/workingfile
-sed -e "s/force_ssl = 0/force_ssl = 1/" ${TMPDIR}/workingfile >${SOURCEDIR}/config/global.ini.php
+if [ ${DEBUG} -eq 1 ]; then
+  sed -e "s/debug = 0/debug = 1/" -e "s/log_level = WARN/log_level = DEBUG/" -e "s/force_ssl = 0/force_ssl = 1/" ${TMPDIR}/workingfile >${SOURCEDIR}/config/global.ini.php
+else
+  sed -e "s/force_ssl = 0/force_ssl = 1/" ${TMPDIR}/workingfile >${SOURCEDIR}/config/global.ini.php
+fi
 
 # Disable Composer
 echo "/composer.*" >${SOURCEDIR}/.cfignore
