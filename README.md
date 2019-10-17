@@ -11,6 +11,8 @@ In any case, as the service and the instances it manages can be instanciated in 
 
 For buidling Matomo service, you need a Unix-like environment such as Linux or Cygwin. Indeed, you need to be able to run shell scripts (sh or bash).
 
+With current version, you need your platform to support [p-mysql](https://github.com/cloudfoundry/cf-mysql-release) DB service.
+
 ## Installation
 
 ### Managing Matomo releases
@@ -137,3 +139,7 @@ cf create-service-broker matomo-broker $ADMIN_NAME$ $ADMIN_PASSWORD$ $YOUR_ROUTE
 ```
 
 Then the service should be available in your CF marketplace and you can start envoy with your Matomo instances. For the time being, the only available actions are create/delete service instances and bind/unbind a service instance to an application.
+
+## Test the service
+
+Two examples are provided in order to test the service and especially the way to bind to service instances. The first one is a [simple static Web site](examples/static-web) and the second one is a [Java-based dynamic Web application](examples/java-web). As soon as your Matomo CF service is up and running, let's play with these examples to validate the expected behaviour.
