@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -128,7 +129,7 @@ public class CloudFoundryMgr {
 	 * @param instid	The name of the instance as it is exposed to the Web
 	 * @return	The Mono to signal the end of the async process (produce nothng indeed)
 	 */
-	public Mono<Void> deployMatomoCfAppBindToGlobalSharedDb(String instid, String version, String expohost, String planid) {
+	public Mono<Void> deployMatomoCfAppBindToGlobalSharedDb(String instid, String version, String expohost, String planid, String tz) {
 		LOGGER.debug("CFMGR::createMatomoCfAppBindToGlobalSharedDb: instId={}", instid);
 		String verspath = matomoReleases.getVersionPath(version, instid);
 		LOGGER.debug("File for Matomo bits: " + verspath);
@@ -155,6 +156,7 @@ public class CloudFoundryMgr {
 								.services(services)
 								.memory(256)
 								.timeout(180)
+								.environmentVariable("TZ", tz)
 								.build())
 						.build());
 	}
@@ -242,6 +244,9 @@ public class CloudFoundryMgr {
 						ssh.authPassword("cf:" + appidh.appId + "/0", pwd);
 						String target = matomoReleases.getVersionPath(version, instid) + File.separator + "config" + File.separator;
 						ssh.newSCPFileTransfer().download("/home/vcap/app/htdocs/config/config.ini.php", new FileSystemFile(target));
+						if (properties.getMatomoDebug()) {
+							Files.write(Paths.get(target + "config.ini.php"), "\n[Tracker]\ndebug = 1\nenable_sql_profiler = 1\n".getBytes(), StandardOpenOption.APPEND);
+						}
 						appidh.fileContent = Files.readAllBytes(Paths.get(target + "config.ini.php"));
 						sink.success(appidh);
 					} catch (Exception e) {

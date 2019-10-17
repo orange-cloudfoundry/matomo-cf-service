@@ -1,0 +1,4 @@
+logging:
+  level:
+    root: error
+    com.orange.oss.mcfs.webexample: DEBUG

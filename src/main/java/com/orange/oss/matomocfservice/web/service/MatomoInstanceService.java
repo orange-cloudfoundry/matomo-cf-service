@@ -62,6 +62,7 @@ import com.orange.oss.matomocfservice.web.repository.PMatomoInstanceRepository;
 public class MatomoInstanceService extends OperationStatusService {
 	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
 	private final String PARAM_VERSION = "matomoVersion";
+	private final String PARAM_TZ = "matomoTimeZone";
 	private final String MATOMOINSTANCE_ROOTUSER = "admin";
 	@Autowired
 	private PMatomoInstanceRepository miRepo;
@@ -92,6 +93,7 @@ public class MatomoInstanceService extends OperationStatusService {
 	public MatomoInstance createMatomoInstance(MatomoInstance matomoInstance, Map<String, Object> parameters) {
 		LOGGER.debug("SERV::createMatomoInstance: matomoInstance={}", matomoInstance.toString());
 		String instversion = getVersion(parameters);
+		String tz = getTimeZone(parameters);
 		PPlatform ppf = getPPlatform(matomoInstance.getPlatformId());
 		for (PMatomoInstance pmi : miRepo.findByPlatformAndLastOperation(ppf, OpCode.DELETE.toString())) {
 			if (pmi.getId().equals(matomoInstance.getUuid())) {
@@ -104,7 +106,7 @@ public class MatomoInstanceService extends OperationStatusService {
 				matomoInstance.getPlatformApiLocation(), matomoInstance.getPlanId(), ppf, instversion);
 		savePMatomoInstance(pmi);
 		matomoReleases.createLinkedTree(pmi.getIdUrlStr(), instversion);
-		cfMgr.deployMatomoCfAppBindToGlobalSharedDb(pmi.getIdUrlStr(), instversion, pmi.getId(), pmi.getPlanId())
+		cfMgr.deployMatomoCfAppBindToGlobalSharedDb(pmi.getIdUrlStr(), instversion, pmi.getId(), pmi.getPlanId(), tz)
 				.doOnError(t -> {
 					LOGGER.error("Async create app instance (phase 1) \"" + pmi.getId() + "\" failed.", t);
 					pmi.setLastOperationState(OperationState.FAILED);
@@ -127,7 +129,7 @@ public class MatomoInstanceService extends OperationStatusService {
 						})
 						.doOnSuccess(ach -> {
 							pmi.setConfigFileContent(ach.fileContent);
-							cfMgr.deployMatomoCfAppBindToGlobalSharedDb(pmi.getIdUrlStr(), instversion, pmi.getId(), pmi.getPlanId())
+							cfMgr.deployMatomoCfAppBindToGlobalSharedDb(pmi.getIdUrlStr(), instversion, pmi.getId(), pmi.getPlanId(), tz)
 							.doOnError(t -> {
 								LOGGER.debug("Async create app instance (phase 2.1) \"" + pmi.getId() + "\" failed.", t);
 								pmi.setLastOperationState(OperationState.FAILED);
@@ -280,11 +282,20 @@ public class MatomoInstanceService extends OperationStatusService {
 			instversion = matomoReleases.getDefaultReleaseName();
 		} else {
 			if (! matomoReleases.isVersionAvailable(instversion)) {
-				LOGGER.error("SERV::getVersion: version {} is not supported.", instversion);
-				throw new RuntimeException("Matomo version " + instversion + " is not available with the deployed service.");
+				LOGGER.warn("SERV::getVersion: version {} is not supported -> switch to default one.", instversion);
+				instversion = matomoReleases.getDefaultReleaseName();
 			}
 		}
 		return instversion;
+	}
+
+	private String getTimeZone(Map<String, Object> parameters) {
+		LOGGER.debug("SERV::getTimeZone");
+		String tz = (String) parameters.get(PARAM_TZ);
+		if (tz == null) {
+			tz = "Europe/Paris";
+		}
+		return tz;
 	}
 
 	/**

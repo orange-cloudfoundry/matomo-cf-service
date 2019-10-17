@@ -24,9 +24,14 @@ Go to your CF marketplace and create a service instance by choosing among the pr
 
 Indeed, the choice among them depends on the traffic of the tracked Web site and has an impact on the cost of the service instance.
 
-When creating an instance, a particular release can be specified. Then the service instanciates that paricular release as soon as it has been available with the current service deployement. Here is an example of such a parameterized creation:
+When creating an instance, some parameters can be specified and particularly the release to deploy. Then the service instanciates that particular release as soon as it has been made available with the current service deployment. Here is an example of such a parameterized creation:
 ```
 cf cs matomo-service global-shared-db m371 -c '{"matomoVersion": "3.7.1"}'
+```
+
+The time zone within which the instance executes can be specified the same way:
+```
+cf cs matomo-service global-shared-db m -c '{"matomoTimeZone": "Europe/Paris"}'
 ```
 
 Service upgrade to new release (with higher version) is not supported actually but expected soon.

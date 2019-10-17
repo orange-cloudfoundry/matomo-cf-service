@@ -30,6 +30,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class CloudFoundryMgrProperties {
 	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+	@Value("${matomo-service.matomo-debug:false}")
+	private boolean matomoDebug;
 	@Value("${matomo-service.domain}")
 	private String serviceDomain;
 	@Value("${matomo-service.phpBuildpack}")
@@ -44,6 +46,10 @@ public class CloudFoundryMgrProperties {
 	private String dedicatedDbServiceName;
 	@Value("${matomo-service.dedicated-db.plan-name}")
 	private String dedicatedDbPlanName;
+
+	public boolean getMatomoDebug() {
+		return matomoDebug;
+	}
 
 	public String getDomain() {
 		return serviceDomain;
