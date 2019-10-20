@@ -342,7 +342,7 @@
          					<target>
                					<exec executable="bash">
               						<arg value="src/main/tools/scanrel.sh" />
-              						<arg value="-d" /><!-- Enable arg if you need to run Matomo instances in debug mode -->
+              						<!--arg value="-d" /--><!-- Enable arg if you need to run Matomo instances in debug mode -->
              						<!--arg value="inputOne" /-->
 								</exec>
                					<exec executable="bash">

@@ -16,8 +16,12 @@
 
 package com.orange.oss.matomocfservice.cfmgr;
 
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
+
 import javax.annotation.PostConstruct;
 
+import org.cloudfoundry.operations.applications.ApplicationManifest.Builder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,6 +36,9 @@ public class CloudFoundryMgrProperties {
 	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
 	@Value("${matomo-service.matomo-debug:false}")
 	private boolean matomoDebug;
+	@Value("${matomo-service.smtp.creds}")
+	private String smtpCredsStr;
+	private SmtpCreds smtpCreds = null;
 	@Value("${matomo-service.domain}")
 	private String serviceDomain;
 	@Value("${matomo-service.phpBuildpack}")
@@ -42,10 +49,16 @@ public class CloudFoundryMgrProperties {
 	private String sharedDbServiceName;
 	@Value("${matomo-service.shared-db.plan-name}")
 	private String sharedDbPlanName;
+	@Value("${matomo-service.shared-db.creds}")
+	private String sharedDbCredsStr;
+	private DbCreds sharedDbCreds = null;
 	@Value("${matomo-service.dedicated-db.service-name}")
 	private String dedicatedDbServiceName;
 	@Value("${matomo-service.dedicated-db.plan-name}")
 	private String dedicatedDbPlanName;
+	@Value("${matomo-service.dedicated-db.creds}")
+	private String dedicatedDbCredsStr;
+	private DbCreds dedicatedDbCreds = null;
 
 	public boolean getMatomoDebug() {
 		return matomoDebug;
@@ -71,12 +84,88 @@ public class CloudFoundryMgrProperties {
 		return sharedDbPlanName;
 	}
 
+	public SmtpCreds getSmtpCreds() {
+		if (smtpCreds == null) {
+			smtpCreds = new SmtpCreds(smtpCredsStr);
+		}
+		return smtpCreds;
+	}
+
+	public DbCreds getSharedDbCreds() {
+		if (sharedDbCreds == null) {
+			sharedDbCreds = new DbCreds(sharedDbCredsStr, true);
+		}
+		return sharedDbCreds;
+	}
+
+	public DbCreds getDedicatedDbCreds() {
+		if (dedicatedDbCreds == null) {
+			dedicatedDbCreds = new DbCreds(dedicatedDbCredsStr, false);
+		}
+		return dedicatedDbCreds;
+	}
+
 	public String getDedicatedDbServiceName() {
 		return dedicatedDbServiceName;
 	}
 
 	public String getDedicatedDbPlanName() {
 		return dedicatedDbPlanName;
+	}
+
+	public static class SmtpCreds {
+		private String service;
+		private String host;
+		private String port;
+		private String user;
+		private String password;
+
+		SmtpCreds(String creds) {
+			String[] credsarr = creds.split(":");
+			this.service = credsarr[0];
+			this.host = credsarr[1];
+			this.port = credsarr[2];
+			this.user = credsarr[3];
+			this.password = credsarr[4];
+		}
+
+		public Builder addVars(Builder b) {
+			b.environmentVariable("MCFS_MAILSRV", this.service);
+			b.environmentVariable("MCFS_MAILHOST", this.host);
+			b.environmentVariable("MCFS_MAILPORT", this.port);
+			b.environmentVariable("MCFS_MAILUSER", this.user);
+			b.environmentVariable("MCFS_MAILPASSWD", this.password);
+			return b;
+		}
+	}
+
+	public class DbCreds {
+		private boolean shared;
+		private String name;
+		private String host;
+		private String port;
+		private String user;
+		private String password;
+
+		DbCreds(String creds, boolean shared) {
+			this.shared = shared;
+			String[] credsarr = creds.split(":");
+			this.name = credsarr[0];
+			this.host = credsarr[1];
+			this.port = credsarr[2];
+			this.user = credsarr[3];
+			this.password = credsarr[4];
+		}
+
+		public Builder addVars(Builder b) {
+			b.environmentVariable("MCFS_DBSRV", shared ? sharedDbServiceName : dedicatedDbServiceName);
+			b.environmentVariable("MCFS_DBNAME", this.name);
+			b.environmentVariable("MCFS_DBHOST", this.host);
+			b.environmentVariable("MCFS_DBPORT", this.port);
+			b.environmentVariable("MCFS_DBUSER", this.user);
+			b.environmentVariable("MCFS_DBPASSWD", this.password);
+			return b;
+		}
 	}
 
 	public String toString() {

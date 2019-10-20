@@ -26,6 +26,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,8 +36,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
-
-import com.orange.oss.matomocfservice.config.ApplicationConfiguration;
 
 /**
  * @author P. Déchamboux
@@ -52,7 +51,7 @@ public class MatomoReleases {
 	private String defaultRel;
 	private List<MatomoReleaseSpec> releases;
 	@Autowired
-	ApplicationConfiguration applicationConfiguration;
+	private CloudFoundryMgrProperties properties;
 
 	public void initialize() {
 		LOGGER.debug("CFMGR::MatomoReleases: initialize");
@@ -133,11 +132,11 @@ public class MatomoReleases {
 	}
 
 	public void setConfigIni(String instId, String version, byte filecontent[]) {
-		LOGGER.debug("CFMGR:: setConfigIni: version={}, instId={}", version, instId);
+		LOGGER.debug("CFMGR::setConfigIni: version={}, instId={}", version, instId);
 		try {
-			Files.write(Paths.get(getVersionPath(version, instId) + "/config/config.ini.php"), filecontent);
+			Files.write(Paths.get(getVersionPath(version, instId) + "/config/config.ini.php"), filecontent, StandardOpenOption.CREATE_NEW);
 		} catch (IOException e) {
-			LOGGER.error("CFMGR::MatomoReleases: setConfigIni: problem while manipulating files within service container -> " + e.getMessage());
+			LOGGER.error("CFMGR::MatomoReleases:setConfigIni: problem while manipulating files within service container -> " + e.getMessage());
 			e.printStackTrace();
 			throw new RuntimeException("IO pb in CFMGR::setConfigIni", e);
 		}
@@ -150,6 +149,7 @@ public class MatomoReleases {
 		if (instdir == null) {
 			throw new RuntimeException("Matomo " + version + ": unknow release");
 		}
+		LOGGER.debug("CFMGR::createLinkedTree: copy from <{}> to <{}>", versdir, instdir);
 		try {
 			// create a copy of the version dir for the instance
 			if (new File(instdir).exists()) {
@@ -183,26 +183,26 @@ public class MatomoReleases {
 
 	public void deleteLinkedTree(String instId) {
 		LOGGER.debug("CFMGR::deleteLinkedTree: instId={}", instId);
-		String vpath = getVersionPath(null, instId);
-		Path sourcePath = Paths.get(vpath);
-		try {
-			Files.walkFileTree(sourcePath, new SimpleFileVisitor<Path>() {
-				@Override
-				public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
-					new File(file.toString()).delete();
-					return FileVisitResult.CONTINUE;
-				}
-				@Override
-				public FileVisitResult postVisitDirectory(final Path dir, final IOException exc) throws IOException {
-					new File(dir.toString()).delete();
-					return FileVisitResult.CONTINUE;
-				}
-			});
-		} catch (IOException e) {
-			LOGGER.error("CFMGR::MatomoReleases: deleteLinkedTree: problem while manipulating files within service container.", e);
-			throw new RuntimeException("IO pb in CFMGR::deleteLinkedTree", e);
-		}
-		new File(vpath).delete();
+//		String vpath = getVersionPath(null, instId);
+//		Path sourcePath = Paths.get(vpath);
+//		try {
+//			Files.walkFileTree(sourcePath, new SimpleFileVisitor<Path>() {
+//				@Override
+//				public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
+//					new File(file.toString()).delete();
+//					return FileVisitResult.CONTINUE;
+//				}
+//				@Override
+//				public FileVisitResult postVisitDirectory(final Path dir, final IOException exc) throws IOException {
+//					new File(dir.toString()).delete();
+//					return FileVisitResult.CONTINUE;
+//				}
+//			});
+//		} catch (IOException e) {
+//			LOGGER.error("CFMGR::MatomoReleases: deleteLinkedTree: problem while manipulating files within service container.", e);
+//			throw new RuntimeException("IO pb in CFMGR::deleteLinkedTree", e);
+//		}
+//		new File(vpath).delete();
 	}
 
 	public class MatomoReleaseSpec {

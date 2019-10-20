@@ -106,7 +106,7 @@ public class MatomoInstanceService extends OperationStatusService {
 				matomoInstance.getPlatformApiLocation(), matomoInstance.getPlanId(), ppf, instversion);
 		savePMatomoInstance(pmi);
 		matomoReleases.createLinkedTree(pmi.getIdUrlStr(), instversion);
-		cfMgr.deployMatomoCfAppBindToGlobalSharedDb(pmi.getIdUrlStr(), instversion, pmi.getId(), pmi.getPlanId(), tz)
+		cfMgr.deployMatomoCfApp(pmi.getIdUrlStr(), instversion, pmi.getId(), pmi.getPlanId(), tz)
 				.doOnError(t -> {
 					LOGGER.error("Async create app instance (phase 1) \"" + pmi.getId() + "\" failed.", t);
 					pmi.setLastOperationState(OperationState.FAILED);
@@ -129,7 +129,7 @@ public class MatomoInstanceService extends OperationStatusService {
 						})
 						.doOnSuccess(ach -> {
 							pmi.setConfigFileContent(ach.fileContent);
-							cfMgr.deployMatomoCfAppBindToGlobalSharedDb(pmi.getIdUrlStr(), instversion, pmi.getId(), pmi.getPlanId(), tz)
+							cfMgr.deployMatomoCfApp(pmi.getIdUrlStr(), instversion, pmi.getId(), pmi.getPlanId(), tz)
 							.doOnError(t -> {
 								LOGGER.debug("Async create app instance (phase 2.1) \"" + pmi.getId() + "\" failed.", t);
 								pmi.setLastOperationState(OperationState.FAILED);
@@ -506,6 +506,5 @@ public class MatomoInstanceService extends OperationStatusService {
 				throw new RuntimeException("Cannot remove tables of deleted Matomo service instance (CNX CLOSE).", e);
 			}
 		}
-
 	}
 }

@@ -61,7 +61,8 @@ import reactor.core.publisher.SignalType;
 @Service
 public class CloudFoundryMgr {
 	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
-	private final static String GLOBSHARDBINSTNAME = "matomo-globshared-db";
+	private final static String GLOBSHAREDDBINSTNAME = "matomo-globshared-db";
+	private final static String SHAREDDBINSTNAME = "matomo-shared-db";
 	private final static String MATOMO_ANPREFIX = "MATOMO_";
 	private final static String MATOMO_AUPREFIX = "M";
 	private String sshHost;
@@ -73,7 +74,7 @@ public class CloudFoundryMgr {
 	@Autowired
 	private CloudFoundryMgrProperties properties;
 	@Autowired
-	MatomoReleases matomoReleases;
+	private MatomoReleases matomoReleases;
 
 	/**
 	 * Initialize CF manager and especially create the shared database for the dev flavor of
@@ -93,7 +94,7 @@ public class CloudFoundryMgr {
 			.block();
 		ExistDbSubscriber ssub = new ExistDbSubscriber();
 		cfops.services().getInstance(GetServiceInstanceRequest.builder()
-				.name(GLOBSHARDBINSTNAME)
+				.name(GLOBSHAREDDBINSTNAME)
 				.build())
 		.subscribe(ssub);
 		waitOnSub(ssub);
@@ -104,7 +105,7 @@ public class CloudFoundryMgr {
 		LOGGER.debug("CONFIG::CloudFoundryMgr-initialize: create shared db");
 		CreateDbSubscriber csub = new CreateDbSubscriber();
 		cfops.services().createInstance(CreateServiceInstanceRequest.builder()
-				.serviceInstanceName(GLOBSHARDBINSTNAME)
+				.serviceInstanceName(GLOBSHAREDDBINSTNAME)
 				.serviceName(properties.getSharedDbServiceName())
 				.planName(properties.getSharedDbPlanName())
 				.build())
@@ -129,36 +130,41 @@ public class CloudFoundryMgr {
 	 * @param instid	The name of the instance as it is exposed to the Web
 	 * @return	The Mono to signal the end of the async process (produce nothng indeed)
 	 */
-	public Mono<Void> deployMatomoCfAppBindToGlobalSharedDb(String instid, String version, String expohost, String planid, String tz) {
+	public Mono<Void> deployMatomoCfApp(String instid, String version, String expohost, String planid, String tz) {
 		LOGGER.debug("CFMGR::createMatomoCfAppBindToGlobalSharedDb: instId={}", instid);
-		String verspath = matomoReleases.getVersionPath(version, instid);
-		LOGGER.debug("File for Matomo bits: " + verspath);
+		String instpath = matomoReleases.getVersionPath(version, instid);
+		LOGGER.debug("File for Matomo bits: " + instpath);
+		ApplicationManifest.Builder manifestbuilder = ApplicationManifest.builder()
+				.name(getAppName(instid))
+				.path(Paths.get(instpath))
+				.route(Route.builder().route(getHost(instid, expohost) + "." + properties.getDomain()).build())
+				.buildpack(properties.getPhpBuildpack())
+				.memory(256)
+				.timeout(180)
+				.environmentVariable("TZ", tz);
 		List<String> services = new ArrayList<String>();
 		if (planid.equals(ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID)) {
-			services.add(GLOBSHARDBINSTNAME);
+			services.add(GLOBSHAREDDBINSTNAME);
+			properties.getSharedDbCreds().addVars(manifestbuilder);
 		} else if (planid.equals(ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID)) {
-			LOGGER.error("SERV::createMatomoInstance: plan MATOMO_SHARED_DB -> not currently supported");
+			// TODO
+			LOGGER.info("SERV::createMatomoInstance: plan MATOMO_SHARED_DB -> not currently supported");
 			throw new UnsupportedOperationException("Plan currently not supprted");
+//			services.add(SHAREDDBINSTNAME);
+//			properties.getDedicatedDbCreds().addVars(b);
 		} else if (planid.equals(ServiceCatalogConfiguration.PLANDEDICATEDDB_UUID)) {
-			LOGGER.error("SERV::createMatomoInstance: plan MATOMO_DEDICATED_DB -> not currently supported");
+			// TODO
+			LOGGER.info("SERV::createMatomoInstance: plan MATOMO_DEDICATED_DB -> not currently supported");
 			throw new UnsupportedOperationException("Plan currently not supprted");
 		} else {
 			LOGGER.error("SERV::createMatomoInstance: unknown plan=" + planid);
 			throw new IllegalArgumentException("Unkown plan when creating service instance");
 		}
-		return cfops.applications()
-				.pushManifest(PushApplicationManifestRequest.builder()
-						.manifest(ApplicationManifest.builder()
-								.name(getAppName(instid))
-								.path(Paths.get(verspath))
-								.route(Route.builder().route(getHost(instid, expohost) + "." + properties.getDomain()).build())
-								.buildpack(properties.getPhpBuildpack())
-								.services(services)
-								.memory(256)
-								.timeout(180)
-								.environmentVariable("TZ", tz)
-								.build())
-						.build());
+		manifestbuilder.services(services);
+		properties.getSmtpCreds().addVars(manifestbuilder);
+		return cfops.applications().pushManifest(PushApplicationManifestRequest.builder()
+				.manifest(manifestbuilder.build())
+				.build());
 	}
 
 	public Mono<Map<String, Object>> getApplicationEnv(String instid) {
@@ -191,7 +197,7 @@ public class CloudFoundryMgr {
 	public Mono<Void> deleteMatomoCfAppBindToGlobalSharedDb(String instid) {
 		LOGGER.debug("CFMGR::deleteMatomoCfAppBindToGlobalSharedDb: instId={}", instid);
 		return cfops.services().unbind(UnbindServiceInstanceRequest.builder()
-				.serviceInstanceName(GLOBSHARDBINSTNAME)
+				.serviceInstanceName(GLOBSHAREDDBINSTNAME)
 				.applicationName(getAppName(instid))
 				.build())
 				.doOnError(t -> {

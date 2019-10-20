@@ -11,8 +11,6 @@ In any case, as the service and the instances it manages can be instanciated in 
 
 For buidling Matomo service, you need a Unix-like environment such as Linux or Cygwin. Indeed, you need to be able to run shell scripts (sh or bash).
 
-With current version, you need your platform to support [p-mysql](https://github.com/cloudfoundry/cf-mysql-release) DB service.
-
 ## Installation
 
 ### Managing Matomo releases
@@ -89,11 +87,16 @@ applications:
     MATOMO-SERVICE_CONTACT_URL: $CONTACT_URL$
     MATOMO-SERVICE_CONTACT_EMAIL: $CONTACT_EMAIL$
     MATOMO-SERVICE_MAX-SERVICE-INSTANCES: $MAX_INSTANCES$
-    MATOMO-SERVICE_DOMAIN: $YOUR_DOMAIN$
-    MATOMO-SERVICE_SHARED-DB_SERVICE-NAME: $YOUR_SHARED_MYSQL_SERVICE$
-    MATOMO-SERVICE_SHARED-DB_PLAN-NAME: $YOUR_SHARED_MYSQL_SERVICE_PLAN$
-    MATOMO-SERVICE_DEDICATED-DB_SERVICE-NAME: $YOUR_MYSQL_DEDICATED_SERVICE$
-    MATOMO-SERVICE_DEDICATED-DB_PLAN-NAME: $YOUR_MYSQL_DEDICATED_DB_PLAN$
+    MATOMO-SERVICE_SMTP_CREDS: $YOUR_SMTP_SERVICE_CREDS$
+    MATOMO-SERVICE_SMTP_CREDS: $SMTP_SERVICE_CREDS$
+    MATOMO-SERVICE_DOMAIN: $DOMAIN$
+    MATOMO-SERVICE_PHPBUILDPACK: $PHP_BUILPACK$
+    MATOMO-SERVICE_SHARED-DB_SERVICE-NAME: $SHARED_MYSQL_SERV$
+    MATOMO-SERVICE_SHARED-DB_PLAN-NAME: $SHARED_MYSQL_SERV_PLAN$
+    MATOMO-SERVICE_SHARED-DB_CREDS: $SHARED_MYSQL_SERV_CREDS$
+    MATOMO-SERVICE_DEDICATED-DB_SERVICE-NAME: $DEDICATED_MYSQL_SERV$
+    MATOMO-SERVICE_DEDICATED-DB_PLAN-NAME: $DEDICATED_MYSQL_SERV_PLAN$
+    MATOMO-SERVICE_DEDICATED-DB_CREDS: $DEDICATED_MYSQL_SERV_CREDS$
   timeout: 180
 ```
 
@@ -114,12 +117,15 @@ applications:
    | $CONTACT_URL$ | The contact URL of the responsible entity for the admin API | https://github.com/orange-cloudfoundry/matomo-cf-service |
    | $CONTACT_EMAIL$ | The contact URL of the responsible entity for the admin API | dilbert@mycompany.org |
    | $MAX_INSTANCES$ | The maximum number of instances that can be created by the service (note that it can be increased when redeploying) | 100 |
-   | $YOUR_DOMAIN$ | The domain within which service instances are exposed | matomo.mycompany.com |
+   | $SMTP_SERVICE_CREDS$ | This is a column-separated string which mainly consists of the names of the credential fields in VCAP_SERVICES for the SMTP service to be bound to in order to send e-mails from Matomo instances | o-smtp:host:port:username:password |
+   | $DOMAIN$ | The domain within which service instances are exposed | matomo.mycompany.com |
    | $PHP_BUILDPACK$ | The PHP buildpack to be used to push Matomo instance to CF | php_buildpack |
-   | $YOUR_SHARED_MYSQL_SERVICE$ | The name of the MySQL service from your CF marketplace | p-mysql |
-   | $YOUR_SHARED_MYSQL_SERVICE_PLAN$ | The name of the plan form the previous MySQL service to be instanciated to manage service instance data | 100MB |
-   | $YOUR_DEDICATED_MYSQL_SERVICE$ | The name of the MySQL service that provides dedicated database platform from your CF marketplace | my-mysql |
-   | $YOUR_DEDICARED_MYSQL_SERVICE_PLAN$ | The name of the plan form the previous MySQL service to be instanciated to manage service instance data | 10GB |
+   | $SHARED_MYSQL_SERV$ | The name of the MySQL service from your CF marketplace | p-mysql |
+   | $SHARED_MYSQL_SERV_PLAN$ | The name of the plan form the previous MySQL service to be instanciated to manage service instance data | 100MB |
+   | $SHARED_MYSQL_SERV_CREDS$ | This is a column-separated string which mainly consists of the names of the credential fields in VCAP_SERVICES for the MySQL/MariaDB service to be bound to in order to store data for Matomo instances within a shared DB | name:hostname:port:username:password |
+   | $DEDICATED_MYSQL_SERV$ | The name of the MySQL service that provides dedicated database platform from your CF marketplace | my-mysql |
+   | $DEDICARED_MYSQL_SERV_PLAN$ | The name of the plan form the previous MySQL service to be instanciated to manage service instance data | 10GB |
+   | $DEDICARED_MYSQL_SERV_CREDS$ | This is a column-separated string which mainly consists of the names of the credential fields in VCAP_SERVICES for the MySQL/MariaDB service to be bound to in order to store data for Matomo instances within a dedicated DB | name:hostname:port:username:password |
 
    You can also adjust other parameters from that file, for instance, the maximum number of instances the Matomo service can create.
 

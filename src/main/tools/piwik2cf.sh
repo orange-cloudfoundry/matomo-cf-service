@@ -150,24 +150,36 @@ echo "<?php
     \$_ENV[\"APPURIS\"] = \$application_json[\"application_uris\"];
   }
 
+  \$cfbindenv[\"SQLSRV\"] = getenv(\"MCFS_DBSRV\");
+  \$cfbindenv[\"SQLDB\"] = getenv(\"MCFS_DBNAME\");
+  \$cfbindenv[\"SQLHOST\"] = getenv(\"MCFS_DBHOST\");
+  \$cfbindenv[\"SQLPORT\"] = getenv(\"MCFS_DBPORT\");
+  \$cfbindenv[\"SQLUSER\"] = getenv(\"MCFS_DBUSER\");
+  \$cfbindenv[\"SQLPASSWORD\"] = getenv(\"MCFS_DBPASSWD\");
+  \$cfbindenv[\"MAILSRV\"] = getenv(\"MCFS_MAILSRV\");
+  \$cfbindenv[\"MAILUSER\"] = getenv(\"MCFS_MAILUSER\");
+  \$cfbindenv[\"MAILPASSWORD\"] = getenv(\"MCFS_MAILPASSWD\");
+  \$cfbindenv[\"MAILHOST\"] = getenv(\"MCFS_MAILHOST\");
+  \$cfbindenv[\"MAILPORT\"] = getenv(\"MCFS_MAILPORT\");
+
   \$services = getenv(\"VCAP_SERVICES\");
   \$services_json = json_decode(\$services,true);
 
   if (isset(\$services_json)) {
-    if (isset(\$services_json[\"p-mysql\"][0][\"credentials\"])) {
-      \$mysql_config = \$services_json[\"p-mysql\"][0][\"credentials\"];
-      \$_ENV[\"SQLDB\"] = \$mysql_config[\"name\"];
-      \$_ENV[\"SQLHOST\"] = \$mysql_config[\"hostname\"];
-      \$_ENV[\"SQLPORT\"] = \$mysql_config[\"port\"];
-      \$_ENV[\"SQLUSER\"] = \$mysql_config[\"username\"];
-      \$_ENV[\"SQLPASSWORD\"] = \$mysql_config[\"password\"];
+    if (isset(\$services_json[\$cfbindenv[\"SQLSRV\"]][0][\"credentials\"])) {
+      \$mysql_config = \$services_json[\$cfbindenv[\"SQLSRV\"]][0][\"credentials\"];
+      \$_ENV[\"SQLDB\"] = \$mysql_config[\$cfbindenv[\"SQLDB\"]];
+      \$_ENV[\"SQLHOST\"] = \$mysql_config[\$cfbindenv[\"SQLHOST\"]];
+      \$_ENV[\"SQLPORT\"] = \$mysql_config[\$cfbindenv[\"SQLPORT\"]];
+      \$_ENV[\"SQLUSER\"] = \$mysql_config[\$cfbindenv[\"SQLUSER\"]];
+      \$_ENV[\"SQLPASSWORD\"] = \$mysql_config[\$cfbindenv[\"SQLPASSWORD\"]];
     }
-    if (isset(\$services_json[\"o-smtp\"][0][\"credentials\"])) {
-        \$smtp_config = \$services_json[\"o-smtp\"][0][\"credentials\"];
-        \$_ENV[\"MAILUSER\"] = \$smtp_config[\"username\"];
-        \$_ENV[\"MAILPASSWORD\"] = \$smtp_config[\"password\"];
-        \$_ENV[\"MAILHOST\"] = \$smtp_config[\"host\"];
-        \$_ENV[\"MAILPORT\"] = \$smtp_config[\"port\"];
+    if (isset(\$services_json[\$cfbindenv[\"MAILSRV\"]][0][\"credentials\"])) {
+        \$smtp_config = \$services_json[\$cfbindenv[\"MAILSRV\"]][0][\"credentials\"];
+        \$_ENV[\"MAILUSER\"] = \$smtp_config[\$cfbindenv[\"MAILUSER\"]];
+        \$_ENV[\"MAILPASSWORD\"] = \$smtp_config[\$cfbindenv[\"MAILPASSWORD\"]];
+        \$_ENV[\"MAILHOST\"] = \$smtp_config[\$cfbindenv[\"MAILHOST\"]];
+        \$_ENV[\"MAILPORT\"] = \$smtp_config[\$cfbindenv[\"MAILPORT\"]];
     }
   }
 ?>" > ${SOURCEDIR}/bootstrap.php
