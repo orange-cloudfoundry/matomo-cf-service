@@ -45,17 +45,9 @@ public class CloudFoundryMgrProperties {
 	private String servicePhpBuildpack;
 	@Value("${matomo-service.max-service-instances}")
 	private int maxServiceInstances;
-	@Value("${matomo-service.shared-db.service-name}")
-	private String sharedDbServiceName;
-	@Value("${matomo-service.shared-db.plan-name}")
-	private String sharedDbPlanName;
 	@Value("${matomo-service.shared-db.creds}")
 	private String sharedDbCredsStr;
 	private DbCreds sharedDbCreds = null;
-	@Value("${matomo-service.dedicated-db.service-name}")
-	private String dedicatedDbServiceName;
-	@Value("${matomo-service.dedicated-db.plan-name}")
-	private String dedicatedDbPlanName;
 	@Value("${matomo-service.dedicated-db.creds}")
 	private String dedicatedDbCredsStr;
 	private DbCreds dedicatedDbCreds = null;
@@ -77,11 +69,11 @@ public class CloudFoundryMgrProperties {
 	}
 
 	public String getSharedDbServiceName() {
-		return sharedDbServiceName;
+		return getSharedDbCreds().service;
 	}
 
 	public String getSharedDbPlanName() {
-		return sharedDbPlanName;
+		return getSharedDbCreds().plan;
 	}
 
 	public SmtpCreds getSmtpCreds() {
@@ -93,28 +85,29 @@ public class CloudFoundryMgrProperties {
 
 	public DbCreds getSharedDbCreds() {
 		if (sharedDbCreds == null) {
-			sharedDbCreds = new DbCreds(sharedDbCredsStr, true);
+			sharedDbCreds = new DbCreds(sharedDbCredsStr);
 		}
 		return sharedDbCreds;
 	}
 
 	public DbCreds getDedicatedDbCreds() {
 		if (dedicatedDbCreds == null) {
-			dedicatedDbCreds = new DbCreds(dedicatedDbCredsStr, false);
+			dedicatedDbCreds = new DbCreds(dedicatedDbCredsStr);
 		}
 		return dedicatedDbCreds;
 	}
 
 	public String getDedicatedDbServiceName() {
-		return dedicatedDbServiceName;
+		return getDedicatedDbCreds().service;
 	}
 
 	public String getDedicatedDbPlanName() {
-		return dedicatedDbPlanName;
+		return getDedicatedDbCreds().plan;
 	}
 
 	public static class SmtpCreds {
 		private String service;
+		private String plan;
 		private String host;
 		private String port;
 		private String user;
@@ -123,10 +116,11 @@ public class CloudFoundryMgrProperties {
 		SmtpCreds(String creds) {
 			String[] credsarr = creds.split(":");
 			this.service = credsarr[0];
-			this.host = credsarr[1];
-			this.port = credsarr[2];
-			this.user = credsarr[3];
-			this.password = credsarr[4];
+			this.plan = credsarr[1];
+			this.host = credsarr[2];
+			this.port = credsarr[3];
+			this.user = credsarr[4];
+			this.password = credsarr[5];
 		}
 
 		public Builder addVars(Builder b) {
@@ -137,28 +131,38 @@ public class CloudFoundryMgrProperties {
 			b.environmentVariable("MCFS_MAILPASSWD", this.password);
 			return b;
 		}
+
+		public String getServiceName() {
+			return this.service;
+		}
+
+		public String getPlanName() {
+			return this.plan;
+		}
 	}
 
 	public class DbCreds {
-		private boolean shared;
+		private String service;
+		private String plan;
 		private String name;
 		private String host;
 		private String port;
 		private String user;
 		private String password;
 
-		DbCreds(String creds, boolean shared) {
-			this.shared = shared;
+		DbCreds(String creds) {
 			String[] credsarr = creds.split(":");
-			this.name = credsarr[0];
-			this.host = credsarr[1];
-			this.port = credsarr[2];
-			this.user = credsarr[3];
-			this.password = credsarr[4];
+			this.service = credsarr[0];
+			this.plan = credsarr[1];
+			this.name = credsarr[2];
+			this.host = credsarr[3];
+			this.port = credsarr[4];
+			this.user = credsarr[5];
+			this.password = credsarr[6];
 		}
 
 		public Builder addVars(Builder b) {
-			b.environmentVariable("MCFS_DBSRV", shared ? sharedDbServiceName : dedicatedDbServiceName);
+			b.environmentVariable("MCFS_DBSRV", this.service);
 			b.environmentVariable("MCFS_DBNAME", this.name);
 			b.environmentVariable("MCFS_DBHOST", this.host);
 			b.environmentVariable("MCFS_DBPORT", this.port);
@@ -172,13 +176,13 @@ public class CloudFoundryMgrProperties {
 		StringBuffer sb = new StringBuffer("{service-domain: \"");
 		sb.append(serviceDomain);
 		sb.append("\", shared-db: {service-name: \"");
-		sb.append(sharedDbServiceName);
+		sb.append(getSharedDbServiceName());
 		sb.append("\", plan-name: \"");
-		sb.append(sharedDbPlanName);
+		sb.append(getSharedDbPlanName());
 		sb.append("\"}, dedicated-db: {service-name: \"");
-		sb.append(dedicatedDbServiceName);
+		sb.append(getDedicatedDbServiceName());
 		sb.append("\", plan-name: \"");
-		sb.append(dedicatedDbPlanName);
+		sb.append(getDedicatedDbPlanName());
 		sb.append("\"}}");
 		return sb.toString();
 	}

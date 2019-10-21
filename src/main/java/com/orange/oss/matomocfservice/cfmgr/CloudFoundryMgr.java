@@ -61,6 +61,7 @@ import reactor.core.publisher.SignalType;
 @Service
 public class CloudFoundryMgr {
 	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+	private final static String SMTPINSTNAME = "matomo-smtp";
 	private final static String GLOBSHAREDDBINSTNAME = "matomo-globshared-db";
 	private final static String SHAREDDBINSTNAME = "matomo-shared-db";
 	private final static String MATOMO_ANPREFIX = "MATOMO_";
@@ -94,25 +95,44 @@ public class CloudFoundryMgr {
 			.block();
 		ExistDbSubscriber ssub = new ExistDbSubscriber();
 		cfops.services().getInstance(GetServiceInstanceRequest.builder()
+				.name(SMTPINSTNAME)
+				.build())
+		.subscribe(ssub);
+		waitOnSub(ssub);
+		CreateDbSubscriber csub;
+		if (!ssub.isExisted()) {
+			LOGGER.debug("CONFIG::CloudFoundryMgr-initialize: create SMTP service instance");
+			csub = new CreateDbSubscriber();
+			cfops.services().createInstance(CreateServiceInstanceRequest.builder()
+					.serviceInstanceName(SMTPINSTNAME)
+					.serviceName(properties.getSmtpCreds().getServiceName())
+					.planName(properties.getSmtpCreds().getPlanName())
+					.build())
+			.subscribe(csub);
+			waitOnSub(csub);
+			if (csub.getCause() != null) {
+				throw new RuntimeException("Cannot create SMTP service.", csub.getCause());
+			}
+		}
+		ssub = new ExistDbSubscriber();
+		cfops.services().getInstance(GetServiceInstanceRequest.builder()
 				.name(GLOBSHAREDDBINSTNAME)
 				.build())
 		.subscribe(ssub);
 		waitOnSub(ssub);
-		if (ssub.isExisted()) {
-			LOGGER.debug("CONFIG::CloudFoundryMgr-initialize: finished");
-			return;
-		}
-		LOGGER.debug("CONFIG::CloudFoundryMgr-initialize: create shared db");
-		CreateDbSubscriber csub = new CreateDbSubscriber();
-		cfops.services().createInstance(CreateServiceInstanceRequest.builder()
-				.serviceInstanceName(GLOBSHAREDDBINSTNAME)
-				.serviceName(properties.getSharedDbServiceName())
-				.planName(properties.getSharedDbPlanName())
-				.build())
-		.subscribe(csub);
-		waitOnSub(csub);
-		if (csub.getCause() != null) {
-			throw new RuntimeException("Cannot create database with shared database service.", csub.getCause());
+		if (!ssub.isExisted()) {
+			LOGGER.debug("CONFIG::CloudFoundryMgr-initialize: create shared db service instance");
+			csub = new CreateDbSubscriber();
+			cfops.services().createInstance(CreateServiceInstanceRequest.builder()
+					.serviceInstanceName(GLOBSHAREDDBINSTNAME)
+					.serviceName(properties.getSharedDbServiceName())
+					.planName(properties.getSharedDbPlanName())
+					.build())
+			.subscribe(csub);
+			waitOnSub(csub);
+			if (csub.getCause() != null) {
+				throw new RuntimeException("Cannot create database with shared database service.", csub.getCause());
+			}
 		}
 		LOGGER.debug("CONFIG::CloudFoundryMgr-initialize: finished");
 	}
@@ -143,6 +163,8 @@ public class CloudFoundryMgr {
 				.timeout(180)
 				.environmentVariable("TZ", tz);
 		List<String> services = new ArrayList<String>();
+		services.add(SMTPINSTNAME);
+		properties.getSmtpCreds().addVars(manifestbuilder);
 		if (planid.equals(ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID)) {
 			services.add(GLOBSHAREDDBINSTNAME);
 			properties.getSharedDbCreds().addVars(manifestbuilder);
@@ -151,7 +173,7 @@ public class CloudFoundryMgr {
 			LOGGER.info("SERV::createMatomoInstance: plan MATOMO_SHARED_DB -> not currently supported");
 			throw new UnsupportedOperationException("Plan currently not supprted");
 //			services.add(SHAREDDBINSTNAME);
-//			properties.getDedicatedDbCreds().addVars(b);
+//			properties.getDedicatedDbCreds().addVars(manifestbuilder);
 		} else if (planid.equals(ServiceCatalogConfiguration.PLANDEDICATEDDB_UUID)) {
 			// TODO
 			LOGGER.info("SERV::createMatomoInstance: plan MATOMO_DEDICATED_DB -> not currently supported");
