@@ -90,6 +90,7 @@ public class CloudFoundryMgr {
 				LOGGER.debug("CONFIG::CloudFoundryMgr-initialize: sshHost={}, sshPort={}", sshHost, sshPort);
 			})
 			.block();
+		// Check if SMTP service has already been created and create otherwise
 		ExistDbSubscriber ssub = new ExistDbSubscriber();
 		cfops.services().getInstance(GetServiceInstanceRequest.builder()
 				.name(properties.getSmtpCreds().getInstanceServiceName())
@@ -111,6 +112,7 @@ public class CloudFoundryMgr {
 				throw new RuntimeException("Cannot create SMTP service.", csub.getCause());
 			}
 		}
+		// Check if Shared DB service has already been created and create otherwise
 		ssub = new ExistDbSubscriber();
 		cfops.services().getInstance(GetServiceInstanceRequest.builder()
 				.name(properties.getDbCreds(ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID).getInstanceServiceName(null))
@@ -129,6 +131,27 @@ public class CloudFoundryMgr {
 			waitOnSub(csub);
 			if (csub.getCause() != null) {
 				throw new RuntimeException("Cannot create database with shared database service.", csub.getCause());
+			}
+		}
+		// Check if Matomo-dedicated DB service has already been created and create otherwise
+		ssub = new ExistDbSubscriber();
+		cfops.services().getInstance(GetServiceInstanceRequest.builder()
+				.name(properties.getDbCreds(ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID).getInstanceServiceName(null))
+				.build())
+		.subscribe(ssub);
+		waitOnSub(ssub);
+		if (!ssub.isExisted()) {
+			LOGGER.debug("CONFIG::CloudFoundryMgr-initialize: create Matomo-dedicated db service instance");
+			csub = new CreateDbSubscriber();
+			cfops.services().createInstance(CreateServiceInstanceRequest.builder()
+					.serviceInstanceName(properties.getDbCreds(ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID).getInstanceServiceName(null))
+					.serviceName(properties.getDbCreds(ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID).getServiceName())
+					.planName(properties.getDbCreds(ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID).getPlanName())
+					.build())
+			.subscribe(csub);
+			waitOnSub(csub);
+			if (csub.getCause() != null) {
+				throw new RuntimeException("Cannot create database with dedicated database service.", csub.getCause());
 			}
 		}
 		LOGGER.debug("CONFIG::CloudFoundryMgr-initialize: finished");

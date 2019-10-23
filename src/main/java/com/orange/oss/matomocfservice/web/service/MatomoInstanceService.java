@@ -88,14 +88,39 @@ public class MatomoInstanceService extends OperationStatusService {
 				LOGGER.debug("SERV::initialize: reactivate instance {}, version={}", pmi.getIdUrlStr(), pmi.getInstalledVersion());
 				if (matomoReleases.isHigherVersion(matomoReleases.getLatestReleaseName(), pmi.getInstalledVersion())) {
 					// need to upgrade to latest version
-					LOGGER.debug("Upgrade app instance from {} to {}.", pmi.getInstalledVersion(), matomoReleases.getLatestReleaseName());
-					pmi.setLastOperation(OpCode.UPDATE);
-					pmi.setLastOperationState(OperationState.IN_PROGRESS);
-					savePMatomoInstance(pmi);
+					LOGGER.debug("Upgrade Matomo instance from {} to {}.", pmi.getInstalledVersion(), matomoReleases.getLatestReleaseName());
 					updateMatomoInstanceActual(pmi, matomoReleases.getLatestReleaseName());
 				}
 			}
 		}
+	}
+
+	public MatomoInstance getMatomoInstance(String platformId, String instanceId) {
+		LOGGER.debug("SERV::getMatomoInstance: platformId={} instanceId={}", platformId, instanceId);
+		PPlatform ppf = getPPlatform(platformId);
+		Optional<PMatomoInstance> opmi = miRepo.findById(instanceId);
+		if (! opmi.isPresent()) {
+			throw new EntityNotFoundException("Matomo Instance with ID=" + instanceId + " not known in Platform with ID=" + platformId);
+		}
+		PMatomoInstance pmi = opmi.get();
+		if (pmi.getPlatform() != ppf) {
+			throw new IllegalArgumentException("Wrong platform with ID=" + platformId + " for Service Instance with ID=" + instanceId);
+		}
+		MatomoInstance mi = toApiModel(pmi);
+		return mi;
+	}
+
+	public String getDashboardUrl(PMatomoInstance pmi) {
+		return cfMgr.getInstanceUrl(pmi.getIdUrlStr(), pmi.getId());
+	}
+
+	public List<MatomoInstance> findMatomoInstance(String platformId) {
+		LOGGER.debug("SERV::findMatomoInstance: platformId={}", platformId);
+		List<MatomoInstance> instances = new ArrayList<MatomoInstance>();
+		for (PMatomoInstance pmi : miRepo.findByPlatform(getPPlatform(platformId))) {
+			instances.add(toApiModel(pmi));
+		}
+		return instances;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -133,30 +158,6 @@ public class MatomoInstanceService extends OperationStatusService {
 					}
 				}).subscribe();
 		return toApiModel(pmi);
-	}
-
-	public MatomoInstance getMatomoInstance(String platformId, String instanceId) {
-		LOGGER.debug("SERV::getMatomoInstance: platformId={} instanceId={}", platformId, instanceId);
-		PPlatform ppf = getPPlatform(platformId);
-		Optional<PMatomoInstance> opmi = miRepo.findById(instanceId);
-		if (! opmi.isPresent()) {
-			throw new EntityNotFoundException("Matomo Instance with ID=" + instanceId + " not known in Platform with ID=" + platformId);
-		}
-		PMatomoInstance pmi = opmi.get();
-		if (pmi.getPlatform() != ppf) {
-			throw new IllegalArgumentException("Wrong platform with ID=" + platformId + " for Service Instance with ID=" + instanceId);
-		}
-		MatomoInstance mi = toApiModel(pmi);
-		return mi;
-	}
-
-	public List<MatomoInstance> findMatomoInstance(String platformId) {
-		LOGGER.debug("SERV::findMatomoInstance: platformId={}", platformId);
-		List<MatomoInstance> instances = new ArrayList<MatomoInstance>();
-		for (PMatomoInstance pmi : miRepo.findByPlatform(getPPlatform(platformId))) {
-			instances.add(toApiModel(pmi));
-		}
-		return instances;
 	}
 
 	public void deleteMatomoInstance(String platformId, String instanceId) {
@@ -199,7 +200,7 @@ public class MatomoInstanceService extends OperationStatusService {
 
 	public MatomoInstance updateMatomoInstance(MatomoInstance mi, Map<String, Object> parameters) {
 		LOGGER.debug("SERV::updateMatomoInstance: matomoInstance={}", mi.toString());
-		String instversion = getVersion(parameters);
+		String newversion = getVersion(parameters);
 		PPlatform ppf = getPPlatform(mi.getPlatformId());
 		Optional<PMatomoInstance> opmi = miRepo.findById(mi.getUuid());
 		if (!opmi.isPresent()) {
@@ -215,16 +216,15 @@ public class MatomoInstanceService extends OperationStatusService {
 			LOGGER.debug("SERV::updateMatomoInstance: KO -> operation in progress.");
 			return mi;
 		}
-		updateMatomoInstanceActual(pmi, instversion);
-		return mi;
-	}
-
-	public String getDashboardUrl(PMatomoInstance pmi) {
-		return cfMgr.getInstanceUrl(pmi.getIdUrlStr(), pmi.getId());
+		if (matomoReleases.isHigherVersion(newversion, pmi.getInstalledVersion())) {
+			LOGGER.debug("Upgrade Matomo instance from {} to {}.", pmi.getInstalledVersion(), newversion);
+			updateMatomoInstanceActual(pmi, newversion);
+		}
+		return toApiModel(pmi);
 	}
 
 	private void updateMatomoInstanceActual(PMatomoInstance pmi, String newversion) {
-		LOGGER.debug("SERV::updateMatomoInstanceActual: matomoInstance={}", pmi.getId(), newversion);
+		LOGGER.debug("SERV::updateMatomoInstanceActual: matomoInstance={}, newVersion={}", pmi.getId(), newversion);
 		pmi.setLastOperation(OpCode.UPDATE);
 		pmi.setLastOperationState(OperationState.IN_PROGRESS);
 		savePMatomoInstance(pmi);
@@ -336,11 +336,9 @@ public class MatomoInstanceService extends OperationStatusService {
 			instversion = matomoReleases.getDefaultReleaseName();
 		} else if (instversion.equals("latest")) {
 			instversion = matomoReleases.getLatestReleaseName();
-		} else {
-			if (! matomoReleases.isVersionAvailable(instversion)) {
+		} else if (! matomoReleases.isVersionAvailable(instversion)) {
 				LOGGER.warn("SERV::getVersion: version {} is not supported -> switch to default one.", instversion);
-				instversion = matomoReleases.getDefaultReleaseName();
-			}
+				throw new RuntimeException("Version <" + instversion + "> is not supported by this Matomo CF Service!!");
 		}
 		return instversion;
 	}
