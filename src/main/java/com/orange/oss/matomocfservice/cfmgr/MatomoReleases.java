@@ -33,7 +33,6 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 
@@ -47,11 +46,11 @@ public class MatomoReleases {
 	private final static String RELEASEPATH = "/home/vcap/app/BOOT-INF/classes/static/matomo-releases";
 	private final static String VERSIONSFILE = File.separator + "Versions";
 	private final static String DEFVERSIONFILE = File.separator + "DefaultVersion";
+	private final static String LATESTVERSIONFILE = File.separator + "LatestVersion";
 	private Path tempDir;
 	private String defaultRel;
+	private String latestRel;
 	private List<MatomoReleaseSpec> releases;
-	@Autowired
-	private CloudFoundryMgrProperties properties;
 
 	public void initialize() {
 		LOGGER.debug("CFMGR::MatomoReleases: initialize");
@@ -73,14 +72,23 @@ public class MatomoReleases {
 				fkh.setWritable(true, true);
 			}
 			this.defaultRel = new String(Files.readAllBytes(Paths.get(RELEASEPATH + DEFVERSIONFILE))).trim();
+			this.latestRel = new String(Files.readAllBytes(Paths.get(RELEASEPATH + LATESTVERSIONFILE))).trim();
 			this.releases = new ArrayList<MatomoReleaseSpec>();
-			LOGGER.debug("CFMGR:: defaultVersion=\"{}\"", this.defaultRel);
-			this.releases.add(new MatomoReleaseSpec(defaultRel).defaultRel());
+			LOGGER.debug("CFMGR:: defaultVersion=\"{}\", latest=\"{}\"", this.defaultRel, this.latestRel);
+			if (this.defaultRel.equals(this.latestRel)) {
+				this.releases.add(new MatomoReleaseSpec(defaultRel).defaultRel().latestRel());
+			} else {
+				this.releases.add(new MatomoReleaseSpec(defaultRel).defaultRel());
+			}
 			String versions = new String(Files.readAllBytes(Paths.get(RELEASEPATH + VERSIONSFILE)));
 			LOGGER.debug("CFMGR:: versions=" + versions);
 			for (String vers : versions.split(";")) {
 				if (! vers.equals(defaultRel)) {
-					this.releases.add(new MatomoReleaseSpec(vers));
+					if (vers.equals(this.latestRel)) {
+						this.releases.add(new MatomoReleaseSpec(vers).latestRel());
+					} else {
+						this.releases.add(new MatomoReleaseSpec(vers));
+					}
 				}
 			}
 		} catch (IOException e) {
@@ -91,12 +99,14 @@ public class MatomoReleases {
 	}
 
 	public String getDefaultReleaseName() {
-		LOGGER.debug("CFMGR::getDefaultReleaseName");
 		return this.defaultRel;
 	}
 
+	public String getLatestReleaseName() {
+		return this.latestRel;
+	}
+
 	public List<MatomoReleaseSpec> getReleaseList() {
-		LOGGER.debug("CFMGR::getReleaseList");
 		return this.releases;
 	}
 
@@ -108,6 +118,31 @@ public class MatomoReleases {
 			if (relsp.getName().equals(instversion)) {
 				return true;
 			}
+		}
+		return false;
+	}
+
+	public boolean isHigherVersion(String vers1, String vers2) {
+		String[] l_mmc = vers1.split("\\.");
+		String[] c_mmc = vers2.split("\\.");
+		if ((l_mmc.length != 3) || (c_mmc.length != 3)) {
+			LOGGER.debug("CFMGR::isHigherVersion: cannot decompose versions - {} or {} is malformed (i.e., M.m.c)", vers1, vers2);
+			return false;
+		}
+		if (l_mmc[0].compareTo(c_mmc[0]) > 0) {
+			return true;
+		}
+		if (l_mmc[0].compareTo(c_mmc[0]) < 0) {
+			return false;
+		}
+		if (l_mmc[1].compareTo(c_mmc[1]) > 0) {
+			return true;
+		}
+		if (l_mmc[1].compareTo(c_mmc[1]) < 0) {
+			return false;
+		}
+		if (l_mmc[2].compareTo(c_mmc[2]) > 0) {
+			return true;
 		}
 		return false;
 	}
@@ -208,6 +243,7 @@ public class MatomoReleases {
 	public class MatomoReleaseSpec {
 		public String name;
 		public boolean isDefault = false;
+		public boolean isLatest = false;
 
 		MatomoReleaseSpec(String n) {
 			name = n;
@@ -221,8 +257,17 @@ public class MatomoReleases {
 			return isDefault;
 		}
 
+		public boolean  isLatest() {
+			return isLatest;
+		}
+
 		MatomoReleaseSpec defaultRel() {
 			isDefault = true;
+			return this;
+		}
+
+		MatomoReleaseSpec latestRel() {
+			isLatest = true;
 			return this;
 		}
 	}

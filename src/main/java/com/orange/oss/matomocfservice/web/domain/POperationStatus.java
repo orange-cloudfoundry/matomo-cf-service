@@ -94,6 +94,7 @@ public abstract class POperationStatus {
 
 	public void setLastOperation(OpCode opCode) {
 		lastOperation = opCode.toString();
+		touch();
 	}
 
 	public OpCode getLastOperation() {
@@ -108,6 +109,7 @@ public abstract class POperationStatus {
 
 	public void setLastOperationState(OperationState opst) {
 		lastOperationState = opst.getValue();
+		touch();
 	}
 
 	public OperationState getLastOperationState() {

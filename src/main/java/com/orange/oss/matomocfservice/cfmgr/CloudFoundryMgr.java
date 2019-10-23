@@ -61,9 +61,6 @@ import reactor.core.publisher.SignalType;
 @Service
 public class CloudFoundryMgr {
 	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
-	private final static String SMTPINSTNAME = "matomo-smtp";
-	private final static String GLOBSHAREDDBINSTNAME = "matomo-globshared-db";
-	private final static String SHAREDDBINSTNAME = "matomo-shared-db";
 	private final static String MATOMO_ANPREFIX = "MATOMO_";
 	private final static String MATOMO_AUPREFIX = "M";
 	private String sshHost;
@@ -95,7 +92,7 @@ public class CloudFoundryMgr {
 			.block();
 		ExistDbSubscriber ssub = new ExistDbSubscriber();
 		cfops.services().getInstance(GetServiceInstanceRequest.builder()
-				.name(SMTPINSTNAME)
+				.name(properties.getSmtpCreds().getInstanceServiceName())
 				.build())
 		.subscribe(ssub);
 		waitOnSub(ssub);
@@ -104,7 +101,7 @@ public class CloudFoundryMgr {
 			LOGGER.debug("CONFIG::CloudFoundryMgr-initialize: create SMTP service instance");
 			csub = new CreateDbSubscriber();
 			cfops.services().createInstance(CreateServiceInstanceRequest.builder()
-					.serviceInstanceName(SMTPINSTNAME)
+					.serviceInstanceName(properties.getSmtpCreds().getInstanceServiceName())
 					.serviceName(properties.getSmtpCreds().getServiceName())
 					.planName(properties.getSmtpCreds().getPlanName())
 					.build())
@@ -116,7 +113,7 @@ public class CloudFoundryMgr {
 		}
 		ssub = new ExistDbSubscriber();
 		cfops.services().getInstance(GetServiceInstanceRequest.builder()
-				.name(GLOBSHAREDDBINSTNAME)
+				.name(properties.getDbCreds(ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID).getInstanceServiceName(null))
 				.build())
 		.subscribe(ssub);
 		waitOnSub(ssub);
@@ -124,9 +121,9 @@ public class CloudFoundryMgr {
 			LOGGER.debug("CONFIG::CloudFoundryMgr-initialize: create shared db service instance");
 			csub = new CreateDbSubscriber();
 			cfops.services().createInstance(CreateServiceInstanceRequest.builder()
-					.serviceInstanceName(GLOBSHAREDDBINSTNAME)
-					.serviceName(properties.getSharedDbServiceName())
-					.planName(properties.getSharedDbPlanName())
+					.serviceInstanceName(properties.getDbCreds(ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID).getInstanceServiceName(null))
+					.serviceName(properties.getDbCreds(ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID).getServiceName())
+					.planName(properties.getDbCreds(ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID).getPlanName())
 					.build())
 			.subscribe(csub);
 			waitOnSub(csub);
@@ -151,39 +148,32 @@ public class CloudFoundryMgr {
 	 * @return	The Mono to signal the end of the async process (produce nothng indeed)
 	 */
 	public Mono<Void> deployMatomoCfApp(String instid, String version, String expohost, String planid, String tz) {
-		LOGGER.debug("CFMGR::createMatomoCfAppBindToGlobalSharedDb: instId={}", instid);
+		LOGGER.debug("CFMGR::createMatomoCfApp: instId={}", instid);
 		String instpath = matomoReleases.getVersionPath(version, instid);
 		LOGGER.debug("File for Matomo bits: " + instpath);
-		ApplicationManifest.Builder manifestbuilder = ApplicationManifest.builder()
-				.name(getAppName(instid))
-				.path(Paths.get(instpath))
-				.route(Route.builder().route(getHost(instid, expohost) + "." + properties.getDomain()).build())
-				.buildpack(properties.getPhpBuildpack())
-				.memory(256)
-				.timeout(180)
-				.environmentVariable("TZ", tz);
-		List<String> services = new ArrayList<String>();
-		services.add(SMTPINSTNAME);
-		properties.getSmtpCreds().addVars(manifestbuilder);
-		if (planid.equals(ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID)) {
-			services.add(GLOBSHAREDDBINSTNAME);
-			properties.getSharedDbCreds().addVars(manifestbuilder);
-		} else if (planid.equals(ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID)) {
-			// TODO
-			LOGGER.info("SERV::createMatomoInstance: plan MATOMO_SHARED_DB -> not currently supported");
-			throw new UnsupportedOperationException("Plan currently not supprted");
-//			services.add(SHAREDDBINSTNAME);
-//			properties.getDedicatedDbCreds().addVars(manifestbuilder);
-		} else if (planid.equals(ServiceCatalogConfiguration.PLANDEDICATEDDB_UUID)) {
-			// TODO
-			LOGGER.info("SERV::createMatomoInstance: plan MATOMO_DEDICATED_DB -> not currently supported");
-			throw new UnsupportedOperationException("Plan currently not supprted");
+		ApplicationManifest.Builder manifestbuilder;
+		if (tz != null) {
+			manifestbuilder = ApplicationManifest.builder()
+					.name(getAppName(instid))
+					.path(Paths.get(instpath))
+					.route(Route.builder().route(getHost(instid, expohost) + "." + properties.getDomain()).build())
+					.buildpack(properties.getPhpBuildpack())
+					.memory(256)
+					.timeout(180)
+					.environmentVariable("TZ", tz);
 		} else {
-			LOGGER.error("SERV::createMatomoInstance: unknown plan=" + planid);
-			throw new IllegalArgumentException("Unkown plan when creating service instance");
+			manifestbuilder = ApplicationManifest.builder()
+					.name(getAppName(instid))
+					.path(Paths.get(instpath))
+					.route(Route.builder().route(getHost(instid, expohost) + "." + properties.getDomain()).build())
+					.buildpack(properties.getPhpBuildpack())
+					.memory(256)
+					.timeout(180);			
 		}
+		List<String> services = new ArrayList<String>();
+		properties.getSmtpCreds().addVars(manifestbuilder).addService(services);
+		properties.getDbCreds(planid).addVars(manifestbuilder).addService(services, getAppName(instid));
 		manifestbuilder.services(services);
-		properties.getSmtpCreds().addVars(manifestbuilder);
 		return cfops.applications().pushManifest(PushApplicationManifestRequest.builder()
 				.manifest(manifestbuilder.build())
 				.build());
@@ -213,13 +203,14 @@ public class CloudFoundryMgr {
 
 	/**
 	 * Launch the deletion of the CF app for a dev flavor instance of Matomo service.
-	 * @param instid	The name of the instance as it is exposed to the Web
+	 * @param instid	The name of the Matomo instance as it is exposed to the Web
+	 * @param planid	The service plan of the Matomo instance
 	 * @return	The Mono to signal the end of the async process (produce nothng indeed)
 	 */
-	public Mono<Void> deleteMatomoCfAppBindToGlobalSharedDb(String instid) {
+	public Mono<Void> deleteMatomoCfApp(String instid, String planid) {
 		LOGGER.debug("CFMGR::deleteMatomoCfAppBindToGlobalSharedDb: instId={}", instid);
 		return cfops.services().unbind(UnbindServiceInstanceRequest.builder()
-				.serviceInstanceName(GLOBSHAREDDBINSTNAME)
+				.serviceInstanceName(properties.getDbCreds(planid).getInstanceServiceName(getAppName(instid)))
 				.applicationName(getAppName(instid))
 				.build())
 				.doOnError(t -> {
@@ -231,7 +222,7 @@ public class CloudFoundryMgr {
 					.doOnError(tt -> {
 						LOGGER.error("CFMGR::deleteMatomoCfAppBindToGlobalSharedDb: problem to delete app.", tt);
 					})
-					.doOnSuccess(tt -> {
+					.doOnSuccess(vv -> {
 						LOGGER.debug("CFMGR::deleteMatomoCfAppBindToGlobalSharedDb: app unbound and deleted.");
 					})
 					.subscribe();
@@ -244,7 +235,7 @@ public class CloudFoundryMgr {
 					.doOnError(tt -> {
 						LOGGER.error("CFMGR::deleteMatomoCfAppBindToGlobalSharedDb: problem to delete app.", tt);
 					})
-					.doOnSuccess(tt -> {
+					.doOnSuccess(vv -> {
 						LOGGER.debug("CFMGR::deleteMatomoCfAppBindToGlobalSharedDb: app unbound and deleted.");
 					})
 					.subscribe();
@@ -325,14 +316,14 @@ public class CloudFoundryMgr {
 			return exist;
 		}
 		public void hookOnNext(ServiceInstance si) {
-			LOGGER.debug("CFMGR::   instance found -> name=" + si.getClass().getName());
+			//LOGGER.debug("CFMGR::   instance found -> name=" + si.getClass().getName());
 			exist = true;
 		}
 		public void hookOnError(Throwable throwable) {
-			LOGGER.debug("CFMGR::   instance not found -> " + throwable.getMessage());
+			//LOGGER.debug("CFMGR::   instance not found -> " + throwable.getMessage());
 		}
 		public void hookFinally(SignalType st) {
-			LOGGER.debug("CFMGR::   instance search finally");
+			//LOGGER.debug("CFMGR::   instance search finally");
 			synchronized (this) {
 				this.notifyAll();
 			}
@@ -345,14 +336,14 @@ public class CloudFoundryMgr {
 			return t;
 		}
 		public void hookOnError(Throwable throwable) {
-			LOGGER.debug("CFMGR::   instance not created -> " + throwable.getMessage());
+			//LOGGER.debug("CFMGR::   instance not created -> " + throwable.getMessage());
 			t = throwable;
 		}
 		public void hookOnNext() {
-			LOGGER.debug("CFMGR::   instance created");
+			//LOGGER.debug("CFMGR::   instance created");
 		}
 		public void hookFinally(SignalType st) {
-			LOGGER.debug("CFMGR::   instance creation finally");
+			//LOGGER.debug("CFMGR::   instance creation finally");
 			synchronized (this) {
 				this.notifyAll();
 			}

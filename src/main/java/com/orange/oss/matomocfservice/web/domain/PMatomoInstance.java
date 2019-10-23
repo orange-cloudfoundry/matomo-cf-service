@@ -149,6 +149,10 @@ public class PMatomoInstance extends POperationStatus {
 		super.touch();
 	}
 
+	public void setInstalledVersion(String instVers) {
+		this.installedVersion = instVers;
+	}
+
 	public String getInstalledVersion() {
 		return this.installedVersion;
 	}

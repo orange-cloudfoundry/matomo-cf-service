@@ -67,6 +67,7 @@ export NOCOL='\033[0m'
 export GREEN='\033[0;32m'
 export RED='\033[0;31m'
 export BLUE='\033[0;34m'
+export CYAN='\033[0;36m'
 export YELLOW='\033[0;33m'
 
 GENERATE_DIR=`dirname $0`
@@ -77,23 +78,23 @@ export GENERATE_DIR=`pwd`
 cd ${LPWD}
 TMPDIR=${GENERATE_DIR}/tmp
 rm -rf ${TMPDIR}
-mkdir -p ${TMPDIR}
-SOURCEDIR=${TMPDIR}/matomo
 if [ -z ${PIWIKVERSION+x} ]; then
-	PIWIKVERSION=latest
+	PIWIKVERSION=LatestVersion
 fi
 
 if [ -e ${GENERATE_DIR}/${PIWIKVERSION} ]; then
 	if [ ${FORCE} -eq 0 ]; then
 		echo -e "	${RED}Matomo version ${PIWIKVERSION} has already been prepared: skip${NOCOL}"
-		rm -rf ${TMPDIR}
 		exit 0
 	fi
 fi
 
+mkdir -p ${TMPDIR}
+SOURCEDIR=${TMPDIR}/matomo
+
 ############################################################################################################################
 # Fetch PIWIK from Internet and adapt it to CF
-if [ -z ${PIWIKVERSION+x} ]; then
+if [ ${PIWIKVERSION} = "LatestVersion" ]; then
 	SOURCEURL="https://builds.matomo.org/matomo.zip"
 	echo -e "	- ${YELLOW}Fetch latest Matomo release from Internet${NOCOL}"
 else
@@ -111,12 +112,15 @@ fi
 echo -e "	- ${YELLOW}Unzip Matomo package${NOCOL}"
 unzip -d ${TMPDIR} ${TMPDIR}/piwik.zip >/dev/null
 rm ${TMPDIR}/piwik.zip
-if [ ${PIWIKVERSION} = "latest" ]; then
-	PIWIKVERSION=`awk '/## Matomo/{print}' ${TMPDIR}/matomo/CHANGELOG.md | sed -n 1,1p | awk -F ' ' '{print $3}'`
+CODEPIWIKVERSION=`grep VERSION ${TMPDIR}/matomo/core/Version.php | awk -F "'" '{print $2}'`
+if [ ${PIWIKVERSION} = "LatestVersion" ]; then
+#	PIWIKVERSION=`awk '/## Matomo/{print}' ${TMPDIR}/matomo/CHANGELOG.md | sed -n 1,1p | awk -F ' ' '{print $3}'`
+	PIWIKVERSION=${CODEPIWIKVERSION}
 	rm -f ${GENERATE_DIR}/DefaultVersion
 	(cd ${GENERATE_DIR}; echo -n ${PIWIKVERSION} >${GENERATE_DIR}/DefaultVersion)
 	LATEST=1
 else
+	PIWIKVERSION=${CODEPIWIKVERSION}
 	if [ ! -f ${GENERATE_DIR}/DefaultVersion ]; then
 		(cd ${GENERATE_DIR}; echo -n ${PIWIKVERSION} >${GENERATE_DIR}/DefaultVersion)
 	fi
@@ -275,7 +279,7 @@ extension=mbstring.so
 (cd ${SOURCEDIR}; cp -r . ${RELEASEDIR} >/dev/null)
 echo -e "	- ${YELLOW}Update supported versions${NOCOL}"
 if [ $LATEST -eq 1 ] ; then
-	(cd ${GENERATE_DIR}; rm -f latest; ln -s ${PIWIKVERSION} latest)
+	(cd ${GENERATE_DIR}; rm -f LatestVersion; echo -n -e "${PIWIKVERSION}" >LatestVersion)
 fi
 rm -rf ${TMPDIR}
 echo -n >${GENERATE_DIR}/Versions

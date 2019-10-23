@@ -18,6 +18,7 @@ export NOCOL='\033[0m'
 export GREEN='\033[0;32m'
 export RED='\033[0;31m'
 export BLUE='\033[0;34m'
+export CYAN='\033[0;36m'
 export YELLOW='\033[0;33m'
 
 TARGETDIR=`dirname $0`/../../../target/classes/static/matomo-releases
@@ -33,11 +34,11 @@ else
 	INDEFREL=`dirname $0`/default-release.txt
 fi
 while IFS= read -r vers; do
-	echo -e "${BLUE}Prepare release $vers to be used in Matomo CF service:${NOCOL}"
+	echo -e "${CYAN}Prepare release $vers to be used in Matomo CF service:${NOCOL}"
 	if [ $vers = "latest" ] ; then
 		`dirname $0`/piwik2cf.sh $@
 		RES=$?
-		LATEST=`ls -al ${TARGETDIR}/latest | awk -F '-> ' '{print $2}'`
+		LATEST=`cat ${TARGETDIR}/LatestVersion`
 		if [ ${RES} -eq 0 ] ; then
 			if [ -z ${FIRST+x} ]; then
 				FIRST=${LATEST}
@@ -57,7 +58,7 @@ if [ -z ${FIRST+x} ]; then
 	exit 1
 fi
 while IFS= read -r defv; do
-	echo -e "${BLUE}Looking for default release${NOCOL}"
+	echo -e "${CYAN}Looking for default release${NOCOL}"
 	if [ $defv = "latest" ] ; then
 		if [ -z ${LATEST+x} ]; then
 			echo -e "${YELLOW}Request latest release as the default one but not a target!${NOCOL}"
@@ -84,4 +85,4 @@ if [ -z ${DEF+x} ]; then
  	echo ${FIRST} > ${TARGETDIR}/DefaultVersion
  	DEF=${FIRST}
 fi
-echo -e "${BLUE}Release ${DEF} is the default one.${NOCOL}"
+echo -e "${CYAN}Release ${DEF} is the default one.${NOCOL}"

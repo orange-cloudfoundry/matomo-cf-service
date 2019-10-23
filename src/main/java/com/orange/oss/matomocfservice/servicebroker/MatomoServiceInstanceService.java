@@ -55,38 +55,43 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 		LOGGER.debug("BROKER::createServiceInstance: platformId={} / serviceId={}", request.getPlatformInstanceId(), request.getServiceInstanceId());
 //		LOGGER.debug("BROKER::   request=" + request.toString());
 		LOGGER.debug("BROKER::   platform={}", request.getContext().getPlatform());
-		PlatformKind pfkind;
-		String instn, tid, stid;
-		switch (request.getContext().getPlatform()) {
-		case "cloudfoundry":
-			pfkind = PlatformKind.CLOUDFOUNDRY;
-			instn = (String)request.getContext().getProperty("instance_name");
-			tid = (String)request.getContext().getProperty("organizationGuid");
-			stid = (String)request.getContext().getProperty("spaceGuid");
-			break;
-		default:
-			LOGGER.warn("BROKER::   unknown kind of platform -> " + request.getContext().getPlatform());
-			pfkind = PlatformKind.OTHER;
-			instn = tid = stid = "";
+		Mono<CreateServiceInstanceResponse> resp;
+		try {
+			PlatformKind pfkind;
+			String instn, tid, stid;
+			switch (request.getContext().getPlatform()) {
+			case "cloudfoundry":
+				pfkind = PlatformKind.CLOUDFOUNDRY;
+				instn = (String)request.getContext().getProperty("instance_name");
+				tid = (String)request.getContext().getProperty("organizationGuid");
+				stid = (String)request.getContext().getProperty("spaceGuid");
+				break;
+			default:
+				LOGGER.warn("BROKER::   unknown kind of platform -> " + request.getContext().getPlatform());
+				pfkind = PlatformKind.OTHER;
+				instn = tid = stid = "";
+			}
+			MatomoInstance mi = miServ.createMatomoInstance(new MatomoInstance()
+					.uuid(request.getServiceInstanceId())
+					.serviceDefinitionId(request.getServiceDefinitionId())
+					.name(instn)
+					.tenantId(tid)
+					.subtenantId(stid)
+					.platformKind(pfkind)
+					.platformApiLocation(request.getApiInfoLocation())
+					.planId(request.getPlanId())
+					.platformId(request.getPlatformInstanceId()),
+					request.getParameters());
+			resp = Mono.just(CreateServiceInstanceResponse.builder()
+					.async(true)
+					.dashboardUrl(mi.getDashboardUrl())
+					.instanceExisted(false)
+					.operation("Create Matomo Service Instance \"" + instn + "\"")
+					.build());
+		} catch (Exception e) {
+			resp = Mono.error(e);
 		}
-		MatomoInstance mi = miServ.createMatomoInstance(new MatomoInstance()
-				.uuid(request.getServiceInstanceId())
-				.serviceDefinitionId(request.getServiceDefinitionId())
-				.name(instn)
-				.tenantId(tid)
-				.subtenantId(stid)
-				.platformKind(pfkind)
-				.platformApiLocation(request.getApiInfoLocation())
-				.planId(request.getPlanId())
-				.platformId(request.getPlatformInstanceId()),
-				request.getParameters());
-		CreateServiceInstanceResponse resp = CreateServiceInstanceResponse.builder()
-				.async(true)
-				.dashboardUrl(mi.getDashboardUrl())
-				.instanceExisted(false)
-				.operation("Create Matomo Service Instance \"" + instn + "\"")
-				.build();
-		return Mono.just(resp);
+		return resp;
 	}
 
 	@Override
@@ -116,11 +121,17 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 	@Override
 	public Mono<DeleteServiceInstanceResponse> deleteServiceInstance(DeleteServiceInstanceRequest request) {
 		LOGGER.debug("BROKER::deleteServiceInstance: platformId={}, instanceId={}", request.getPlatformInstanceId(), request.getServiceInstanceId());
-		String error = miServ.deleteMatomoInstance(request.getPlatformInstanceId(), request.getServiceInstanceId());
-		return Mono.just(DeleteServiceInstanceResponse.builder()
-				.async(true)
-				.operation(error == null ? "Deleting Matomo service instance" : error)
-				.build());
+		Mono<DeleteServiceInstanceResponse> resp;
+		try {
+			miServ.deleteMatomoInstance(request.getPlatformInstanceId(), request.getServiceInstanceId());
+			resp = Mono.just(DeleteServiceInstanceResponse.builder()
+						.async(true)
+						.operation("Delete Matomo service instance \"" + request.getServiceInstanceId() + "\"")
+						.build());
+		} catch (Exception e) {
+			resp = Mono.error(e);
+		}
+		return resp;
 	}
 
 	@Override
@@ -151,9 +162,11 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 					.platformKind(pfkind)
 					.platformApiLocation(request.getApiInfoLocation())
 					.planId(request.getPlanId())
-					.platformId(request.getPlatformInstanceId()));
+					.platformId(request.getPlatformInstanceId()),
+					request.getParameters());
 			resp = Mono.just(UpdateServiceInstanceResponse.builder()
 					.async(true)
+					.operation("Update Matomo Service Instance \"" + instn + "\"")
 					.build());
 		} catch (Exception e) {
 			resp = Mono.error(e);
