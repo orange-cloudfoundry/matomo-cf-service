@@ -53,9 +53,11 @@ public class CloudFoundryMgrProperties {
 	@Value("${matomo-service.shared-db.creds}")
 	private String sharedDbCredsStr;
 	private DbCreds sharedDbCreds = null;
+	@Value("${matomo-service.matomo-shared-db.creds}")
+	private String sharedDedicatedDbCredsStr;
+	private DbCreds sharedDedicatedDbCreds = null;
 	@Value("${matomo-service.dedicated-db.creds}")
 	private String dedicatedDbCredsStr;
-	private DbCreds sharedDedicatedDbCreds = null;
 	private DbCreds dedicatedDbCreds = null;
 
 	public boolean getMatomoDebug() {
@@ -90,7 +92,7 @@ public class CloudFoundryMgrProperties {
 		}
 		if (planid.equals(ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID)) {
 			if (sharedDedicatedDbCreds == null) {
-				sharedDedicatedDbCreds = new DbCreds(dedicatedDbCredsStr, SHAREDDBINSTNAME);
+				sharedDedicatedDbCreds = new DbCreds(sharedDedicatedDbCredsStr, SHAREDDBINSTNAME);
 			}
 			return sharedDedicatedDbCreds;
 		}
