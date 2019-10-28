@@ -69,7 +69,6 @@ public class MatomoInstanceService extends OperationStatusService {
 	private final String PARAM_VERSION = "matomoVersion";
 	private final String PARAM_TZ = "matomoTimeZone";
 	private final String MATOMOINSTANCE_ROOTUSER = "admin";
-	private final long TIMEOUT_FROZENINPROGRESS = 10; // in minutes
 	@Autowired
 	private PMatomoInstanceRepository miRepo;
 	@Autowired
@@ -187,12 +186,8 @@ public class MatomoInstanceService extends OperationStatusService {
 			throw new RuntimeException("Error: wrong platform with ID=" + platformId + " for Matomo service instance with ID=" + instanceId + ".");
 		}
 		if (pmi.getLastOperationState() == OperationState.IN_PROGRESS) {
-			Duration d = Duration.between(pmi.getUpdateTime(), ZonedDateTime.now());
-			if (d.get(ChronoUnit.MINUTES) < TIMEOUT_FROZENINPROGRESS) {
-				LOGGER.debug("SERV::deleteMatomoInstance: KO -> operation in progress for {} minutes.", d.get(ChronoUnit.MINUTES));
-				throw new RuntimeException("Error: cannot delete Matomo service instance with ID=" + pmi.getId() + ": operation already in progress.");
-			}
-			// accept to delete instance anyway as the last operation seems to be frozen
+			LOGGER.debug("SERV::deleteMatomoInstance: KO -> operation in progress.");
+			throw new RuntimeException("Error: cannot delete Matomo service instance with ID=" + pmi.getId() + ": operation already in progress.");
 		}
 		pmi.setLastOperation(OpCode.DELETE);
 		pmi.setLastOperationState(OperationState.IN_PROGRESS);

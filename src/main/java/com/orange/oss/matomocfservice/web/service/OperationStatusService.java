@@ -16,6 +16,8 @@
 
 package com.orange.oss.matomocfservice.web.service;
 
+import java.time.Duration;
+import java.time.ZonedDateTime;
 import java.util.Optional;
 
 import javax.persistence.EntityNotFoundException;
@@ -37,6 +39,7 @@ import com.orange.oss.matomocfservice.web.repository.PPlatformRepository;
  */
 public abstract class OperationStatusService {
 	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+	private final long TIMEOUT_FROZENINPROGRESS = 1800; // in seconds
 	@Autowired
 	private PPlatformRepository pfRepo;
 	@Autowired
@@ -57,7 +60,17 @@ public abstract class OperationStatusService {
 			LOGGER.error("SERV::getLastOperationAndState: wrong platform.");
 			throw new IllegalArgumentException("Wrong platform with ID=" + platformId + " for Service Instance with ID=" + instanceId);
 		}
-		LOGGER.debug("SERV::getLastOperationAndState: Operation={} State={}", pos.getLastOperation().toString(), pos.getLastOperationState().toString());
+		Duration d = Duration.between(pos.getUpdateTime(), ZonedDateTime.now());
+		if (d.getSeconds() > TIMEOUT_FROZENINPROGRESS) {
+			LOGGER.error("SERV::getLastOperationAndState: last operation is in progress for too long (more than {} minutes): considered failed.", TIMEOUT_FROZENINPROGRESS);
+			pos.setLastOperationState(OperationState.FAILED);
+			osRepo.save(pos);
+		}
+		if (pos.getLastOperationState() == OperationState.IN_PROGRESS) {
+			LOGGER.debug("SERV::getLastOperationAndState: Operation={} State={} for {}'{}''", pos.getLastOperation().toString(), pos.getLastOperationState().toString(), d.getSeconds() / 60, d.getSeconds() % 60);			
+		} else {
+			LOGGER.debug("SERV::getLastOperationAndState: Operation={} State={}", pos.getLastOperation().toString(), pos.getLastOperationState().toString());
+		}
 		OperationAndState opandst2fill = new OperationAndState();
 		opandst2fill.setOperation(pos.getLastOperation());
 		opandst2fill.setState(pos.getLastOperationState());
