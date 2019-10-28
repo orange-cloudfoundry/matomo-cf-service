@@ -36,9 +36,9 @@ import com.orange.oss.matomocfservice.config.ServiceCatalogConfiguration;
 @Configuration
 public class CloudFoundryMgrProperties {
 	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
-	private final static String SMTPINSTNAME = "matomo-smtp";
-	final static String GLOBSHAREDDBINSTNAME = "matomo-globshared-db";
-	private final static String SHAREDDBINSTNAME = "matomo-shared-db";
+	private final static String SMTPINSTNAME = "mcfs-smtp";
+	final static String GLOBSHAREDDBINSTNAME = "mcfs-globshared-db";
+	private final static String SHAREDDBINSTNAME = "mcfs-shared-db";
 	@Value("${matomo-service.matomo-debug:false}")
 	private boolean matomoDebug;
 	@Value("${matomo-service.smtp.creds}")
@@ -95,12 +95,10 @@ public class CloudFoundryMgrProperties {
 			return sharedDedicatedDbCreds;
 		}
 		if (planid.equals(ServiceCatalogConfiguration.PLANDEDICATEDDB_UUID)) {
-			LOGGER.info("SERV::createMatomoInstance: plan MATOMO_DEDICATED_DB -> not currently supported");
-			throw new UnsupportedOperationException("Plan currently not supprted");
-//			if (dedicatedDbCreds == null) {
-//				dedicatedDbCreds = new DbCreds(dedicatedDbCredsStr, null);
-//			}
-//			return dedicatedDbCreds;
+			if (dedicatedDbCreds == null) {
+				dedicatedDbCreds = new DbCreds(dedicatedDbCredsStr, null);
+			}
+			return dedicatedDbCreds;
 		}
 		LOGGER.error("SERV::createMatomoInstance: unknown plan=" + planid);
 		throw new IllegalArgumentException("Unkown plan");
@@ -190,6 +188,10 @@ public class CloudFoundryMgrProperties {
 				services.add(appName + "-DB");
 			}
 			return this;
+		}
+
+		public boolean isDedicatedDb() {
+			return sharedServiceName == null;
 		}
 
 		public String getInstanceServiceName(String appName) {

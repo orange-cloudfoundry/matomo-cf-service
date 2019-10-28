@@ -40,6 +40,7 @@ import org.cloudfoundry.operations.services.ServiceInstance;
 import org.cloudfoundry.operations.services.UnbindServiceInstanceRequest;
 import org.cloudfoundry.reactor.client.ReactorCloudFoundryClient;
 import org.cloudfoundry.operations.services.CreateServiceInstanceRequest;
+import org.cloudfoundry.operations.services.DeleteServiceInstanceRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -167,11 +168,11 @@ public class CloudFoundryMgr {
 
 	/**
 	 * Launch the deployment of a CF app for a dev flavor instance of Matomo service.
-	 * @param instid	The name of the instance as it is exposed to the Web
+	 * @param instid	The code name of the instance
 	 * @return	The Mono to signal the end of the async process (produce nothng indeed)
 	 */
 	public Mono<Void> deployMatomoCfApp(String instid, String version, String expohost, String planid, String tz) {
-		LOGGER.debug("CFMGR::createMatomoCfApp: instId={}", instid);
+		LOGGER.debug("CFMGR::deployMatomoCfApp: instId={}", instid);
 		String instpath = matomoReleases.getVersionPath(version, instid);
 		LOGGER.debug("File for Matomo bits: " + instpath);
 		ApplicationManifest.Builder manifestbuilder;
@@ -199,6 +200,32 @@ public class CloudFoundryMgr {
 		manifestbuilder.services(services);
 		return cfops.applications().pushManifest(PushApplicationManifestRequest.builder()
 				.manifest(manifestbuilder.build())
+				.build());
+	}
+
+	/**
+	 * Launch the creation of a dedicated DB for a particular Matomo instance.
+	 * @param instid	The code name of the instance
+	 * @return	The Mono to signal the end of the async process (produce nothing indeed)
+	 */
+	public Mono<Void> createDedicatedDb(String instid) {
+		LOGGER.debug("CFMGR::createDedicatedDb: instId={}", instid);
+		return cfops.services().createInstance(CreateServiceInstanceRequest.builder()
+				.serviceInstanceName(properties.getDbCreds(ServiceCatalogConfiguration.PLANDEDICATEDDB_UUID).getInstanceServiceName(getAppName(instid)))
+				.serviceName(properties.getDbCreds(ServiceCatalogConfiguration.PLANDEDICATEDDB_UUID).getServiceName())
+				.planName(properties.getDbCreds(ServiceCatalogConfiguration.PLANDEDICATEDDB_UUID).getPlanName())
+				.build());
+	}
+
+	/**
+	 * Launch the deletion of the dedicated DB for a particular Matomo instance.
+	 * @param instid	The code name of the instance
+	 * @return	The Mono to signal the end of the async process (produce nothing indeed)
+	 */
+	public Mono<Void> deleteDedicatedDb(String instid) {
+		LOGGER.debug("CFMGR::deleteDedicatedDb: instId={}", instid);
+		return cfops.services().deleteInstance(DeleteServiceInstanceRequest.builder()
+				.name(properties.getDbCreds(ServiceCatalogConfiguration.PLANDEDICATEDDB_UUID).getInstanceServiceName(getAppName(instid)))
 				.build());
 	}
 
@@ -231,7 +258,7 @@ public class CloudFoundryMgr {
 	 * @return	The Mono to signal the end of the async process (produce nothng indeed)
 	 */
 	public Mono<Void> deleteMatomoCfApp(String instid, String planid) {
-		LOGGER.debug("CFMGR::deleteMatomoCfAppBindToGlobalSharedDb: instId={}", instid);
+		LOGGER.debug("CFMGR::deleteMatomoCfApp: instId={}", instid);
 		return cfops.services().unbind(UnbindServiceInstanceRequest.builder()
 				.serviceInstanceName(properties.getDbCreds(planid).getInstanceServiceName(getAppName(instid)))
 				.applicationName(getAppName(instid))

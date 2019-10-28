@@ -188,7 +188,8 @@ public class MatomoReleases {
 		try {
 			// create a copy of the version dir for the instance
 			if (new File(instdir).exists()) {
-				return;
+				// if exist, cleanup situation
+				deleteLinkedTree(instId);
 			}
 			Path sourcePath = Paths.get(versdir);
 			Path targetPath = Paths.get(instdir);
@@ -218,26 +219,26 @@ public class MatomoReleases {
 
 	public void deleteLinkedTree(String instId) {
 		LOGGER.debug("CFMGR::deleteLinkedTree: instId={}", instId);
-//		String vpath = getVersionPath(null, instId);
-//		Path sourcePath = Paths.get(vpath);
-//		try {
-//			Files.walkFileTree(sourcePath, new SimpleFileVisitor<Path>() {
-//				@Override
-//				public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
-//					new File(file.toString()).delete();
-//					return FileVisitResult.CONTINUE;
-//				}
-//				@Override
-//				public FileVisitResult postVisitDirectory(final Path dir, final IOException exc) throws IOException {
-//					new File(dir.toString()).delete();
-//					return FileVisitResult.CONTINUE;
-//				}
-//			});
-//		} catch (IOException e) {
-//			LOGGER.error("CFMGR::MatomoReleases: deleteLinkedTree: problem while manipulating files within service container.", e);
-//			throw new RuntimeException("IO pb in CFMGR::deleteLinkedTree", e);
-//		}
-//		new File(vpath).delete();
+		String vpath = getVersionPath(null, instId);
+		Path sourcePath = Paths.get(vpath);
+		try {
+			Files.walkFileTree(sourcePath, new SimpleFileVisitor<Path>() {
+				@Override
+				public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
+					new File(file.toString()).delete();
+					return FileVisitResult.CONTINUE;
+				}
+				@Override
+				public FileVisitResult postVisitDirectory(final Path dir, final IOException exc) throws IOException {
+					new File(dir.toString()).delete();
+					return FileVisitResult.CONTINUE;
+				}
+			});
+		} catch (IOException e) {
+			LOGGER.error("CFMGR::MatomoReleases: deleteLinkedTree: problem while manipulating files within service container.", e);
+			throw new RuntimeException("IO pb in CFMGR::deleteLinkedTree", e);
+		}
+		new File(vpath).delete();
 	}
 
 	public class MatomoReleaseSpec {

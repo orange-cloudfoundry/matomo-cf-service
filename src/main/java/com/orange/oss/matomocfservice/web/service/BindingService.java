@@ -112,6 +112,16 @@ public class BindingService extends OperationStatusService {
 			throw new RuntimeException("Cannot bind: admin email parameter should be provided");
 		}
 		try {
+			opb = pbindingRepo.findByTrackedUrl(tu);
+			if (opb.isPresent()) {
+				if (!opb.get().getSiteName().equals(sn)) {
+					LOGGER.warn("A binding already exists for this tracked URL with another site name: cannot change, keep existing one <{}>!!", opb.get().getSiteName());
+				}
+				if (!opb.get().getAdminEmail().equals(am)) {
+					LOGGER.warn("A binding already exists for this tracked URL with another admin email: cannot change, keep existing one <{}>!!", opb.get().getAdminEmail());
+				}
+				return true;
+			}
 			pb = new PBinding(
 					bindid,
 					opmi.get(),
@@ -151,9 +161,9 @@ public class BindingService extends OperationStatusService {
 			return "Error: cannot delete Matomo service instance binding with ID=" + pb.getId() + ": operation already in progress.";
 		}
 		pb.setLastOperation(OpCode.DELETE);
-		pb.setLastOperationState(OperationState.IN_PROGRESS);
-		pbindingRepo.save(pb);
-		deleteMatomoSite(pb);
+//		pb.setLastOperationState(OperationState.IN_PROGRESS);
+//		pbindingRepo.save(pb);
+//		deleteMatomoSite(pb);
 		pb.setLastOperationState(OperationState.SUCCEEDED);
 		pbindingRepo.save(pb);
 		return null;

@@ -16,10 +16,10 @@ Go to your CF marketplace and create a service instance by choosing among the pr
 1. global-shared-db
    Data of all instances are stored in a database platform mutualized with many others (useful for dev purpose).
 
-2. matomo-shared-db (planned but not implemented yet)
+2. matomo-shared-db
    Data of all instances are stored in a database platform mutualized with all other Matomo service instances of this kind (useful for tracked Web sites with small traffic).
 
-3. dedicated-db (planned but not implemented yet)
+3. dedicated-db
    Data of this Matomo service instance is stored in a dedicated database platform (useful for tracked Web sites with high traffic).
 
 Indeed, the choice among them depends on the traffic of the tracked Web site and has an impact on the cost of the service instance.
@@ -34,9 +34,11 @@ The time zone within which the instance executes can be specified the same way:
 cf cs matomo-service global-shared-db m -c '{"matomoTimeZone": "Europe/Paris"}'
 ```
 
-Service upgrade to new release (with higher version) is not supported actually but expected soon.
+Service upgrade to new release (with higher version) is also supported by the service.
 
 While you have created a service instance, you can access it through the dashboard link associated to your instance. Indeed, to log into that Matomo instance, you need credentials. For that, you have to bind to that instance (see the following section).
+
+In case the creation of your instance has failed, you can delete it and retry. Even if an operation is frozen "in progress", you can force its deletion after a 10 minutes elapse time in this status.
 
 ## Bind to instances
 

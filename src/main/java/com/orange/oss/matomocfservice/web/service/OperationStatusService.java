@@ -103,7 +103,7 @@ public abstract class OperationStatusService {
 	}
 
 	protected PPlatform getPPlatform(String platformId) {
-		LOGGER.debug("SERV::getPPlatform: platformId={}", platformId);
+		//LOGGER.debug("SERV::getPPlatform: platformId={}", platformId);
 		String id = platformId == null ? platformService.getUnknownPlatformId() : platformId;
 		Optional<PPlatform> oppf = pfRepo.findById(id);
 		if (oppf.isPresent()) {

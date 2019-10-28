@@ -24,7 +24,10 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Duration;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -50,7 +53,6 @@ import com.orange.oss.matomocfservice.cfmgr.CloudFoundryMgr;
 import com.orange.oss.matomocfservice.cfmgr.CloudFoundryMgr.AppConfHolder;
 import com.orange.oss.matomocfservice.cfmgr.CloudFoundryMgrProperties;
 import com.orange.oss.matomocfservice.cfmgr.MatomoReleases;
-import com.orange.oss.matomocfservice.config.ServiceCatalogConfiguration;
 import com.orange.oss.matomocfservice.web.domain.PMatomoInstance;
 import com.orange.oss.matomocfservice.web.domain.PPlatform;
 import com.orange.oss.matomocfservice.web.repository.PMatomoInstanceRepository;
@@ -67,6 +69,7 @@ public class MatomoInstanceService extends OperationStatusService {
 	private final String PARAM_VERSION = "matomoVersion";
 	private final String PARAM_TZ = "matomoTimeZone";
 	private final String MATOMOINSTANCE_ROOTUSER = "admin";
+	private final long TIMEOUT_FROZENINPROGRESS = 10; // in minutes
 	@Autowired
 	private PMatomoInstanceRepository miRepo;
 	@Autowired
@@ -140,23 +143,33 @@ public class MatomoInstanceService extends OperationStatusService {
 				matomoInstance.getPlatformApiLocation(), matomoInstance.getPlanId(), ppf, instversion);
 		savePMatomoInstance(pmi);
 		matomoReleases.createLinkedTree(pmi.getIdUrlStr(), instversion);
-		cfMgr.deployMatomoCfApp(pmi.getIdUrlStr(), instversion, pmi.getId(), pmi.getPlanId(), tz)
-				.doOnError(t -> {
-					LOGGER.error("Async create app instance (phase 1) \"" + pmi.getId() + "\" failed.", t);
-					pmi.setLastOperationState(OperationState.FAILED);
+		Mono<Void> createdb = (properties.getDbCreds(pmi.getPlanId()).isDedicatedDb()) ? cfMgr.createDedicatedDb(pmi.getIdUrlStr()) : Mono.empty();
+		createdb.doOnError(t -> {
+			LOGGER.error("Create dedicated DB for instance \"" + pmi.getId() + "\" failed.", t);
+			pmi.setLastOperationState(OperationState.FAILED);
+			savePMatomoInstance(pmi);
+		})
+		.doOnSuccess(v -> {
+			LOGGER.debug("Create dedicated DB for instance \"" + pmi.getId() + "\" succeeded.");
+			cfMgr.deployMatomoCfApp(pmi.getIdUrlStr(), instversion, pmi.getId(), pmi.getPlanId(), tz)
+			.doOnError(t -> {
+				LOGGER.error("Async create app instance (phase 1) \"" + pmi.getId() + "\" failed.", t);
+				matomoReleases.deleteLinkedTree(pmi.getIdUrlStr());
+				pmi.setLastOperationState(OperationState.FAILED);
+				savePMatomoInstance(pmi);
+			})
+			.doOnSuccess(vv -> {
+				LOGGER.debug("Async create app instance (phase 1) \"" + pmi.getId() + "\" succeeded");
+				deleteAssociatedDbSchema(pmi); // make sure the DB situation is clean
+				if (!initializeMatomoInstance(pmi.getIdUrlStr(), pmi.getId(), pmi.getPassword())) {
 					matomoReleases.deleteLinkedTree(pmi.getIdUrlStr());
+					pmi.setLastOperationState(OperationState.FAILED);
 					savePMatomoInstance(pmi);
-				})
-				.doOnSuccess(vv -> {
-					LOGGER.debug("Async create app instance (phase 1) \"" + pmi.getId() + "\" succeeded");
-					if (!initializeMatomoInstance(pmi.getIdUrlStr(), pmi.getId(), pmi.getPassword())) {
-						pmi.setLastOperationState(OperationState.FAILED);
-						matomoReleases.deleteLinkedTree(pmi.getIdUrlStr());
-						savePMatomoInstance(pmi);
-					} else {
-						settleMatomoInstance(pmi, instversion, tz, true, properties.getDbCreds(pmi.getPlanId())).subscribe();
-					}
-				}).subscribe();
+				} else {
+					settleMatomoInstance(pmi, instversion, tz, true, properties.getDbCreds(pmi.getPlanId())).subscribe();
+				}
+			}).subscribe();				
+		}).subscribe();
 		return toApiModel(pmi);
 	}
 
@@ -174,12 +187,17 @@ public class MatomoInstanceService extends OperationStatusService {
 			throw new RuntimeException("Error: wrong platform with ID=" + platformId + " for Matomo service instance with ID=" + instanceId + ".");
 		}
 		if (pmi.getLastOperationState() == OperationState.IN_PROGRESS) {
-			LOGGER.debug("SERV::deleteMatomoInstance: KO -> operation in progress.");
-			throw new RuntimeException("Error: cannot delete Matomo service instance with ID=" + pmi.getId() + ": operation already in progress.");
+			Duration d = Duration.between(pmi.getUpdateTime(), ZonedDateTime.now());
+			if (d.get(ChronoUnit.MINUTES) < TIMEOUT_FROZENINPROGRESS) {
+				LOGGER.debug("SERV::deleteMatomoInstance: KO -> operation in progress for {} minutes.", d.get(ChronoUnit.MINUTES));
+				throw new RuntimeException("Error: cannot delete Matomo service instance with ID=" + pmi.getId() + ": operation already in progress.");
+			}
+			// accept to delete instance anyway as the last operation seems to be frozen
 		}
 		pmi.setLastOperation(OpCode.DELETE);
 		pmi.setLastOperationState(OperationState.IN_PROGRESS);
 		savePMatomoInstance(pmi);
+		// delete data associated with the instance under deletion
 		deleteAssociatedDbSchema(pmi);
 		cfMgr.deleteMatomoCfApp(pmi.getIdUrlStr(), pmi.getPlanId())
 		.doOnError(t -> {
@@ -190,10 +208,29 @@ public class MatomoInstanceService extends OperationStatusService {
 		})
 		.doOnSuccess(v -> {
 			LOGGER.debug("Async delete app instance \"" + pmi.getId() + "\" succeeded");
-			instanceIdMgr.freeInstanceId(pmi.getIdUrl());
-			pmi.setLastOperationState(OperationState.SUCCEEDED);
-			pmi.setConfigFileContent(null);
-			savePMatomoInstance(pmi);
+			if (properties.getDbCreds(pmi.getPlanId()).isDedicatedDb()) {
+				cfMgr.deleteDedicatedDb(pmi.getIdUrlStr())
+				.doOnError(tt -> {
+					LOGGER.error("Delete dedicated DB for instance \"{}\" failed: please delete manually service instance {}.", 
+							pmi.getId(),
+							properties.getDbCreds(pmi.getPlanId()));
+					pmi.setLastOperationState(OperationState.FAILED);
+					savePMatomoInstance(pmi);
+				})
+				.doOnSuccess(vv -> {
+					LOGGER.debug("Delete dedicated DB for instance \"" + pmi.getId() + "\" succeeded.");
+					instanceIdMgr.freeInstanceId(pmi.getIdUrl());
+					pmi.setLastOperationState(OperationState.SUCCEEDED);
+					pmi.setConfigFileContent(null);
+					savePMatomoInstance(pmi);					
+				})
+				.subscribe();
+			} else {
+				instanceIdMgr.freeInstanceId(pmi.getIdUrl());
+				pmi.setLastOperationState(OperationState.SUCCEEDED);
+				pmi.setConfigFileContent(null);
+				savePMatomoInstance(pmi);
+			}
 		})
 		.subscribe();
 	}
@@ -223,6 +260,8 @@ public class MatomoInstanceService extends OperationStatusService {
 		return toApiModel(pmi);
 	}
 
+	// PRIVATE METHODS --------------------------------------------------------------------------------
+	
 	private void updateMatomoInstanceActual(PMatomoInstance pmi, String newversion) {
 		LOGGER.debug("SERV::updateMatomoInstanceActual: matomoInstance={}, newVersion={}", pmi.getId(), newversion);
 		pmi.setLastOperation(OpCode.UPDATE);
@@ -249,6 +288,8 @@ public class MatomoInstanceService extends OperationStatusService {
 				pmi.setLastOperationState(OperationState.FAILED);
 				savePMatomoInstance(pmi);
 			} else {
+				pmi.setInstalledVersion(newversion);
+				savePMatomoInstance(pmi);
 				settleMatomoInstance(pmi, newversion, null, false, properties.getDbCreds(pmi.getPlanId())).subscribe();
 			}
 
@@ -458,9 +499,9 @@ public class MatomoInstanceService extends OperationStatusService {
 		try {
 			URI uri = new URI("https://" + nuri + "." + properties.getDomain()), calluri;
 			LOGGER.debug("Base URI: {}", uri.toString());
-			String res = restTemplate.getForObject(calluri = uri, String.class);
+			restTemplate.getForObject(calluri = uri, String.class);
 			LOGGER.debug("After GET on <{}>", calluri.toString());
-			res = restTemplate.getForObject(calluri = URI.create(uri.toString() + "/index.php?updateCorePlugins=1"),
+			restTemplate.getForObject(calluri = URI.create(uri.toString() + "/index.php?updateCorePlugins=1"),
 					String.class);
 			LOGGER.debug("After GET on <{}>", calluri.toString());
 		} catch (RestClientException e) {
@@ -555,6 +596,7 @@ public class MatomoInstanceService extends OperationStatusService {
         Statement stmt = null;
 		try {
 			Class.forName("org.mariadb.jdbc.Driver");
+			//LOGGER.debug("SERV::deleteAssociatedDbSchema: jdbcUrl={}", pmi.getDbCred());
 			conn = DriverManager.getConnection(pmi.getDbCred());
 			DatabaseMetaData m = conn.getMetaData();
 			ResultSet tables = m.getTables(null, null, "%", null);
