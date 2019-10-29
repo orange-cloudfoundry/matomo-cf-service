@@ -96,9 +96,9 @@ applications:
     MATOMO-SERVICE_SMTP_CREDS: $SMTP_SERVICE_CREDS$
     MATOMO-SERVICE_DOMAIN: $DOMAIN$
     MATOMO-SERVICE_PHPBUILDPACK: $PHP_BUILPACK$
-    MATOMO-SERVICE_SHARED-DB_CREDS: $GLOBAL_SHARED_MYSQL_SERV_CREDS$
-    MATOMO-SERVICE_MATOMO-SHARED-DB_CREDS: $MATOMO_SHARED_MYSQL_SERV_CREDS$
-    MATOMO-SERVICE_DEDICATED-DB_CREDS: $DEDICATED_MYSQL_SERV_CREDS$
+    MATOMO-SERVICE_SHARED-DB_CREDS: $GLOBAL_SHARED_MYSQL_CREDS$
+    MATOMO-SERVICE_MATOMO-SHARED-DB_CREDS: $MATOMO_SHARED_MYSQL_CREDS$
+    MATOMO-SERVICE_DEDICATED-DB_CREDS: $DEDICATED_MYSQL_CREDS$
   timeout: 180
 ```
 
@@ -122,9 +122,9 @@ applications:
    | $SMTP_SERVICE_CREDS$ | This is a column-separated string which mainly consists of the names of the credential fields in VCAP_SERVICES for the SMTP service to be bound to in order to send e-mails from Matomo instances | o-smtp:smtp-prod:host:port:username:password |
    | $DOMAIN$ | The domain within which service instances are exposed | matomo.mycompany.com |
    | $PHP_BUILDPACK$ | The PHP buildpack to be used to push Matomo instance to CF | php_buildpack |
-   | $GLOBAL_SHARED_MYSQL_SERV_CREDS$ | This is a column-separated string which mainly consists of the names of the service and plan as well as the names of the credential fields in VCAP_SERVICES for the MySQL/MariaDB service to be bound to in order to store data for Matomo instances within a globally shared DB |  p-mysql:100MB:name:hostname:port:username:password |
-   | $MATOMO_SHARED_MYSQL_SERV_CREDS$ | This is a column-separated string which mainly consists of the names of the service and plan as well as the names of the credential fields in VCAP_SERVICES for the MySQL/MariaDB service to be bound to in order to store data for Matomo instances within a shared DB exclusively associated with Matomo service |  p-mysql:1GB:name:hostname:port:username:password |
-   | $DEDICARED_MYSQL_SERV_CREDS$ | This is a column-separated string which mainly consists of the names of the credential fields in VCAP_SERVICES for the MySQL/MariaDB service to be bound to in order to store data for Matomo instances within a dedicated DB | ded-mysql:10GB:name:hostname:port:username:password |
+   | $GLOBAL_SHARED_MYSQL_CREDS$ | This is a column-separated string which mainly consists of the names of the service and plan as well as the names of the credential fields in VCAP_SERVICES for the MySQL/MariaDB service to be bound to in order to store data for Matomo instances within a globally shared DB |  p-mysql:100MB:name:hostname:port:username:password |
+   | $MATOMO_SHARED_MYSQL_CREDS$ | This is a column-separated string which mainly consists of the names of the service and plan as well as the names of the credential fields in VCAP_SERVICES for the MySQL/MariaDB service to be bound to in order to store data for Matomo instances within a shared DB exclusively associated with Matomo service |  p-mysql:1GB:name:hostname:port:username:password |
+   | $DEDICARED_MYSQL_CREDS$ | This is a column-separated string which mainly consists of the names of the credential fields in VCAP_SERVICES for the MySQL/MariaDB service to be bound to in order to store data for Matomo instances within a dedicated DB | ded-mysql:10GB:name:hostname:port:username:password |
 
    You can also adjust other parameters from that file, for instance, the maximum number of instances the Matomo service can create.
 
