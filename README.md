@@ -116,8 +116,8 @@ applications:
    | $ADMIN_PASSWORD$ | The password of the admin user | tiger |
    | $ADMIN_SESSIONTIMEOUT$ | The timeout in minutes for admin session (default is 15) | 30 |
    | $CONTACT_NAME$ | The contact name of the responsible entity for the admin API | API Provider |
-   | $CONTACT_URL$ | The contact URL of the responsible entity for the admin API | https://github.com/orange-cloudfoundry/matomo-cf-service |
-   | $CONTACT_EMAIL$ | The contact URL of the responsible entity for the admin API | dilbert@mycompany.org |
+   | $CONTACT_URL$ | The contact URL of the responsible entity for the admin API | https://mcfs.mycompany.com |
+   | $CONTACT_EMAIL$ | The contact URL of the responsible entity for the admin API | dilbert@mycompany.com |
    | $MAX_INSTANCES$ | The maximum number of instances that can be created by the service (note that it can be increased when redeploying) | 100 |
    | $SMTP_SERVICE_CREDS$ | This is a column-separated string which mainly consists of the names of the credential fields in VCAP_SERVICES for the SMTP service to be bound to in order to send e-mails from Matomo instances | o-smtp:smtp-prod:host:port:username:password |
    | $DOMAIN$ | The domain within which service instances are exposed | matomo.mycompany.com |
