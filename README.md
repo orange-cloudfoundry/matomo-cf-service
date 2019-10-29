@@ -10,9 +10,11 @@ The scripting code to adapt Matomo configuration code to CloudFoundry is largely
 ## Requirements
 
 You need a CloudFoundry platform to install the Matomo service. You can install it globally so that it is available to all users of the platform or scoped to a space.
-In any case, as the service and the instances it manages can be instanciated in different spaces, it is mandatory that the service can "ssh" its instances. Be careful that the security settings of your platform enable this communication.
+In any case, as the service and the instances it manages can be provisioned in different spaces, it is mandatory that the service can "ssh" its instances. Be careful that the security settings of your platform enable this communication.
 
 For buidling Matomo service, you need a Unix-like environment such as Linux or Cygwin. Indeed, you need to be able to run shell scripts (sh or bash).
+
+The service has been tested with Matomo versions starting from 3.6 until last version 3.12.
 
 ## Installation
 

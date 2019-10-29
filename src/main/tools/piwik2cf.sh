@@ -131,8 +131,8 @@ mkdir -p ${RELEASEDIR}
 VMIN=`echo ${PIWIKVERSION} | awk -F '.' '{print $2}'`
 
 # Remove Composer files
-rm ${SOURCEDIR}/composer.json
-rm ${SOURCEDIR}/composer.lock
+rm -f ${SOURCEDIR}/composer.json
+rm -f ${SOURCEDIR}/composer.lock
 
 echo -e "	- ${YELLOW}Adapt it to CloudFoundry${NOCOL}"
 # Create bootstrap.php file
