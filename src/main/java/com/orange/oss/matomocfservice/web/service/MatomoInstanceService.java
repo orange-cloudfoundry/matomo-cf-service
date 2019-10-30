@@ -68,6 +68,7 @@ public class MatomoInstanceService extends OperationStatusService {
 	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
 	private final String PARAM_VERSION = "matomoVersion";
 	private final String PARAM_TZ = "matomoTimeZone";
+	private final String PARAM_VERSIONUPGRADEPOLICY = "versionUpgradePolicy";
 	private final String MATOMOINSTANCE_ROOTUSER = "admin";
 	@Autowired
 	private PMatomoInstanceRepository miRepo;
@@ -86,6 +87,9 @@ public class MatomoInstanceService extends OperationStatusService {
 	public void initialize() {
 		LOGGER.debug("SERV::MatomoInstanceService:initialize - latestVersion={}", matomoReleases.getLatestReleaseName());
 		for (PMatomoInstance pmi : miRepo.findAll()) {
+			if (!pmi.getAutomaticVersionUpgrade()) {
+				continue;
+			}
 			if (pmi.getConfigFileContent() != null) {
 				LOGGER.debug("SERV::initialize: reactivate instance {}, version={}", pmi.getIdUrlStr(), pmi.getInstalledVersion());
 				if (matomoReleases.isHigherVersion(matomoReleases.getLatestReleaseName(), pmi.getInstalledVersion())) {
@@ -130,6 +134,7 @@ public class MatomoInstanceService extends OperationStatusService {
 		LOGGER.debug("SERV::createMatomoInstance: matomoInstance={}", matomoInstance.toString());
 		String instversion = getVersion(parameters);
 		String tz = getTimeZone(parameters);
+		boolean autoversupgrade = getAutomaticVersionUpgrade(parameters);
 		PPlatform ppf = getPPlatform(matomoInstance.getPlatformId());
 		for (PMatomoInstance pmi : miRepo.findByPlatformAndLastOperation(ppf, OpCode.DELETE.toString())) {
 			if (pmi.getId().equals(matomoInstance.getUuid())) {
@@ -139,7 +144,7 @@ public class MatomoInstanceService extends OperationStatusService {
 		}
 		PMatomoInstance pmi = new PMatomoInstance(matomoInstance.getUuid(), instanceIdMgr.allocateInstanceId(),
 				matomoInstance.getServiceDefinitionId(), matomoInstance.getName(), matomoInstance.getPlatformKind(),
-				matomoInstance.getPlatformApiLocation(), matomoInstance.getPlanId(), ppf, instversion);
+				matomoInstance.getPlatformApiLocation(), matomoInstance.getPlanId(), ppf, instversion, autoversupgrade);
 		savePMatomoInstance(pmi);
 		matomoReleases.createLinkedTree(pmi.getIdUrlStr(), instversion);
 		Mono<Void> createdb = (properties.getDbCreds(pmi.getPlanId()).isDedicatedDb()) ? cfMgr.createDedicatedDb(pmi.getIdUrlStr()) : Mono.empty();
@@ -233,6 +238,7 @@ public class MatomoInstanceService extends OperationStatusService {
 	public MatomoInstance updateMatomoInstance(MatomoInstance mi, Map<String, Object> parameters) {
 		LOGGER.debug("SERV::updateMatomoInstance: matomoInstance={}", mi.toString());
 		String newversion = getVersion(parameters);
+		boolean autoversupgrade = getAutomaticVersionUpgrade(parameters);
 		PPlatform ppf = getPPlatform(mi.getPlatformId());
 		Optional<PMatomoInstance> opmi = miRepo.findById(mi.getUuid());
 		if (!opmi.isPresent()) {
@@ -243,6 +249,13 @@ public class MatomoInstanceService extends OperationStatusService {
 		if (pmi.getPlatform() != ppf) {
 			LOGGER.error("SERV::updateMatomoInstance: KO -> wrong platform.");
 			return mi;
+		}
+		if (pmi.getAutomaticVersionUpgrade() != autoversupgrade) {
+			pmi.setAutomaticVersionUpgrade(autoversupgrade);
+			savePMatomoInstance(pmi);
+			if (autoversupgrade) {
+				newversion = matomoReleases.getLatestReleaseName();
+			}
 		}
 		if (pmi.getLastOperationState() == OperationState.IN_PROGRESS) {
 			LOGGER.debug("SERV::updateMatomoInstance: KO -> operation in progress.");
@@ -377,6 +390,23 @@ public class MatomoInstanceService extends OperationStatusService {
 				throw new RuntimeException("Version <" + instversion + "> is not supported by this Matomo CF Service!!");
 		}
 		return instversion;
+	}
+
+	private boolean getAutomaticVersionUpgrade(Map<String, Object> parameters) {
+		LOGGER.debug("SERV::getAutomaticVersionUpgrade");
+		String policy = (String) parameters.get(PARAM_VERSIONUPGRADEPOLICY);
+		if (policy == null) {
+			return true;
+		}
+		policy = policy.toUpperCase();
+		if (policy.equals("AUTOMATIC")) {
+			return true;
+		}
+		if (policy.equals("EXPLICIT")) {
+			return false;
+		}
+		LOGGER.warn("SERV::getAutomaticVersionUpgrade: <{}> is a wrong value for version upgrade policy -> should be either AUTOMATIC or EXPLICIT.", policy);
+		throw new IllegalArgumentException("Version upgrade policy <" + policy + "> is a wrong value!!");
 	}
 
 	private String getTimeZone(Map<String, Object> parameters) {

@@ -75,6 +75,8 @@ public class PMatomoInstance extends POperationStatus {
 	
 	@Column(length = LENGTH_INSTINITFILE)
 	private byte[] configFileContent;
+	
+	private boolean automaticVersionUpgrade;
 
 	@SuppressWarnings("unused")
 	protected PMatomoInstance() {
@@ -91,9 +93,10 @@ public class PMatomoInstance extends POperationStatus {
 		this.dbCred = null;
 		this.tokenAuth = null;
 		this.configFileContent = null;
+		this.automaticVersionUpgrade = true;
 	}
 
-	public PMatomoInstance(String id, int idUrl, String servDefId, String name, PlatformKind pfkind, String pfapi, String planid, PPlatform pf, String version) {
+	public PMatomoInstance(String id, int idUrl, String servDefId, String name, PlatformKind pfkind, String pfapi, String planid, PPlatform pf, String version, boolean avu) {
 		super(id, OpCode.CREATE.toString(), OperationState.IN_PROGRESS.getValue(), pf);
 		this.idUrl = idUrl;
 		this.serviceDefinitionId = servDefId;
@@ -105,6 +108,7 @@ public class PMatomoInstance extends POperationStatus {
 		this.password = "piwikpw"/*RandomStringUtils.randomAlphanumeric(LENGTH_PASSWORD)*/;
 		this.tokenAuth = null;
 		this.configFileContent = null;
+		this.automaticVersionUpgrade = avu;
 	}
 
 	public int getIdUrl() {
@@ -149,8 +153,18 @@ public class PMatomoInstance extends POperationStatus {
 		super.touch();
 	}
 
+	public boolean getAutomaticVersionUpgrade() {
+		return this.automaticVersionUpgrade;
+	}
+
+	public void setAutomaticVersionUpgrade(boolean avu) {
+		this.automaticVersionUpgrade = avu;
+		super.touch();
+	}
+
 	public void setInstalledVersion(String instVers) {
 		this.installedVersion = instVers;
+		super.touch();
 	}
 
 	public String getInstalledVersion() {

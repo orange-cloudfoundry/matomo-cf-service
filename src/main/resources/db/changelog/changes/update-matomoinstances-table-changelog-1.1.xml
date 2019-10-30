@@ -21,17 +21,14 @@
 	xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
 	xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd
 		http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
-	<changeSet author="admin" id="1.0_create_table_instanceids">
-		<createTable tableName="instanceids">
-			<column autoIncrement="false" name="id" type="integer">
-				<constraints primaryKey="true" nullable="false"/>
+	<changeSet author="admin" id="1.1_update_table_matomoinstances">
+		<addColumn tableName="matomoinstances">
+			<column name="automatic_version_upgrade" type="bit" valueBoolean="true">
+				<constraints nullable="false" />
 			</column>
-			<column name="allocated" type="bit">
-				<constraints nullable="false"/>
-			</column>
-		</createTable>
+		</addColumn>
 		<rollback>
-			<dropTable tableName="instanceids"/>
+			<dropColumn tableName="matomoinstances" columnName="automatic_version_upgrade"/>
 		</rollback>
 	</changeSet>
 </databaseChangeLog>

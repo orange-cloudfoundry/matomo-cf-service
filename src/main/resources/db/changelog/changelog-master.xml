@@ -21,19 +21,6 @@
 	xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
 	xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd
 		http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
-	<include file="/db/changelog/changes/create-instanceidmgr-table-changelog-1.xml"/>
-	<!--include file="/db/changelog/changes/insert-instanceidmgr-table-changelog-2.xml"/-->
-	<!--include file="/db/changelog/changes/update-instanceidmgr-table-precondition-3.xml"/-->
-	<include file="/db/changelog/changes/create-instanceids-table-changelog-1.xml"/>
-	<!--include file="/db/changelog/changes/insert-instanceids-table-changelog-2.xml"/-->
-	<!--include file="/db/changelog/changes/update-instanceids-table-precondition-3.xml"/-->
-	<include file="/db/changelog/changes/create-platforms-table-changelog-1.xml"/>
-	<!--include file="/db/changelog/changes/insert-platforms-table-changelog-2.xml"/-->
-	<!--include file="/db/changelog/changes/update-platforms-table-precondition-3.xml"/-->
-	<include file="/db/changelog/changes/create-matomoinstances-table-changelog-1.xml"/>
-	<!--include file="/db/changelog/changes/insert-matomoinstances-table-changelog-2.xml"/-->
-	<!--include file="/db/changelog/changes/update-matomoinstances-table-precondition-3.xml"/-->
-	<include file="/db/changelog/changes/create-bindings-table-changelog-1.xml"/>
-	<!--include file="/db/changelog/changes/insert-bindings-table-changelog-2.xml"/-->
-	<!--include file="/db/changelog/changes/update-bindings-table-precondition-3.xml"/-->
+	<include file="/db/changelog/changes/db-changelog-1.0.xml"/>
+	<include file="/db/changelog/changes/db-changelog-1.1.xml"/>
 </databaseChangeLog>

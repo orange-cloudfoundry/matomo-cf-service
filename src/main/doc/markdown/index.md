@@ -11,7 +11,7 @@ Note that the actual releases proposed by the service can be found [here](releas
 
 ---
 
-Go to your CF marketplace and create a service instance by choosing among the proposed plans. There are three (only the first one is currently implemented, the two others are expected soon). Their objective is to provide different isolation levels in term of load n an instance, especially on the management of data (information from tracked Web sites):
+Go to your CF marketplace and create a service instance by choosing among the proposed plans. There are three (only the first one is currently implemented, the two others are expected soon). Their objective is to provide different isolation levels in term of load and security of an instance, especially on the management of data (information from tracked Web sites):
 
 1. global-shared-db
    Data of all instances are stored in a database platform mutualized with many others (useful for dev purpose).
@@ -34,11 +34,36 @@ The time zone within which the instance executes can be specified the same way:
 cf cs matomo-service global-shared-db m -c '{"matomoTimeZone": "Europe/Paris"}'
 ```
 
-Service upgrade to new release (with higher version) is also supported by the service.
+Service upgrade to new release (with higher version) is also supported by the service (see section "Update instance"). Concerning version upgrade, a policy can be specified at creation time:
+```
+cf cs matomo-service global-shared-db m -c '{"versionUpgradePolicy": "Explicit"}'
+```
 
-While you have created a service instance, you can access it through the dashboard link associated to your instance. Indeed, to log into that Matomo instance, you need credentials. For that, you have to bind to that instance (see the following section).
+Version upgrade policy (see corresponding parameter name above) allows the created instance to behave differently when a newer version of Matomo is deployed within the service. There are two possibilities for this policy, the default one (i.e., parameter not specified) being `Automatic`:
 
-In case the creation of your instance has failed, you can delete it and retry. Even if an operation is frozen "in progress", you can force its deletion after a 10 minutes elapse time in this status.
+* `Automatic`: This policy guarantees that this isntance is always at the latest level of Matomo release available. It assumes that if a new latest release of Matomo is available within the deployed Matomo CF service, as soon as the service starts again, all instances tagged this way are automatically upgraded to this new version.
+
+* `Explicit`: This policy gives complete control on release management of Matomo instances to its owner. This means that no upgrade of release may happen until explicitly requested by the instance owner. This can only be done by requesting an update of this instance (see section "Update instance").
+
+While you have created a service instance, you can access it through the dashboard link associated to your instance. Indeed, to log into that Matomo instance, you need credentials. For that, you have to bind to that instance (see section "Bind to instances").
+
+In case the creation of your instance has failed, you can delete it and retry. Even if an operation is frozen "in progress", it will fail after 30 minutes elapse time in this status. Then it will be finally possible to delete it in the end.
+
+## Update instances
+
+---
+
+Main instance update actions usually concentrates on changes of plan. This is not currently supported for this service as it requires databse backup/restore. Furthermore, it is not straitforward that such a capability is a strong requirement for this service (to be discussed if needed). Thus, when updating an instance, some parameters need to be specified. Let's go through the different update possibilities using examples. First possibility is to upgrade an instance to a new Matomo release:
+```
+cf update-service m371 -c '{"matomoVersion": "3.10.0"}'
+```
+
+The second possibility is to change the version upgrade policy:
+```
+cf update-service m -c '{"versionUpgradePolicy": "Automatic"}'
+```
+
+Moving the policy to Automatic means that the instance will be forced to upgrade to the latest release right away.
 
 ## Bind to instances
 
@@ -46,7 +71,9 @@ In case the creation of your instance has failed, you can delete it and retry. E
 
 ### Why binding?
 
-You can bind a Matomo service instance to an application, meaning that you want to track its usage. Meanwhile, binding creates a site for you within this Matomo instance as well as a user with "admin" role to manage it. All the required information to use this Matomo site is provided by the credential of the binding associated with the application concerned. Credentials contain:
+You can bind a Matomo service instance to an application, meaning that you want to track its usage. Meanwhile, binding creates a site for you within this Matomo instance as well as a user with "admin" role to manage it. Note that this Matomo site is not deleted when unbinding from a service instance. If one wants to remove it, it should be done through the Matomo management capabilities.
+
+All the required information to use such a Matomo site is provided by the credential of the binding associated with the application concerned. Credentials contain:
 
 * mcfs-matomoUrl
   This is the URL of the Matomo instance to be used when usage information are published (usually by browsers). It is defined within the script that is added to Web pages so that analytics information can be pushed to this Matomo instance.

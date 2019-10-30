@@ -21,7 +21,7 @@
 	xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
 	xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd
 		http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
-	<changeSet author="admin" id="100.1">
+	<changeSet author="admin" id="1.0_create_table_instanceidmgr">
 		<createTable tableName="instanceidmgr" >
 			<column autoIncrement="false" name="id" type="integer">
 				<constraints primaryKey="true" nullable="false"/>
