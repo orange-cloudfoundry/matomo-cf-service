@@ -19,6 +19,7 @@ package com.orange.oss.matomocfservice.cfmgr;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
@@ -35,6 +36,7 @@ import org.cloudfoundry.operations.applications.GetApplicationEnvironmentsReques
 import org.cloudfoundry.operations.applications.GetApplicationRequest;
 import org.cloudfoundry.operations.applications.PushApplicationManifestRequest;
 import org.cloudfoundry.operations.applications.Route;
+import org.cloudfoundry.operations.applications.ScaleApplicationRequest;
 import org.cloudfoundry.operations.services.GetServiceInstanceRequest;
 import org.cloudfoundry.operations.services.ServiceInstance;
 import org.cloudfoundry.operations.services.UnbindServiceInstanceRequest;
@@ -171,7 +173,7 @@ public class CloudFoundryMgr {
 	 * @param instid	The code name of the instance
 	 * @return	The Mono to signal the end of the async process (produce nothng indeed)
 	 */
-	public Mono<Void> deployMatomoCfApp(String instid, String version, String expohost, String planid, String tz) {
+	public Mono<Void> deployMatomoCfApp(String instid, String version, String expohost, String planid, String tz, int memsize, int nbinst) {
 		LOGGER.debug("CFMGR::deployMatomoCfApp: instId={}", instid);
 		String instpath = matomoReleases.getVersionPath(version, instid);
 		LOGGER.debug("File for Matomo bits: " + instpath);
@@ -182,8 +184,9 @@ public class CloudFoundryMgr {
 					.path(Paths.get(instpath))
 					.route(Route.builder().route(getHost(instid, expohost) + "." + properties.getDomain()).build())
 					.buildpack(properties.getPhpBuildpack())
-					.memory(256)
+					.memory(memsize)
 					.timeout(180)
+					.instances(nbinst)
 					.environmentVariable("TZ", tz);
 		} else {
 			manifestbuilder = ApplicationManifest.builder()
@@ -191,7 +194,7 @@ public class CloudFoundryMgr {
 					.path(Paths.get(instpath))
 					.route(Route.builder().route(getHost(instid, expohost) + "." + properties.getDomain()).build())
 					.buildpack(properties.getPhpBuildpack())
-					.memory(256)
+					.memory(memsize)
 					.timeout(180);			
 		}
 		List<String> services = new ArrayList<String>();
@@ -200,6 +203,13 @@ public class CloudFoundryMgr {
 		manifestbuilder.services(services);
 		return cfops.applications().pushManifest(PushApplicationManifestRequest.builder()
 				.manifest(manifestbuilder.build())
+				.build());
+	}
+
+	public Mono<Void> scaleMatomoCfApp(String instid, int instances) {
+		return cfops.applications().scale(ScaleApplicationRequest.builder()
+				.name(getAppName(instid))
+				.instances(instances)
 				.build());
 	}
 
@@ -292,8 +302,8 @@ public class CloudFoundryMgr {
 				});
 	}
 
-	public Mono<AppConfHolder> getInstanceConfigFile(String instid, String version) {
-		LOGGER.debug("CFMGR::getInstanceConfigFile: instid={}, version={}", instid, version);
+	public Mono<AppConfHolder> getInstanceConfigFile(String instid, String version, boolean clustermode) {
+		LOGGER.debug("CFMGR::getInstanceConfigFile: instid={}, version={}, clusterMode={}", instid, version, clustermode);
 		AppConfHolder appidh = new AppConfHolder();
 		return Mono.create(sink -> {
 			cfops.applications().get(GetApplicationRequest.builder().name(getAppName(instid)).build())
@@ -313,8 +323,21 @@ public class CloudFoundryMgr {
 						ssh.authPassword("cf:" + appidh.appId + "/0", pwd);
 						String target = matomoReleases.getVersionPath(version, instid) + File.separator + "config" + File.separator;
 						ssh.newSCPFileTransfer().download("/home/vcap/app/htdocs/config/config.ini.php", new FileSystemFile(target));
+						Path pcf = Paths.get(target + "config.ini.php");
 						if (properties.getMatomoDebug()) {
-							Files.write(Paths.get(target + "config.ini.php"), "\n[Tracker]\ndebug = 1\nenable_sql_profiler = 1\n".getBytes(), StandardOpenOption.APPEND);
+							Files.write(pcf, "\n[Tracker]\ndebug = 1\nenable_sql_profiler = 1\n".getBytes(), StandardOpenOption.APPEND);
+						}
+						if (clustermode) {
+							List<String> allLines = Files.readAllLines(pcf);
+							Files.write(pcf, "".getBytes());
+							for (String line : allLines) {
+								Files.write(pcf, (line + "\n").getBytes(), StandardOpenOption.APPEND);
+								if (line.startsWith("[General]")) {
+									LOGGER.debug("CFMGR::getInstanceConfigFile: add configuration for cluster mode support");
+									Files.write(pcf, "session_save_handler = dbtable\n".getBytes(), StandardOpenOption.APPEND);
+									Files.write(pcf, "multi_server_environment = 1\n".getBytes(), StandardOpenOption.APPEND);									
+								}
+							}
 						}
 						appidh.fileContent = Files.readAllBytes(Paths.get(target + "config.ini.php"));
 						sink.success(appidh);

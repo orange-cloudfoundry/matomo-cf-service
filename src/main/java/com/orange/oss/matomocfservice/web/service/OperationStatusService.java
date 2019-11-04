@@ -48,7 +48,6 @@ public abstract class OperationStatusService {
 	private PlatformService platformService;
 
 	public OperationAndState getLastOperationAndState(String platformId, String instanceId) {
-		LOGGER.debug("SERV::getLastOperationAndState: platformId={} instanceId={}", platformId, instanceId);
 		PPlatform ppf = getPPlatform(platformId);
 		Optional<POperationStatus> opms = osRepo.findById(instanceId);
 		if (! opms.isPresent()) {

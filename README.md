@@ -48,6 +48,8 @@ Then the default release can also be selected as follows:
 
 If none of `releases.txt` and `default-release.txt` is found at repository root, then by default, only the latest release is proposed for usage and is thus the default and unique one!
 
+Be careful that clean upgrade (especially for production mode) is only supported between releases of the service, due to the support of Liquibase for database update management. There is no guarantee of a clean upgrade from one version to another between releases (i.e., particular commits between two releases). In that case, you should start from an empty database, especially if you want to test the latest version (last commit from the trunk).
+
 ### Setup the service on a CloudFoundry platform
 
 1. Clone this repository and position into the _matomo-cf-release_ directory that has been created.

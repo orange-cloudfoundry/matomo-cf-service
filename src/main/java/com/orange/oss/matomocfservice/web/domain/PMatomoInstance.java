@@ -24,6 +24,7 @@ import org.springframework.cloud.servicebroker.model.instance.OperationState;
 
 import com.orange.oss.matomocfservice.api.model.OpCode;
 import com.orange.oss.matomocfservice.api.model.PlatformKind;
+import com.orange.oss.matomocfservice.config.ServiceCatalogConfiguration;
 
 /**
  * @author P. Déchamboux
@@ -77,6 +78,8 @@ public class PMatomoInstance extends POperationStatus {
 	private byte[] configFileContent;
 	
 	private boolean automaticVersionUpgrade;
+	
+	private int instances;
 
 	@SuppressWarnings("unused")
 	protected PMatomoInstance() {
@@ -94,9 +97,10 @@ public class PMatomoInstance extends POperationStatus {
 		this.tokenAuth = null;
 		this.configFileContent = null;
 		this.automaticVersionUpgrade = true;
+		this.instances = 1;
 	}
 
-	public PMatomoInstance(String id, int idUrl, String servDefId, String name, PlatformKind pfkind, String pfapi, String planid, PPlatform pf, String version, boolean avu) {
+	public PMatomoInstance(String id, int idUrl, String servDefId, String name, PlatformKind pfkind, String pfapi, String planid, PPlatform pf, String version, boolean avu, int instances) {
 		super(id, OpCode.CREATE.toString(), OperationState.IN_PROGRESS.getValue(), pf);
 		this.idUrl = idUrl;
 		this.serviceDefinitionId = servDefId;
@@ -109,6 +113,7 @@ public class PMatomoInstance extends POperationStatus {
 		this.tokenAuth = null;
 		this.configFileContent = null;
 		this.automaticVersionUpgrade = avu;
+		this.instances = instances;
 	}
 
 	public int getIdUrl() {
@@ -141,7 +146,14 @@ public class PMatomoInstance extends POperationStatus {
 	}
 
 	public String getPlanId() {
-		return planId;
+		return this.planId;
+	}
+
+	public boolean getClusterMode() {
+		if (this.planId.equals(ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID)) {
+			return false;
+		}
+		return true;
 	}
 
 	public byte[] getConfigFileContent() {
@@ -159,6 +171,15 @@ public class PMatomoInstance extends POperationStatus {
 
 	public void setAutomaticVersionUpgrade(boolean avu) {
 		this.automaticVersionUpgrade = avu;
+		super.touch();
+	}
+
+	public int getInstances() {
+		return this.instances;
+	}
+
+	public void setIntances(int instances) {
+		this.instances = instances;
 		super.touch();
 	}
 

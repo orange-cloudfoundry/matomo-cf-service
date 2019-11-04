@@ -27,8 +27,14 @@
 				<constraints nullable="false" />
 			</column>
 		</addColumn>
+		<addColumn tableName="matomoinstances">
+			<column name="instances" type="integer" valueNumeric="1">
+				<constraints nullable="false" />
+			</column>
+		</addColumn>
 		<rollback>
 			<dropColumn tableName="matomoinstances" columnName="automatic_version_upgrade"/>
+			<dropColumn tableName="matomoinstances" columnName="instances"/>
 		</rollback>
 	</changeSet>
 </databaseChangeLog>

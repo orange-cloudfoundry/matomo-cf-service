@@ -14,13 +14,13 @@ Note that the actual releases proposed by the service can be found [here](releas
 Go to your CF marketplace and create a service instance by choosing among the proposed plans. There are three (only the first one is currently implemented, the two others are expected soon). Their objective is to provide different isolation levels in term of load and security of an instance, especially on the management of data (information from tracked Web sites):
 
 1. global-shared-db
-   Data of all instances are stored in a database platform mutualized with many others (useful for dev purpose).
+   Data of all instances are stored in a database platform mutualized with many others (useful for dev purpose). Matomo is run by one container (application instance) within CloudFoundry.
 
 2. matomo-shared-db
-   Data of all instances are stored in a database platform mutualized with all other Matomo service instances of this kind (useful for tracked Web sites with small traffic).
+   Data of all instances are stored in a database platform mutualized with all other Matomo service instances of this kind (useful for tracked Web sites with small / medium traffic). Matomo is run by a cluster of two containers and is configured to run in cluster mode.
 
 3. dedicated-db
-   Data of this Matomo service instance is stored in a dedicated database platform (useful for tracked Web sites with high traffic).
+   Data of this Matomo service instance is stored in a dedicated database platform (useful for tracked Web sites with high traffic). Matomo is run by a cluster of at least two containers and is configured to run in cluster mode. It may scale up two a ten containers cluster as requested by the owner of the service instance.
 
 Indeed, the choice among them depends on the traffic of the tracked Web site and has an impact on the cost of the service instance.
 
@@ -33,6 +33,12 @@ The time zone within which the instance executes can be specified the same way:
 ```
 cf cs matomo-service global-shared-db m -c '{"matomoTimeZone": "Europe/Paris"}'
 ```
+
+For the `dedicated-db` plan the number of containers that run the service instance can be specified (by default, it is two of them):
+```
+cf cs matomo-service global-shared-db m -c '{"matomoInstances": 3}'
+```
+It can be ajusted later on through an update action on the instance.
 
 Service upgrade to new release (with higher version) is also supported by the service (see section "Update instance"). Concerning version upgrade, a policy can be specified at creation time:
 ```
@@ -53,7 +59,7 @@ In case the creation of your instance has failed, you can delete it and retry. E
 
 ---
 
-Main instance update actions usually concentrates on changes of plan. This is not currently supported for this service as it requires databse backup/restore. Furthermore, it is not straitforward that such a capability is a strong requirement for this service (to be discussed if needed). Thus, when updating an instance, some parameters need to be specified. Let's go through the different update possibilities using examples. First possibility is to upgrade an instance to a new Matomo release:
+Main instance update actions usually concentrates on changes of plan. This is not currently supported for this service as it requires database backup/restore. Furthermore, it is not straitforward that such a capability is a strong requirement for this service (to be discussed if needed). Thus, when updating an instance, some parameters need to be specified. Let's go through the different update possibilities using examples. First possibility is to upgrade an instance to a new Matomo release:
 ```
 cf update-service m371 -c '{"matomoVersion": "3.10.0"}'
 ```
@@ -62,8 +68,13 @@ The second possibility is to change the version upgrade policy:
 ```
 cf update-service m -c '{"versionUpgradePolicy": "Automatic"}'
 ```
-
 Moving the policy to Automatic means that the instance will be forced to upgrade to the latest release right away.
+
+The third possibility is to adjust the number of containers that run the instance (only in case of `dedicated-db plan`):
+```
+cf update-service m -c '{"matomoInstances": 6}'
+```
+This number is forced to stay in the interval [2..10]. This means that if a lower value than 2 is specified, then 2 is forced. In the same way, if a higher value than 10 is specified, then 10 is forced.
 
 ## Bind to instances
 
