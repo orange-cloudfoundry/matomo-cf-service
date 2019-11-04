@@ -24,10 +24,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.Duration;
-import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -50,7 +47,6 @@ import org.springframework.web.client.RestTemplate;
 import com.orange.oss.matomocfservice.api.model.MatomoInstance;
 import com.orange.oss.matomocfservice.api.model.OpCode;
 import com.orange.oss.matomocfservice.cfmgr.CloudFoundryMgr;
-import com.orange.oss.matomocfservice.cfmgr.CloudFoundryMgr.AppConfHolder;
 import com.orange.oss.matomocfservice.cfmgr.CloudFoundryMgrProperties;
 import com.orange.oss.matomocfservice.cfmgr.MatomoReleases;
 import com.orange.oss.matomocfservice.config.ServiceCatalogConfiguration;
@@ -67,13 +63,17 @@ import reactor.core.publisher.Mono;
 @Service
 public class MatomoInstanceService extends OperationStatusService {
 	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
-	private final String PARAM_VERSION = "matomoVersion";
-	private final String PARAM_TZ = "matomoTimeZone";
-	private final String PARAM_INSTANCES = "matomoInstances";
-	private final String PARAM_VERSIONUPGRADEPOLICY = "versionUpgradePolicy";
-	private final String MATOMOINSTANCE_ROOTUSER = "admin";
-	private final int MAX_INSTANCES = 10;
-	private final int DEFAULT_CLUSTERSIZE = 2;
+	private final static String PARAM_VERSION = "matomoVersion";
+	private final static String PARAM_TZ = "matomoTimeZone";
+	private final static String PARAM_INSTANCES = "matomoInstances";
+	private final static String PARAM_VERSIONUPGRADEPOLICY = "versionUpgradePolicy";
+	private final static String PARAM_MEMORYSIZE = "memorySize";
+	private final static String MATOMOINSTANCE_ROOTUSER = "admin";
+	private final static int MAX_INSTANCES = 10;
+	private final static int CLUSTERSIZE_DEFAULT = 2;
+	private final static int MEMSIZE_SMALL = 256;
+	private final static int MEMSIZE_DEFAULT = 512;
+	private final static int MEMSIZE_MAX = 2048;
 	@Autowired
 	private PMatomoInstanceRepository miRepo;
 	@Autowired
@@ -140,6 +140,7 @@ public class MatomoInstanceService extends OperationStatusService {
 		String tz = getTimeZone(parameters);
 		boolean autoversupgrade = getAutomaticVersionUpgrade(parameters);
 		int instances = getInstances(parameters, matomoInstance.getPlanId());
+		int memsize = getMemorySize(parameters, matomoInstance.getPlanId());
 		PPlatform ppf = getPPlatform(matomoInstance.getPlatformId());
 		for (PMatomoInstance pmi : miRepo.findByPlatformAndLastOperation(ppf, OpCode.DELETE.toString())) {
 			if (pmi.getId().equals(matomoInstance.getUuid())) {
@@ -149,7 +150,7 @@ public class MatomoInstanceService extends OperationStatusService {
 		}
 		PMatomoInstance pmi = new PMatomoInstance(matomoInstance.getUuid(), instanceIdMgr.allocateInstanceId(),
 				matomoInstance.getServiceDefinitionId(), matomoInstance.getName(), matomoInstance.getPlatformKind(),
-				matomoInstance.getPlatformApiLocation(), matomoInstance.getPlanId(), ppf, instversion, autoversupgrade, instances);
+				matomoInstance.getPlatformApiLocation(), matomoInstance.getPlanId(), ppf, instversion, autoversupgrade, instances, memsize);
 		savePMatomoInstance(pmi);
 		matomoReleases.createLinkedTree(pmi.getIdUrlStr(), instversion);
 		Mono<Void> createdb = (properties.getDbCreds(pmi.getPlanId()).isDedicatedDb()) ? cfMgr.createDedicatedDb(pmi.getIdUrlStr()) : Mono.empty();
@@ -160,7 +161,7 @@ public class MatomoInstanceService extends OperationStatusService {
 		})
 		.doOnSuccess(v -> {
 			LOGGER.debug("Create dedicated DB for instance \"" + pmi.getId() + "\" succeeded.");
-			cfMgr.deployMatomoCfApp(pmi.getIdUrlStr(), instversion, pmi.getId(), pmi.getPlanId(), tz, 256, 1)
+			cfMgr.deployMatomoCfApp(pmi.getIdUrlStr(), instversion, pmi.getId(), pmi.getPlanId(), tz, MEMSIZE_SMALL, 1)
 			.doOnError(t -> {
 				LOGGER.error("Async create app instance (phase 1) \"" + pmi.getId() + "\" failed.", t);
 				matomoReleases.deleteLinkedTree(pmi.getIdUrlStr());
@@ -274,6 +275,7 @@ public class MatomoInstanceService extends OperationStatusService {
 		String newversion = getVersion(parameters);
 		boolean autoversupgrade = getAutomaticVersionUpgrade(parameters);
 		int instances = getInstances(parameters, pmi.getPlanId());
+		int memsize = getMemorySize(parameters, pmi.getPlanId());
 		if (pmi.getAutomaticVersionUpgrade() != autoversupgrade) {
 			pmi.setAutomaticVersionUpgrade(autoversupgrade);
 			savePMatomoInstance(pmi);
@@ -288,12 +290,19 @@ public class MatomoInstanceService extends OperationStatusService {
 			pmi.setIntances(instances);
 			savePMatomoInstance(pmi);			
 		}
+		if (pmi.getMemorySize() == memsize) {
+			memsize = -1;
+		} else {
+			LOGGER.debug("Upgrade Matomo instance nodes memory from {}MB to {}MB.", pmi.getMemorySize(), memsize);
+			pmi.setMemorySize(memsize);
+			savePMatomoInstance(pmi);			
+		}
 		if (matomoReleases.isHigherVersion(newversion, pmi.getInstalledVersion())) {
 			LOGGER.debug("Upgrade Matomo instance from version {} to {}.", pmi.getInstalledVersion(), newversion);
 			updateMatomoInstanceActual(pmi, newversion);
-		} else if (instances != -1) {
-			// only scale app
-			cfMgr.scaleMatomoCfApp(pmi.getIdUrlStr(), pmi.getInstances())
+		} else if ((instances != -1) || (memsize != -1)) {
+			// only scale app nodes and/or memory size
+			cfMgr.scaleMatomoCfApp(pmi.getIdUrlStr(), pmi.getInstances(), pmi.getMemorySize())
 			.doOnError(t -> {
 				pmi.setLastOperationState(OperationState.FAILED);
 				savePMatomoInstance(pmi);
@@ -341,7 +350,7 @@ public class MatomoInstanceService extends OperationStatusService {
 	}
 
 	private Mono<Void> settleMatomoInstance(PMatomoInstance pmi, String version, String timezone, boolean retrievetoken, CloudFoundryMgrProperties.DbCreds dbCreds) {
-		return cfMgr.deployMatomoCfApp(pmi.getIdUrlStr(), version, pmi.getId(), pmi.getPlanId(), timezone, pmi.getClusterMode() ? 512 : 256, pmi.getInstances())
+		return cfMgr.deployMatomoCfApp(pmi.getIdUrlStr(), version, pmi.getId(), pmi.getPlanId(), timezone, pmi.getMemorySize(), pmi.getInstances())
 				.doOnError(t -> {
 					LOGGER.debug("Async settle app instance (phase 2.1) \"" + pmi.getId() + "\" failed.", t);
 					matomoReleases.deleteLinkedTree(pmi.getIdUrlStr());
@@ -404,7 +413,6 @@ public class MatomoInstanceService extends OperationStatusService {
 	}
 
 	private String getVersion(Map<String, Object> parameters) {
-		LOGGER.debug("SERV::getVersion");
 		String instversion = (String) parameters.get(PARAM_VERSION);
 		if (instversion == null) {
 			instversion = matomoReleases.getDefaultReleaseName();
@@ -414,54 +422,84 @@ public class MatomoInstanceService extends OperationStatusService {
 				LOGGER.warn("SERV::getVersion: version {} is not supported -> switch to default one.", instversion);
 				throw new RuntimeException("Version <" + instversion + "> is not supported by this Matomo CF Service!!");
 		}
+		LOGGER.debug("SERV::getVersion: return {}", instversion);
 		return instversion;
 	}
 
 	private boolean getAutomaticVersionUpgrade(Map<String, Object> parameters) {
-		LOGGER.debug("SERV::getAutomaticVersionUpgrade");
 		String policy = (String) parameters.get(PARAM_VERSIONUPGRADEPOLICY);
+		boolean bpol;
 		if (policy == null) {
-			return true;
+			bpol = true;
+		} else {
+			policy = policy.toUpperCase();
+			if (policy.equals("AUTOMATIC")) {
+				bpol =  true;
+			} else if (policy.equals("EXPLICIT")) {
+				bpol =  false;
+			} else {
+				LOGGER.warn("SERV::getAutomaticVersionUpgrade: <{}> is a wrong value for version upgrade policy -> should be either AUTOMATIC or EXPLICIT.", policy);
+				throw new IllegalArgumentException("Version upgrade policy <" + policy + "> is a wrong value!!");
+			}
 		}
-		policy = policy.toUpperCase();
-		if (policy.equals("AUTOMATIC")) {
-			return true;
-		}
-		if (policy.equals("EXPLICIT")) {
-			return false;
-		}
-		LOGGER.warn("SERV::getAutomaticVersionUpgrade: <{}> is a wrong value for version upgrade policy -> should be either AUTOMATIC or EXPLICIT.", policy);
-		throw new IllegalArgumentException("Version upgrade policy <" + policy + "> is a wrong value!!");
+		LOGGER.debug("SERV::getAutomaticVersionUpgrade: return {}", bpol);
+		return bpol;
 	}
 
 	private int getInstances(Map<String, Object> parameters, String planid) {
-		LOGGER.debug("SERV::getInstances");
+		Integer instances;
 		if (planid.equals(ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID)) {
-			return 1;
-		}
+			instances = 1;
+		} else {
 		// then this is a cluster conf
-		if (planid.equals(ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID)) {
-			return DEFAULT_CLUSTERSIZE;
+			if (planid.equals(ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID)) {
+				instances =  CLUSTERSIZE_DEFAULT;
+			} else {
+				instances = (Integer) parameters.get(PARAM_INSTANCES);
+				if (instances == null) {
+					instances =  CLUSTERSIZE_DEFAULT;
+				} else if (instances < CLUSTERSIZE_DEFAULT) {
+					instances =  CLUSTERSIZE_DEFAULT;
+				} else if (instances > MAX_INSTANCES) {
+					instances =  MAX_INSTANCES;
+				}
+			}
 		}
-		Integer instances = (Integer) parameters.get(PARAM_INSTANCES);
-		if (instances == null) {
-			return DEFAULT_CLUSTERSIZE;
-		}
-		if (instances < DEFAULT_CLUSTERSIZE) {
-			return DEFAULT_CLUSTERSIZE;
-		}
-		if (instances > MAX_INSTANCES) {
-			return MAX_INSTANCES;
-		}
+		LOGGER.debug("SERV::getInstances: return {}", instances);
 		return instances;
 	}
 
+	/**
+	 * Define the memory size in MB of containers that run Matomo.
+	 * @param parameters
+	 * @param planid
+	 * @return
+	 */
+	private int getMemorySize(Map<String, Object> parameters, String planid) {
+		Integer memsize;
+		if (planid.equals(ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID)) {
+			memsize = MEMSIZE_SMALL;
+		} else {
+			// then this is a cluster conf
+			memsize = (Integer) parameters.get(PARAM_MEMORYSIZE);
+			if (memsize == null) {
+				memsize = MEMSIZE_DEFAULT;
+			} else if (memsize < MEMSIZE_SMALL) {
+				memsize = MEMSIZE_SMALL;
+			} else if (memsize > MEMSIZE_MAX) {
+				memsize = MEMSIZE_MAX;
+			}
+		}
+		LOGGER.debug("SERV::getMemorySize: return {}MB", memsize);
+		return memsize;
+	}
+
 	private String getTimeZone(Map<String, Object> parameters) {
-		LOGGER.debug("SERV::getTimeZone");
 		String tz = (String) parameters.get(PARAM_TZ);
 		if (tz == null) {
 			tz = "Europe/Paris";
 		}
+		LOGGER.debug("SERV::getTimeZone: return {}", tz);
 		return tz;
 	}
 

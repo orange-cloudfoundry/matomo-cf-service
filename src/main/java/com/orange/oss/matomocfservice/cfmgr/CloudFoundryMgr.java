@@ -206,10 +206,11 @@ public class CloudFoundryMgr {
 				.build());
 	}
 
-	public Mono<Void> scaleMatomoCfApp(String instid, int instances) {
+	public Mono<Void> scaleMatomoCfApp(String instid, int instances, int memsize) {
 		return cfops.applications().scale(ScaleApplicationRequest.builder()
 				.name(getAppName(instid))
 				.instances(instances)
+				.memoryLimit(memsize)
 				.build());
 	}
 

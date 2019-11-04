@@ -80,6 +80,8 @@ public class PMatomoInstance extends POperationStatus {
 	private boolean automaticVersionUpgrade;
 	
 	private int instances;
+	
+	private int memorySize;
 
 	@SuppressWarnings("unused")
 	protected PMatomoInstance() {
@@ -98,9 +100,10 @@ public class PMatomoInstance extends POperationStatus {
 		this.configFileContent = null;
 		this.automaticVersionUpgrade = true;
 		this.instances = 1;
+		this.memorySize = 256;
 	}
 
-	public PMatomoInstance(String id, int idUrl, String servDefId, String name, PlatformKind pfkind, String pfapi, String planid, PPlatform pf, String version, boolean avu, int instances) {
+	public PMatomoInstance(String id, int idUrl, String servDefId, String name, PlatformKind pfkind, String pfapi, String planid, PPlatform pf, String version, boolean avu, int instances, int memsize) {
 		super(id, OpCode.CREATE.toString(), OperationState.IN_PROGRESS.getValue(), pf);
 		this.idUrl = idUrl;
 		this.serviceDefinitionId = servDefId;
@@ -114,6 +117,7 @@ public class PMatomoInstance extends POperationStatus {
 		this.configFileContent = null;
 		this.automaticVersionUpgrade = avu;
 		this.instances = instances;
+		this.memorySize = memsize;
 	}
 
 	public int getIdUrl() {
@@ -180,6 +184,15 @@ public class PMatomoInstance extends POperationStatus {
 
 	public void setIntances(int instances) {
 		this.instances = instances;
+		super.touch();
+	}
+
+	public int getMemorySize() {
+		return this.memorySize;
+	}
+
+	public void setMemorySize(int memorysize) {
+		this.memorySize = memorysize;
 		super.touch();
 	}
 

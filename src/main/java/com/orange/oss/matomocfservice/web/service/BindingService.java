@@ -213,33 +213,33 @@ public class BindingService extends OperationStatusService {
 		}
 	}
 
-	private void deleteMatomoSite(PBinding pb) {
-		LOGGER.debug("SERV::deleteMatomoSite: instId={}", pb.getPMatomoInstance().getId());
-		RestTemplate restTemplate = new RestTemplate();
-		try {
-			URI uri = new URI("https://" + getMatomoUrl(pb.getPMatomoInstance().getId()) + "/index.php");
-			MultipartBodyBuilder mbb = new MultipartBodyBuilder();
-			mbb.part("module", "API");
-			mbb.part("method", "SitesManager.deleteSite");
-			mbb.part("idSite", Integer.toString(pb.getSiteId()));
-			mbb.part("format", "json");
-			mbb.part("token_auth", pb.getPMatomoInstance().getTokenAuth());
-			String res = restTemplate.postForObject(uri, mbb.build(), String.class);
-			LOGGER.debug("DeleteSite Response: " + res);
-			mbb = new MultipartBodyBuilder();
-			mbb.part("module", "API");
-			mbb.part("method", "UsersManager.deleteUser");
-			mbb.part("userLogin", pb.getUserName());
-			mbb.part("format", "json");
-			mbb.part("token_auth", pb.getPMatomoInstance().getTokenAuth());
-			res = restTemplate.postForObject(uri, mbb.build(), String.class);
-			LOGGER.debug("DeleteUser Response: " + res);
-		} catch (RestClientException e) {
-			throw new RuntimeException("Fail to delete a site when unbinding.", e);
-		} catch (URISyntaxException e) {
-			throw new RuntimeException("Fail to delete a site when unbinding.", e);
-		}
-	}
+//	private void deleteMatomoSite(PBinding pb) {
+//		LOGGER.debug("SERV::deleteMatomoSite: instId={}", pb.getPMatomoInstance().getId());
+//		RestTemplate restTemplate = new RestTemplate();
+//		try {
+//			URI uri = new URI("https://" + getMatomoUrl(pb.getPMatomoInstance().getId()) + "/index.php");
+//			MultipartBodyBuilder mbb = new MultipartBodyBuilder();
+//			mbb.part("module", "API");
+//			mbb.part("method", "SitesManager.deleteSite");
+//			mbb.part("idSite", Integer.toString(pb.getSiteId()));
+//			mbb.part("format", "json");
+//			mbb.part("token_auth", pb.getPMatomoInstance().getTokenAuth());
+//			String res = restTemplate.postForObject(uri, mbb.build(), String.class);
+//			LOGGER.debug("DeleteSite Response: " + res);
+//			mbb = new MultipartBodyBuilder();
+//			mbb.part("module", "API");
+//			mbb.part("method", "UsersManager.deleteUser");
+//			mbb.part("userLogin", pb.getUserName());
+//			mbb.part("format", "json");
+//			mbb.part("token_auth", pb.getPMatomoInstance().getTokenAuth());
+//			res = restTemplate.postForObject(uri, mbb.build(), String.class);
+//			LOGGER.debug("DeleteUser Response: " + res);
+//		} catch (RestClientException e) {
+//			throw new RuntimeException("Fail to delete a site when unbinding.", e);
+//		} catch (URISyntaxException e) {
+//			throw new RuntimeException("Fail to delete a site when unbinding.", e);
+//		}
+//	}
 
 	private String getMatomoUrl(String miid) {
 		return miid + "." + properties.getDomain();

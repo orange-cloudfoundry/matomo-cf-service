@@ -36,9 +36,15 @@ cf cs matomo-service global-shared-db m -c '{"matomoTimeZone": "Europe/Paris"}'
 
 For the `dedicated-db` plan the number of containers that run the service instance can be specified (by default, it is two of them):
 ```
-cf cs matomo-service global-shared-db m -c '{"matomoInstances": 3}'
+cf cs matomo-service dedicated-db md -c '{"matomoInstances": 3}'
 ```
 It can be ajusted later on through an update action on the instance.
+
+For the `matomo-shared-db` and the `dedicated-db` plans, the memory size (in MB) of the containers that run the service instance can be specified (by default, it is 512MB):
+```
+cf cs matomo-service matomo-shared-db ms -c '{"memorySize": 1024}'
+```
+Just like the number of running containers, it can be ajusted later on through an update action on the instance.
 
 Service upgrade to new release (with higher version) is also supported by the service (see section "Update instance"). Concerning version upgrade, a policy can be specified at creation time:
 ```
@@ -75,6 +81,12 @@ The third possibility is to adjust the number of containers that run the instanc
 cf update-service m -c '{"matomoInstances": 6}'
 ```
 This number is forced to stay in the interval [2..10]. This means that if a lower value than 2 is specified, then 2 is forced. In the same way, if a higher value than 10 is specified, then 10 is forced.
+
+The fourth possibility is to adjust the memory of containers that run the instance (only in case of `matomo-shared-db` and `dedicated-db` plans):
+```
+cf update-service ms -c '{"memorySize": 768}'
+```
+This number is forced to stay in the interval [256..2048]. This means that if a lower value than 256 is specified, then 256 is forced. In the same way, if a higher value than 2048 is specified, then 2048 is forced.
 
 ## Bind to instances
 
