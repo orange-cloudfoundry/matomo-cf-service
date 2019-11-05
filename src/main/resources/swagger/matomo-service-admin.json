@@ -6,10 +6,6 @@ info:
   x-logo:
     url: "/redoc/logo.png"
     backgroundColor: "#FFFFFF"
-host: "api.orange.com"
-basePath: "/"
-schemes:
-- "http"
 produces:
 - "application/json;charset=utf-8"
 tags:
@@ -588,3 +584,26 @@ definitions:
       dashboardUrl:
         description: ""
         type: "string"
+      parameters:
+        $ref: "#/definitions/MiParameters"
+  MiParameters:
+    description: "The parameters to adapt the behaviour of the Matomo service instance"
+    type: "object"
+    properties:
+      version:
+        description: ""
+        type: "string"
+      timeZone:
+        description: ""
+        type: "string"
+      autoVersionUpgrade:
+        description: ""
+        type: "boolean"
+      cfInstances:
+        description: ""
+        type: "integer"
+        format: "int32"
+      memorySize:
+        description: ""
+        type: "integer"
+        format: "int32"

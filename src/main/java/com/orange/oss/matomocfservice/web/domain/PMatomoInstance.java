@@ -22,6 +22,7 @@ import javax.persistence.Table;
 
 import org.springframework.cloud.servicebroker.model.instance.OperationState;
 
+import com.orange.oss.matomocfservice.api.model.MiParameters;
 import com.orange.oss.matomocfservice.api.model.OpCode;
 import com.orange.oss.matomocfservice.api.model.PlatformKind;
 import com.orange.oss.matomocfservice.config.ServiceCatalogConfiguration;
@@ -83,7 +84,6 @@ public class PMatomoInstance extends POperationStatus {
 	
 	private int memorySize;
 
-	@SuppressWarnings("unused")
 	protected PMatomoInstance() {
 		super();
 		this.idUrl = -1;
@@ -99,11 +99,11 @@ public class PMatomoInstance extends POperationStatus {
 		this.tokenAuth = null;
 		this.configFileContent = null;
 		this.automaticVersionUpgrade = true;
-		this.instances = 1;
-		this.memorySize = 256;
+		this.instances = 0;
+		this.memorySize = 0;
 	}
 
-	public PMatomoInstance(String id, int idUrl, String servDefId, String name, PlatformKind pfkind, String pfapi, String planid, PPlatform pf, String version, boolean avu, int instances, int memsize) {
+	public PMatomoInstance(String id, int idUrl, String servDefId, String name, PlatformKind pfkind, String pfapi, String planid, PPlatform pf, MiParameters mip) {
 		super(id, OpCode.CREATE.toString(), OperationState.IN_PROGRESS.getValue(), pf);
 		this.idUrl = idUrl;
 		this.serviceDefinitionId = servDefId;
@@ -111,13 +111,13 @@ public class PMatomoInstance extends POperationStatus {
 		this.platformKind = pfkind.toString();
 		this.platformApiLocation = pfapi;
 		this.planId = planid;
-		this.installedVersion = version;
+		this.installedVersion = mip.getVersion();
 		this.password = "piwikpw"/*RandomStringUtils.randomAlphanumeric(LENGTH_PASSWORD)*/;
 		this.tokenAuth = null;
 		this.configFileContent = null;
-		this.automaticVersionUpgrade = avu;
-		this.instances = instances;
-		this.memorySize = memsize;
+		this.automaticVersionUpgrade = mip.isAutoVersionUpgrade();
+		this.instances = mip.getCfInstances();
+		this.memorySize = mip.getMemorySize();
 	}
 
 	public int getIdUrl() {

@@ -25,6 +25,7 @@ import javax.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.servicebroker.exception.ServiceInstanceDoesNotExistException;
 import org.springframework.cloud.servicebroker.model.instance.OperationState;
 
 import com.orange.oss.matomocfservice.api.model.OpCode;
@@ -52,12 +53,12 @@ public abstract class OperationStatusService {
 		Optional<POperationStatus> opms = osRepo.findById(instanceId);
 		if (! opms.isPresent()) {
 			LOGGER.error("SERV::getLastOperationAndState: unknow service instance.");
-			throw new EntityNotFoundException("Matomo Instance with ID=" + instanceId + " not known in Platform with ID=" + platformId);
+			return null;
 		}
 		POperationStatus pos = opms.get();
 		if (pos.getPlatform() != ppf) {
 			LOGGER.error("SERV::getLastOperationAndState: wrong platform.");
-			throw new IllegalArgumentException("Wrong platform with ID=" + platformId + " for Service Instance with ID=" + instanceId);
+			return null;
 		}
 		Duration d = Duration.between(pos.getUpdateTime(), ZonedDateTime.now());
 		if (d.getSeconds() > TIMEOUT_FROZENINPROGRESS) {
@@ -91,13 +92,13 @@ public abstract class OperationStatusService {
 
 		public String getOperationMessage() {
 			if (opCode.equals(OpCode.CREATE)) {
-				return "Create Matomo Service Instance";
+				return "Create Matomo Service Instance or Binding";
 			} else if (opCode.equals(OpCode.READ)) {
-				return "Read Matomo Service Instance";
+				return "Read Matomo Service Instance or Binding";
 			} else if (opCode.equals(OpCode.UPDATE)) {
-				return "Update Matomo Service Instance";
+				return "Update Matomo Service Instance or Binding";
 			} else {
-				return "Delete Matomo Service Instance";
+				return "Delete Matomo Service Instance or Binding";
 			}
 		}
 

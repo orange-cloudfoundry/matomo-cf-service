@@ -30,9 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import javax.persistence.EntityExistsException;
-import javax.persistence.EntityNotFoundException;
-
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
@@ -45,6 +42,7 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import com.orange.oss.matomocfservice.api.model.MatomoInstance;
+import com.orange.oss.matomocfservice.api.model.MiParameters;
 import com.orange.oss.matomocfservice.api.model.OpCode;
 import com.orange.oss.matomocfservice.cfmgr.CloudFoundryMgr;
 import com.orange.oss.matomocfservice.cfmgr.CloudFoundryMgrProperties;
@@ -63,17 +61,8 @@ import reactor.core.publisher.Mono;
 @Service
 public class MatomoInstanceService extends OperationStatusService {
 	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
-	private final static String PARAM_VERSION = "matomoVersion";
-	private final static String PARAM_TZ = "matomoTimeZone";
-	private final static String PARAM_INSTANCES = "matomoInstances";
-	private final static String PARAM_VERSIONUPGRADEPOLICY = "versionUpgradePolicy";
-	private final static String PARAM_MEMORYSIZE = "memorySize";
 	private final static String MATOMOINSTANCE_ROOTUSER = "admin";
-	private final static int MAX_INSTANCES = 10;
-	private final static int CLUSTERSIZE_DEFAULT = 2;
-	private final static int MEMSIZE_SMALL = 256;
-	private final static int MEMSIZE_DEFAULT = 512;
-	private final static int MEMSIZE_MAX = 2048;
+	private final static String NOTINSTALLED = "NOT_INST";
 	@Autowired
 	private PMatomoInstanceRepository miRepo;
 	@Autowired
@@ -99,7 +88,12 @@ public class MatomoInstanceService extends OperationStatusService {
 				if (matomoReleases.isHigherVersion(matomoReleases.getLatestReleaseName(), pmi.getInstalledVersion())) {
 					// need to upgrade to latest version
 					LOGGER.debug("Upgrade Matomo instance from {} to {}.", pmi.getInstalledVersion(), matomoReleases.getLatestReleaseName());
-					updateMatomoInstanceActual(pmi, matomoReleases.getLatestReleaseName());
+					updateMatomoInstanceActual(pmi, new MiParameters()
+							.autoVersionUpgrade(pmi.getAutomaticVersionUpgrade())
+							.cfInstances(pmi.getInstances())
+							.memorySize(pmi.getMemorySize())
+							.timeZone(null)
+							.version(matomoReleases.getLatestReleaseName()));
 				}
 			}
 		}
@@ -110,11 +104,13 @@ public class MatomoInstanceService extends OperationStatusService {
 		PPlatform ppf = getPPlatform(platformId);
 		Optional<PMatomoInstance> opmi = miRepo.findById(instanceId);
 		if (! opmi.isPresent()) {
-			throw new EntityNotFoundException("Matomo Instance with ID=" + instanceId + " not known in Platform with ID=" + platformId);
+			LOGGER.error("Matomo Instance with ID=" + instanceId + " not known in Platform with ID=" + platformId);
+			return null;
 		}
 		PMatomoInstance pmi = opmi.get();
 		if (pmi.getPlatform() != ppf) {
-			throw new IllegalArgumentException("Wrong platform with ID=" + platformId + " for Service Instance with ID=" + instanceId);
+			LOGGER.error("Wrong platform with ID=" + platformId + " for Service Instance with ID=" + instanceId);
+			return null;
 		}
 		MatomoInstance mi = toApiModel(pmi);
 		return mi;
@@ -133,26 +129,36 @@ public class MatomoInstanceService extends OperationStatusService {
 		return instances;
 	}
 
-	@SuppressWarnings("unchecked")
-	public MatomoInstance createMatomoInstance(MatomoInstance matomoInstance, Map<String, Object> parameters) {
+	public MatomoInstance createMatomoInstance(MatomoInstance matomoInstance) {
 		LOGGER.debug("SERV::createMatomoInstance: matomoInstance={}", matomoInstance.toString());
-		String instversion = getVersion(parameters);
-		String tz = getTimeZone(parameters);
-		boolean autoversupgrade = getAutomaticVersionUpgrade(parameters);
-		int instances = getInstances(parameters, matomoInstance.getPlanId());
-		int memsize = getMemorySize(parameters, matomoInstance.getPlanId());
 		PPlatform ppf = getPPlatform(matomoInstance.getPlatformId());
 		for (PMatomoInstance pmi : miRepo.findByPlatformAndLastOperation(ppf, OpCode.DELETE.toString())) {
 			if (pmi.getId().equals(matomoInstance.getUuid())) {
-				throw new EntityExistsException("Matomo Instance with ID=" + matomoInstance.getUuid()
+				LOGGER.error("Matomo Instance with ID=" + matomoInstance.getUuid()
 						+ " already exists in Platform with ID=" + matomoInstance.getPlatformId());
+				return null;
 			}
 		}
 		PMatomoInstance pmi = new PMatomoInstance(matomoInstance.getUuid(), instanceIdMgr.allocateInstanceId(),
 				matomoInstance.getServiceDefinitionId(), matomoInstance.getName(), matomoInstance.getPlatformKind(),
-				matomoInstance.getPlatformApiLocation(), matomoInstance.getPlanId(), ppf, instversion, autoversupgrade, instances, memsize);
+				matomoInstance.getPlatformApiLocation(), matomoInstance.getPlanId(), ppf, matomoInstance.getParameters());
 		savePMatomoInstance(pmi);
-		matomoReleases.createLinkedTree(pmi.getIdUrlStr(), instversion);
+		if (!cfMgr.isSmtpReady()) {
+			LOGGER.warn("Cannot create any kind of instance: service unavailable (retry later on)");
+			pmi.setLastOperationState(OperationState.FAILED);
+		} else if (matomoInstance.getPlanId().equals(ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID) && !cfMgr.isGlobalSharedReady()) {
+			LOGGER.warn("Cannot create an instance with plan <" + ServiceCatalogConfiguration.PLANGLOBSHARDB_NAME + ">: unavailable (retry later on)");
+			pmi.setLastOperationState(OperationState.FAILED);
+		} else if (matomoInstance.getPlanId().equals(ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID) && !cfMgr.isMatomoSharedReady()) {
+			LOGGER.warn("Cannot create an instance with plan <" + ServiceCatalogConfiguration.PLANMATOMOSHARDB_NAME + ">: unavailable (retry later on)");
+			pmi.setLastOperationState(OperationState.FAILED);
+		}
+		if (pmi.getLastOperationState() == OperationState.FAILED) {
+			pmi.setInstalledVersion(NOTINSTALLED);
+			savePMatomoInstance(pmi);
+			return toApiModel(pmi);			
+		}
+		matomoReleases.createLinkedTree(pmi.getIdUrlStr(), matomoInstance.getParameters().getVersion());
 		Mono<Void> createdb = (properties.getDbCreds(pmi.getPlanId()).isDedicatedDb()) ? cfMgr.createDedicatedDb(pmi.getIdUrlStr()) : Mono.empty();
 		createdb.doOnError(t -> {
 			LOGGER.error("Create dedicated DB for instance \"" + pmi.getId() + "\" failed.", t);
@@ -161,7 +167,7 @@ public class MatomoInstanceService extends OperationStatusService {
 		})
 		.doOnSuccess(v -> {
 			LOGGER.debug("Create dedicated DB for instance \"" + pmi.getId() + "\" succeeded.");
-			cfMgr.deployMatomoCfApp(pmi.getIdUrlStr(), instversion, pmi.getId(), pmi.getPlanId(), tz, MEMSIZE_SMALL, 1)
+			cfMgr.deployMatomoCfApp(pmi.getIdUrlStr(), pmi.getId(), pmi.getPlanId(), matomoInstance.getParameters(), 256, 1)
 			.doOnError(t -> {
 				LOGGER.error("Async create app instance (phase 1) \"" + pmi.getId() + "\" failed.", t);
 				matomoReleases.deleteLinkedTree(pmi.getIdUrlStr());
@@ -176,7 +182,7 @@ public class MatomoInstanceService extends OperationStatusService {
 					pmi.setLastOperationState(OperationState.FAILED);
 					savePMatomoInstance(pmi);
 				} else {
-					cfMgr.getInstanceConfigFile(pmi.getIdUrlStr(), instversion, pmi.getClusterMode())
+					cfMgr.getInstanceConfigFile(pmi.getIdUrlStr(), matomoInstance.getParameters().getVersion(), pmi.getClusterMode())
 					.doOnError(t -> {
 						LOGGER.debug("Cannot retrieve config file from Matomo instance.", t);
 						matomoReleases.deleteLinkedTree(pmi.getIdUrlStr());
@@ -186,7 +192,7 @@ public class MatomoInstanceService extends OperationStatusService {
 					.doOnSuccess(ach -> {
 						pmi.setConfigFileContent(ach.fileContent);
 						savePMatomoInstance(pmi);
-						settleMatomoInstance(pmi, instversion, tz, true, properties.getDbCreds(pmi.getPlanId())).subscribe();
+						settleMatomoInstance(pmi, matomoInstance.getParameters(), true, properties.getDbCreds(pmi.getPlanId())).subscribe();
 					}).subscribe();
 				}
 			}).subscribe();				
@@ -194,32 +200,38 @@ public class MatomoInstanceService extends OperationStatusService {
 		return toApiModel(pmi);
 	}
 
-	public void deleteMatomoInstance(String platformId, String instanceId) {
+	public String deleteMatomoInstance(String platformId, String instanceId) {
 		LOGGER.debug("SERV::deleteMatomoInstance: platformId={} instanceId={}", platformId, instanceId);
 		PPlatform ppf = getPPlatform(platformId);
 		Optional<PMatomoInstance> opmi = miRepo.findById(instanceId);
 		if (!opmi.isPresent()) {
-			LOGGER.error("SERV::deleteMatomoInstance: KO -> does not exist.");
-			throw new RuntimeException("Error: Matomo service instance does not exist.");
+			LOGGER.warn("SERV::deleteMatomoInstance: KO -> does not exist.");
+			return null;
 		}
 		PMatomoInstance pmi = opmi.get();
+		pmi.setLastOperation(OpCode.DELETE);
 		if (pmi.getPlatform() != ppf) {
 			LOGGER.error("SERV::deleteMatomoInstance: KO -> wrong platform.");
-			throw new RuntimeException("Error: wrong platform with ID=" + platformId + " for Matomo service instance with ID=" + instanceId + ".");
+			pmi.setLastOperationState(OperationState.FAILED);
+			savePMatomoInstance(pmi);
+			return "Error: wrong platform with ID=" + platformId + " for Matomo service instance with ID=" + instanceId + ".";
 		}
 		if (pmi.getLastOperationState() == OperationState.IN_PROGRESS) {
 			LOGGER.debug("SERV::deleteMatomoInstance: KO -> operation in progress.");
-			throw new RuntimeException("Error: cannot delete Matomo service instance with ID=" + pmi.getId() + ": operation already in progress.");
+			return "Error: cannot delete Matomo service instance with ID=" + pmi.getId() + ": operation already in progress.";
 		}
-		pmi.setLastOperation(OpCode.DELETE);
 		pmi.setLastOperationState(OperationState.IN_PROGRESS);
 		savePMatomoInstance(pmi);
+		if (pmi.getInstalledVersion().equals(NOTINSTALLED)) {
+			pmi.setLastOperationState(OperationState.SUCCEEDED);
+			savePMatomoInstance(pmi);
+			return "Nothing to delete for instance with ID=" + pmi.getId();
+		}
 		// delete data associated with the instance under deletion
 		deleteAssociatedDbSchema(pmi);
 		cfMgr.deleteMatomoCfApp(pmi.getIdUrlStr(), pmi.getPlanId())
 		.doOnError(t -> {
 			LOGGER.debug("Async delete app instance \"" + pmi.getId() + "\" failed -> " + t.getMessage());
-			t.printStackTrace();
 			pmi.setLastOperationState(OperationState.FAILED);
 			savePMatomoInstance(pmi);
 		})
@@ -231,6 +243,7 @@ public class MatomoInstanceService extends OperationStatusService {
 					LOGGER.error("Delete dedicated DB for instance \"{}\" failed: please delete manually service instance {}.", 
 							pmi.getId(),
 							properties.getDbCreds(pmi.getPlanId()));
+					tt.printStackTrace();
 					pmi.setLastOperationState(OperationState.FAILED);
 					savePMatomoInstance(pmi);
 				})
@@ -250,20 +263,21 @@ public class MatomoInstanceService extends OperationStatusService {
 			}
 		})
 		.subscribe();
+		return "Delete launched for instance with ID=" + pmi.getId();
 	}
 
-	public MatomoInstance updateMatomoInstance(MatomoInstance mi, Map<String, Object> parameters) {
+	public MatomoInstance updateMatomoInstance(MatomoInstance mi) {
 		LOGGER.debug("SERV::updateMatomoInstance: matomoInstance={}", mi.toString());
 		PPlatform ppf = getPPlatform(mi.getPlatformId());
 		Optional<PMatomoInstance> opmi = miRepo.findById(mi.getUuid());
 		if (!opmi.isPresent()) {
 			LOGGER.error("SERV::updateMatomoInstance: KO -> does not exist.");
-			return mi;
+			return null;
 		}
 		PMatomoInstance pmi = opmi.get();
 		if (pmi.getPlatform() != ppf) {
 			LOGGER.error("SERV::updateMatomoInstance: KO -> wrong platform.");
-			return mi;
+			return null;
 		}
 		if (pmi.getLastOperationState() == OperationState.IN_PROGRESS) {
 			LOGGER.debug("SERV::updateMatomoInstance: KO -> operation in progress.");
@@ -272,35 +286,38 @@ public class MatomoInstanceService extends OperationStatusService {
 		pmi.setLastOperation(OpCode.UPDATE);
 		pmi.setLastOperationState(OperationState.IN_PROGRESS);
 		savePMatomoInstance(pmi);
-		String newversion = getVersion(parameters);
-		boolean autoversupgrade = getAutomaticVersionUpgrade(parameters);
-		int instances = getInstances(parameters, pmi.getPlanId());
-		int memsize = getMemorySize(parameters, pmi.getPlanId());
-		if (pmi.getAutomaticVersionUpgrade() != autoversupgrade) {
-			pmi.setAutomaticVersionUpgrade(autoversupgrade);
+		if (pmi.getInstalledVersion().equals(NOTINSTALLED)) {
+			pmi.setLastOperationState(OperationState.SUCCEEDED);
 			savePMatomoInstance(pmi);
-			if (autoversupgrade) {
-				newversion = matomoReleases.getLatestReleaseName();
+			LOGGER.warn("Nothing to update (not installed) for instance with ID=" + pmi.getId());
+			return mi;
+		}
+		if (pmi.getAutomaticVersionUpgrade() != mi.getParameters().isAutoVersionUpgrade()) {
+			pmi.setAutomaticVersionUpgrade(mi.getParameters().isAutoVersionUpgrade());
+			savePMatomoInstance(pmi);
+			if (mi.getParameters().isAutoVersionUpgrade()) {
+				mi.getParameters().setVersion(matomoReleases.getLatestReleaseName());
 			}
 		}
-		if (pmi.getInstances() == instances) {
-			instances = -1;
+		if (pmi.getInstances() == mi.getParameters().getCfInstances()) {
+			mi.getParameters().setCfInstances(-1);
 		} else {
-			LOGGER.debug("Upgrade Matomo instance nodes from {} to {}.", pmi.getInstances(), instances);
-			pmi.setIntances(instances);
+			LOGGER.debug("Upgrade Matomo instance nodes from {} to {}.", pmi.getInstances(), mi.getParameters().getCfInstances());
+			pmi.setIntances(mi.getParameters().getCfInstances());
 			savePMatomoInstance(pmi);			
 		}
-		if (pmi.getMemorySize() == memsize) {
-			memsize = -1;
+		if (pmi.getMemorySize() == mi.getParameters().getMemorySize()) {
+			mi.getParameters().setMemorySize(-1);
 		} else {
-			LOGGER.debug("Upgrade Matomo instance nodes memory from {}MB to {}MB.", pmi.getMemorySize(), memsize);
-			pmi.setMemorySize(memsize);
+			LOGGER.debug("Upgrade Matomo instance nodes memory from {}MB to {}MB.", pmi.getMemorySize(), mi.getParameters().getMemorySize());
+			pmi.setMemorySize(mi.getParameters().getMemorySize());
 			savePMatomoInstance(pmi);			
 		}
-		if (matomoReleases.isHigherVersion(newversion, pmi.getInstalledVersion())) {
-			LOGGER.debug("Upgrade Matomo instance from version {} to {}.", pmi.getInstalledVersion(), newversion);
-			updateMatomoInstanceActual(pmi, newversion);
-		} else if ((instances != -1) || (memsize != -1)) {
+		if (matomoReleases.isHigherVersion(mi.getParameters().getVersion(), pmi.getInstalledVersion())) {
+			LOGGER.debug("Upgrade Matomo instance from version {} to {}.", pmi.getInstalledVersion(), mi.getParameters().getVersion());
+			mi.getParameters().setTimeZone(null);
+			updateMatomoInstanceActual(pmi, mi.getParameters());
+		} else if ((mi.getParameters().getCfInstances() != -1) || (mi.getParameters().getMemorySize() != -1)) {
 			// only scale app nodes and/or memory size
 			cfMgr.scaleMatomoCfApp(pmi.getIdUrlStr(), pmi.getInstances(), pmi.getMemorySize())
 			.doOnError(t -> {
@@ -317,12 +334,12 @@ public class MatomoInstanceService extends OperationStatusService {
 
 	// PRIVATE METHODS --------------------------------------------------------------------------------
 	
-	private void updateMatomoInstanceActual(PMatomoInstance pmi, String newversion) {
-		LOGGER.debug("SERV::updateMatomoInstanceActual: matomoInstance={}, newVersion={}", pmi.getId(), newversion);
+	private void updateMatomoInstanceActual(PMatomoInstance pmi, MiParameters mip) {
+		LOGGER.debug("SERV::updateMatomoInstanceActual: matomoInstance={}, newVersion={}", pmi.getId(), mip.getVersion());
 		Mono.create(sink -> {
-			matomoReleases.createLinkedTree(pmi.getIdUrlStr(), newversion);
-			matomoReleases.setConfigIni(pmi.getIdUrlStr(), newversion, pmi.getConfigFileContent());
-			cfMgr.deployMatomoCfApp(pmi.getIdUrlStr(), newversion, pmi.getId(), pmi.getPlanId(), null, pmi.getClusterMode() ? 512 : 256, 1)
+			matomoReleases.createLinkedTree(pmi.getIdUrlStr(), mip.getVersion());
+			matomoReleases.setConfigIni(pmi.getIdUrlStr(), mip.getVersion(), pmi.getConfigFileContent());
+			cfMgr.deployMatomoCfApp(pmi.getIdUrlStr(), pmi.getId(), pmi.getPlanId(), mip, pmi.getClusterMode() ? 512 : 256, 1)
 			.doOnError(t -> {sink.error(t);})
 			.doOnSuccess(vvv -> {sink.success();})
 			.subscribe();
@@ -340,17 +357,18 @@ public class MatomoInstanceService extends OperationStatusService {
 				pmi.setLastOperationState(OperationState.FAILED);
 				savePMatomoInstance(pmi);
 			} else {
-				pmi.setInstalledVersion(newversion);
+				pmi.setInstalledVersion(mip.getVersion());
 				savePMatomoInstance(pmi);
-				settleMatomoInstance(pmi, newversion, null, false, properties.getDbCreds(pmi.getPlanId())).subscribe();
+				settleMatomoInstance(pmi, mip, false, properties.getDbCreds(pmi.getPlanId())).subscribe();
 			}
 
 		})
 		.subscribe();
 	}
 
-	private Mono<Void> settleMatomoInstance(PMatomoInstance pmi, String version, String timezone, boolean retrievetoken, CloudFoundryMgrProperties.DbCreds dbCreds) {
-		return cfMgr.deployMatomoCfApp(pmi.getIdUrlStr(), version, pmi.getId(), pmi.getPlanId(), timezone, pmi.getMemorySize(), pmi.getInstances())
+	@SuppressWarnings("unchecked")
+	private Mono<Void> settleMatomoInstance(PMatomoInstance pmi, MiParameters mip, boolean retrievetoken, CloudFoundryMgrProperties.DbCreds dbCreds) {
+		return cfMgr.deployMatomoCfApp(pmi.getIdUrlStr(), pmi.getId(), pmi.getPlanId(), mip, pmi.getMemorySize(), pmi.getInstances())
 				.doOnError(t -> {
 					LOGGER.debug("Async settle app instance (phase 2.1) \"" + pmi.getId() + "\" failed.", t);
 					matomoReleases.deleteLinkedTree(pmi.getIdUrlStr());
@@ -391,6 +409,12 @@ public class MatomoInstanceService extends OperationStatusService {
 	}
 
 	private MatomoInstance toApiModel(PMatomoInstance pmi) {
+		MiParameters mip = new MiParameters()
+				.autoVersionUpgrade(pmi.getAutomaticVersionUpgrade())
+				.cfInstances(pmi.getInstances())
+				.memorySize(pmi.getMemorySize())
+				.timeZone(null)
+				.version(pmi.getInstalledVersion());
 		return new MatomoInstance()
 				.uuid(pmi.getId())
 				.serviceDefinitionId(pmi.getServiceDefinitionId())
@@ -403,104 +427,14 @@ public class MatomoInstanceService extends OperationStatusService {
 				.lastOperation(pmi.getLastOperation())
 				.lastOperationState(pmi.getLastOperationState().getValue())
 				.matomoVersion(pmi.getInstalledVersion())
-				.dashboardUrl(getDashboardUrl(pmi));
+				.dashboardUrl(getDashboardUrl(pmi))
+				.parameters(mip);
 	}
 
 	private MatomoInstance savePMatomoInstance(PMatomoInstance pmi) {
 		MatomoInstance mi = toApiModel(pmi);
 		miRepo.save(pmi);
 		return mi;
-	}
-
-	private String getVersion(Map<String, Object> parameters) {
-		String instversion = (String) parameters.get(PARAM_VERSION);
-		if (instversion == null) {
-			instversion = matomoReleases.getDefaultReleaseName();
-		} else if (instversion.equals("latest")) {
-			instversion = matomoReleases.getLatestReleaseName();
-		} else if (! matomoReleases.isVersionAvailable(instversion)) {
-				LOGGER.warn("SERV::getVersion: version {} is not supported -> switch to default one.", instversion);
-				throw new RuntimeException("Version <" + instversion + "> is not supported by this Matomo CF Service!!");
-		}
-		LOGGER.debug("SERV::getVersion: return {}", instversion);
-		return instversion;
-	}
-
-	private boolean getAutomaticVersionUpgrade(Map<String, Object> parameters) {
-		String policy = (String) parameters.get(PARAM_VERSIONUPGRADEPOLICY);
-		boolean bpol;
-		if (policy == null) {
-			bpol = true;
-		} else {
-			policy = policy.toUpperCase();
-			if (policy.equals("AUTOMATIC")) {
-				bpol =  true;
-			} else if (policy.equals("EXPLICIT")) {
-				bpol =  false;
-			} else {
-				LOGGER.warn("SERV::getAutomaticVersionUpgrade: <{}> is a wrong value for version upgrade policy -> should be either AUTOMATIC or EXPLICIT.", policy);
-				throw new IllegalArgumentException("Version upgrade policy <" + policy + "> is a wrong value!!");
-			}
-		}
-		LOGGER.debug("SERV::getAutomaticVersionUpgrade: return {}", bpol);
-		return bpol;
-	}
-
-	private int getInstances(Map<String, Object> parameters, String planid) {
-		Integer instances;
-		if (planid.equals(ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID)) {
-			instances = 1;
-		} else {
-		// then this is a cluster conf
-			if (planid.equals(ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID)) {
-				instances =  CLUSTERSIZE_DEFAULT;
-			} else {
-				instances = (Integer) parameters.get(PARAM_INSTANCES);
-				if (instances == null) {
-					instances =  CLUSTERSIZE_DEFAULT;
-				} else if (instances < CLUSTERSIZE_DEFAULT) {
-					instances =  CLUSTERSIZE_DEFAULT;
-				} else if (instances > MAX_INSTANCES) {
-					instances =  MAX_INSTANCES;
-				}
-			}
-		}
-		LOGGER.debug("SERV::getInstances: return {}", instances);
-		return instances;
-	}
-
-	/**
-	 * Define the memory size in MB of containers that run Matomo.
-	 * @param parameters
-	 * @param planid
-	 * @return
-	 */
-	private int getMemorySize(Map<String, Object> parameters, String planid) {
-		Integer memsize;
-		if (planid.equals(ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID)) {
-			memsize = MEMSIZE_SMALL;
-		} else {
-			// then this is a cluster conf
-			memsize = (Integer) parameters.get(PARAM_MEMORYSIZE);
-			if (memsize == null) {
-				memsize = MEMSIZE_DEFAULT;
-			} else if (memsize < MEMSIZE_SMALL) {
-				memsize = MEMSIZE_SMALL;
-			} else if (memsize > MEMSIZE_MAX) {
-				memsize = MEMSIZE_MAX;
-			}
-		}
-		LOGGER.debug("SERV::getMemorySize: return {}MB", memsize);
-		return memsize;
-	}
-
-	private String getTimeZone(Map<String, Object> parameters) {
-		String tz = (String) parameters.get(PARAM_TZ);
-		if (tz == null) {
-			tz = "Europe/Paris";
-		}
-		LOGGER.debug("SERV::getTimeZone: return {}", tz);
-		return tz;
 	}
 
 	/**
