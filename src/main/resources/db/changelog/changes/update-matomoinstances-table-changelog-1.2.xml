@@ -16,12 +16,19 @@
 -->
 
 <databaseChangeLog
-	xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+	xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
 	xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd
 		http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
-	<include file="/db/changelog/changes/db-changelog-1.0.xml"/>
-	<include file="/db/changelog/changes/db-changelog-1.1.xml"/>
-	<include file="/db/changelog/changes/db-changelog-1.2.xml"/>
+	<changeSet author="admin" id="1.2_update_table_matomoinstances">
+		<addColumn tableName="matomoinstances">
+			<column name="time_zone" type="varchar(48)" value="Europe/Paris">
+				<constraints nullable="false" />
+			</column>
+		</addColumn>
+		<rollback>
+			<dropColumn tableName="matomoinstances" columnName="time_zone"/>
+		</rollback>
+	</changeSet>
 </databaseChangeLog>

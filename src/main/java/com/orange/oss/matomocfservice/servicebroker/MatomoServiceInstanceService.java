@@ -202,7 +202,7 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 	private Map<String, Object> toMap(MiParameters mip) {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put(PARAM_VERSION, mip.getVersion());
-//		params.put(PARAM_TZ, mip.getTimeZone());
+		params.put(PARAM_TZ, mip.getTimeZone());
 		params.put(PARAM_INSTANCES, mip.getCfInstances());
 		params.put(PARAM_VERSIONUPGRADEPOLICY, mip.isAutoVersionUpgrade());
 		params.put(PARAM_MEMORYSIZE, mip.getMemorySize());

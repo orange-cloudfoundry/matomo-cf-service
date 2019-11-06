@@ -65,7 +65,7 @@ public class CloudFoundryMgr {
 	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
 	private final static String MATOMO_ANPREFIX = "MATOMO_";
 	private final static String MATOMO_AUPREFIX = "M";
-	private final static long CREATEDBSERV_TIMEOUT = 90; // in minutes
+	public final static long CREATEDBSERV_TIMEOUT = 90; // in minutes
 	private String sshHost;
 	private int sshPort;
 	private boolean smtpReady = false;
@@ -211,25 +211,15 @@ public class CloudFoundryMgr {
 		String instpath = matomoReleases.getVersionPath(mip.getVersion(), instid);
 		LOGGER.debug("File for Matomo bits: " + instpath);
 		ApplicationManifest.Builder manifestbuilder;
-		if (mip.getTimeZone() != null) {
-			manifestbuilder = ApplicationManifest.builder()
-					.name(getAppName(instid))
-					.path(Paths.get(instpath))
-					.route(Route.builder().route(getHost(instid, expohost) + "." + properties.getDomain()).build())
-					.buildpack(properties.getPhpBuildpack())
-					.memory(memsize)
-					.timeout(180)
-					.instances(nbinst)
-					.environmentVariable("TZ", mip.getTimeZone());
-		} else {
-			manifestbuilder = ApplicationManifest.builder()
-					.name(getAppName(instid))
-					.path(Paths.get(instpath))
-					.route(Route.builder().route(getHost(instid, expohost) + "." + properties.getDomain()).build())
-					.buildpack(properties.getPhpBuildpack())
-					.memory(memsize)
-					.timeout(180);			
-		}
+		manifestbuilder = ApplicationManifest.builder()
+				.name(getAppName(instid))
+				.path(Paths.get(instpath))
+				.route(Route.builder().route(getHost(instid, expohost) + "." + properties.getDomain()).build())
+				.buildpack(properties.getPhpBuildpack())
+				.memory(memsize)
+				.timeout(180)
+				.instances(nbinst)
+				.environmentVariable("TZ", mip.getTimeZone());
 		List<String> services = new ArrayList<String>();
 		properties.getSmtpCreds().addVars(manifestbuilder).addService(services);
 		properties.getDbCreds(planid).addVars(manifestbuilder).addService(services, getAppName(instid));
@@ -258,6 +248,7 @@ public class CloudFoundryMgr {
 				.serviceInstanceName(properties.getDbCreds(ServiceCatalogConfiguration.PLANDEDICATEDDB_UUID).getInstanceServiceName(getAppName(instid)))
 				.serviceName(properties.getDbCreds(ServiceCatalogConfiguration.PLANDEDICATEDDB_UUID).getServiceName())
 				.planName(properties.getDbCreds(ServiceCatalogConfiguration.PLANDEDICATEDDB_UUID).getPlanName())
+				.completionTimeout(Duration.ofMinutes(CREATEDBSERV_TIMEOUT))
 				.build());
 	}
 

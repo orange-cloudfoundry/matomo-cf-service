@@ -45,6 +45,7 @@ public class PMatomoInstance extends POperationStatus {
 	private final static int LENGTH_DBCRED = 512;
 	private final static int LENGTH_TOKENAUTH = 48;
 	private final static int LENGTH_INSTINITFILE = 4096;
+	private final static int LENGTH_TIMEZONE = 48;
 	
 	private int idUrl;
 
@@ -84,6 +85,9 @@ public class PMatomoInstance extends POperationStatus {
 	
 	private int memorySize;
 
+	@Column(length = LENGTH_TIMEZONE)
+	private String timeZone;
+	
 	protected PMatomoInstance() {
 		super();
 		this.idUrl = -1;
@@ -101,6 +105,7 @@ public class PMatomoInstance extends POperationStatus {
 		this.automaticVersionUpgrade = true;
 		this.instances = 0;
 		this.memorySize = 0;
+		this.timeZone = null;
 	}
 
 	public PMatomoInstance(String id, int idUrl, String servDefId, String name, PlatformKind pfkind, String pfapi, String planid, PPlatform pf, MiParameters mip) {
@@ -118,6 +123,7 @@ public class PMatomoInstance extends POperationStatus {
 		this.automaticVersionUpgrade = mip.isAutoVersionUpgrade();
 		this.instances = mip.getCfInstances();
 		this.memorySize = mip.getMemorySize();
+		this.timeZone = mip.getTimeZone();
 	}
 
 	public int getIdUrl() {
@@ -193,6 +199,15 @@ public class PMatomoInstance extends POperationStatus {
 
 	public void setMemorySize(int memorysize) {
 		this.memorySize = memorysize;
+		super.touch();
+	}
+
+	public String getTimeZone() {
+		return this.timeZone;
+	}
+
+	public void setTimeZone(String timezone) {
+		this.timeZone = timezone;
 		super.touch();
 	}
 

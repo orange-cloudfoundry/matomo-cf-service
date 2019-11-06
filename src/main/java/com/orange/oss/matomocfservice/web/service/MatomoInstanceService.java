@@ -24,6 +24,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Duration;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -160,7 +161,9 @@ public class MatomoInstanceService extends OperationStatusService {
 		}
 		matomoReleases.createLinkedTree(pmi.getIdUrlStr(), matomoInstance.getParameters().getVersion());
 		Mono<Void> createdb = (properties.getDbCreds(pmi.getPlanId()).isDedicatedDb()) ? cfMgr.createDedicatedDb(pmi.getIdUrlStr()) : Mono.empty();
-		createdb.doOnError(t -> {
+		createdb
+		.timeout(Duration.ofMinutes(CloudFoundryMgr.CREATEDBSERV_TIMEOUT))
+		.doOnError(t -> {
 			LOGGER.error("Create dedicated DB for instance \"" + pmi.getId() + "\" failed.", t);
 			pmi.setLastOperationState(OperationState.FAILED);
 			savePMatomoInstance(pmi);
@@ -299,6 +302,13 @@ public class MatomoInstanceService extends OperationStatusService {
 				mi.getParameters().setVersion(matomoReleases.getLatestReleaseName());
 			}
 		}
+		if (pmi.getTimeZone().equals(mi.getParameters().getTimeZone())) {
+			mi.getParameters().setTimeZone(null);
+		} else {
+			LOGGER.debug("Change Matomo instance timezone from {} to {}.", pmi.getTimeZone(), mi.getParameters().getTimeZone());
+			pmi.setTimeZone(mi.getParameters().getTimeZone());
+			savePMatomoInstance(pmi);
+		}
 		if (pmi.getInstances() == mi.getParameters().getCfInstances()) {
 			mi.getParameters().setCfInstances(-1);
 		} else {
@@ -315,7 +325,9 @@ public class MatomoInstanceService extends OperationStatusService {
 		}
 		if (matomoReleases.isHigherVersion(mi.getParameters().getVersion(), pmi.getInstalledVersion())) {
 			LOGGER.debug("Upgrade Matomo instance from version {} to {}.", pmi.getInstalledVersion(), mi.getParameters().getVersion());
-			mi.getParameters().setTimeZone(null);
+			updateMatomoInstanceActual(pmi, mi.getParameters());
+		} else if (mi.getParameters().getTimeZone() != null) {
+			LOGGER.debug("Change Matomo instance timezone from {} to {}.", pmi.getTimeZone(), mi.getParameters().getTimeZone());
 			updateMatomoInstanceActual(pmi, mi.getParameters());
 		} else if ((mi.getParameters().getCfInstances() != -1) || (mi.getParameters().getMemorySize() != -1)) {
 			// only scale app nodes and/or memory size
@@ -326,8 +338,12 @@ public class MatomoInstanceService extends OperationStatusService {
 			})
 			.doOnSuccess(v -> {
 				pmi.setLastOperationState(OperationState.SUCCEEDED);
-				savePMatomoInstance(pmi);				
+				savePMatomoInstance(pmi);
 			}).subscribe();
+		} else {
+			// finally nothing to do
+			pmi.setLastOperationState(OperationState.SUCCEEDED);
+			savePMatomoInstance(pmi);
 		}
 		return toApiModel(pmi);
 	}
@@ -339,7 +355,7 @@ public class MatomoInstanceService extends OperationStatusService {
 		Mono.create(sink -> {
 			matomoReleases.createLinkedTree(pmi.getIdUrlStr(), mip.getVersion());
 			matomoReleases.setConfigIni(pmi.getIdUrlStr(), mip.getVersion(), pmi.getConfigFileContent());
-			cfMgr.deployMatomoCfApp(pmi.getIdUrlStr(), pmi.getId(), pmi.getPlanId(), mip, pmi.getClusterMode() ? 512 : 256, 1)
+			cfMgr.deployMatomoCfApp(pmi.getIdUrlStr(), pmi.getId(), pmi.getPlanId(), mip, 256, 1)
 			.doOnError(t -> {sink.error(t);})
 			.doOnSuccess(vvv -> {sink.success();})
 			.subscribe();
