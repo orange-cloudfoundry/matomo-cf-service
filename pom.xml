@@ -5,7 +5,10 @@
 
 	<groupId>com.orange.oss</groupId>
 	<artifactId>matomo-cf-service</artifactId>
-	<version>0.6.0</version>
+	<organization>
+		<name>Orange S.A. - Open Source Software</name>
+	</organization>
+	<version>0.7.0</version>
 	<name>matomo-cf-service</name>
 	<description>An implementation of "Matomo as a Service" exposed through an OSB API and relying on SpringBoot and CloudFoundry</description>
 
