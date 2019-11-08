@@ -28,6 +28,6 @@ import org.springframework.context.annotation.Configuration;
 public class BrokerApiVersionConfiguration {
 	@Bean
 	public BrokerApiVersion brokerApiVersion() {
-		return new BrokerApiVersion("2.15");
+		return new BrokerApiVersion();
 	}
 }
