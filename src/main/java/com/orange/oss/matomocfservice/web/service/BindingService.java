@@ -46,7 +46,7 @@ import com.orange.oss.matomocfservice.web.repository.PMatomoInstanceRepository;
  */
 @Service
 public class BindingService extends OperationStatusService {
-	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+	private final static Logger LOGGER = LoggerFactory.getLogger(BindingService.class);
 	public final static String CRED_MATOMOURL = "mcfs-matomoUrl";
 	public final static String CRED_SITEID = "mcfs-siteId";
 	public final static String CRED_USERNAME = "mcfs-userName";

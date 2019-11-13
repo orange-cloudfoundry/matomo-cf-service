@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.orange.oss.matomocfservice.config;
+package com.orange.oss.matomocfservice.servicebroker;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -33,7 +33,7 @@ import org.springframework.context.annotation.PropertySource;
 @Configuration
 @PropertySource(name = "MatomoServiceProperties", value = "classpath:application.yml")
 public class ServiceCatalogConfiguration {
-	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+	private final static Logger LOGGER = LoggerFactory.getLogger(ServiceCatalogConfiguration.class);
 	public final static String PLANGLOBSHARDB_NAME = "global-shared-db";
 	public final static String PLANGLOBSHARDB_UUID = "2f95934e-23c5-4f73-bdd3-f3383febb59a";
 	public final static String PLANMATOMOSHARDB_NAME = "matomo-shared-db";

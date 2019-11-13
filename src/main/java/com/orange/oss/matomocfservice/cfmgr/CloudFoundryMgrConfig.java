@@ -39,7 +39,7 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class CloudFoundryMgrConfig {
-	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+	private final static Logger LOGGER = LoggerFactory.getLogger(CloudFoundryMgrConfig.class);
 
 	@Bean
 	DefaultConnectionContext connectionContext(@Value("${cf.apiHost}") String apiHost) {

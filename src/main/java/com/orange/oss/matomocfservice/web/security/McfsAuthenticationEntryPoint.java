@@ -32,7 +32,7 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationEn
  *
  */
 public class McfsAuthenticationEntryPoint extends BasicAuthenticationEntryPoint {
-	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+	private final static Logger LOGGER = LoggerFactory.getLogger(McfsAuthenticationEntryPoint.class);
 
 	@Override
 	public void commence(HttpServletRequest request,

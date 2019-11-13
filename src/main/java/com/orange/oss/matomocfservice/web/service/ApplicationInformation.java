@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory;
  *
  */
 public class ApplicationInformation {
-	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+	private final static Logger LOGGER = LoggerFactory.getLogger(ApplicationInformation.class);
 	private final String baseUrl;
 
 	public ApplicationInformation(String baseUrl) {

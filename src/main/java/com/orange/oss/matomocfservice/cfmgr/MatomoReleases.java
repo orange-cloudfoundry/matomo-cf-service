@@ -42,7 +42,7 @@ import org.springframework.util.Assert;
  */
 @Service
 public class MatomoReleases {
-	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+	private final static Logger LOGGER = LoggerFactory.getLogger(MatomoReleases.class);
 	private final static String RELEASEPATH = "/home/vcap/app/BOOT-INF/classes/static/matomo-releases";
 	private final static String VERSIONSFILE = File.separator + "Versions";
 	private final static String DEFVERSIONFILE = File.separator + "DefaultVersion";

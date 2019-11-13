@@ -41,7 +41,7 @@ import org.springframework.security.web.authentication.logout.LogoutSuccessHandl
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
-	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+	private final static Logger LOGGER = LoggerFactory.getLogger(SecurityConfig.class);
 	public static final int MAX_SESSIONS = 100;
 	public static final String PREFIXED_ROLE_ADMIN = "ROLE_ADMIN";
 	public static final String ROLE_ADMIN = "ADMIN";

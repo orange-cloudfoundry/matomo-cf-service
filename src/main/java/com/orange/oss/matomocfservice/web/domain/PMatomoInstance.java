@@ -25,7 +25,7 @@ import org.springframework.cloud.servicebroker.model.instance.OperationState;
 import com.orange.oss.matomocfservice.api.model.MiParameters;
 import com.orange.oss.matomocfservice.api.model.OpCode;
 import com.orange.oss.matomocfservice.api.model.PlatformKind;
-import com.orange.oss.matomocfservice.config.ServiceCatalogConfiguration;
+import com.orange.oss.matomocfservice.servicebroker.ServiceCatalogConfiguration;
 
 /**
  * @author P. Déchamboux

@@ -39,7 +39,7 @@ import com.orange.oss.matomocfservice.web.repository.PInstanceIdRepository;
  */
 @Service
 public class InstanceIdMgr {
-	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+	private final static Logger LOGGER = LoggerFactory.getLogger(InstanceIdMgr.class);
 	@Autowired
 	PInstanceIdRepository piiRepo;
 	@Autowired

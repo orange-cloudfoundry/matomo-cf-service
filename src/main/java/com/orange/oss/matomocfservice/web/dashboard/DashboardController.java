@@ -32,7 +32,7 @@ import com.orange.oss.matomocfservice.cfmgr.MatomoReleases;
  */
 @Controller
 public class DashboardController {
-	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+	private final static Logger LOGGER = LoggerFactory.getLogger(DashboardController.class);
 	@Autowired
 	MatomoReleases matomoReleases;
 

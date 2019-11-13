@@ -36,7 +36,7 @@ import org.springframework.security.web.authentication.SimpleUrlAuthenticationSu
 public class McfsAuthenticationSuccessHandler
 	extends SimpleUrlAuthenticationSuccessHandler 
 	implements AuthenticationSuccessHandler {
-	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+	private final static Logger LOGGER = LoggerFactory.getLogger(McfsAuthenticationSuccessHandler.class);
 	private int adminSessionTimeout;
 
 	McfsAuthenticationSuccessHandler(int adminSessionTimeout) {

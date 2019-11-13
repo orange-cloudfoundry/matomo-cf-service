@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.orange.oss.matomocfservice.config;
+package com.orange.oss.matomocfservice.api;
 
 import java.lang.reflect.Type;
 import java.util.Collection;
@@ -52,7 +52,7 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
 @Configuration
 @EnableSwagger2
 public class SwaggerConfiguration {
-	private static final Logger LOGGER = LoggerFactory.getLogger(SwaggerConfiguration.class);
+	private final static Logger LOGGER = LoggerFactory.getLogger(SwaggerConfiguration.class);
 	@Value("${matomo-service.contact.name:\"Matomo by Orange Open Source\"}")
 	private String contactName;
 	@Value("${matomo-service.contact.url:\"https://github.com/orange-cloudfoundry/matomo-cf-service\"}")

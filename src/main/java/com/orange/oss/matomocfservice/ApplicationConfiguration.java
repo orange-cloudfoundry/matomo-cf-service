@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.orange.oss.matomocfservice.config;
+package com.orange.oss.matomocfservice;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,7 +42,7 @@ import com.orange.oss.matomocfservice.web.service.PlatformService;
  */
 @Configuration
 public class ApplicationConfiguration {
-	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+	private final static Logger LOGGER = LoggerFactory.getLogger(ApplicationConfiguration.class);
 	public static final String ADMIN_API_PATH = "/adminapi";
 	@Autowired
 	MatomoInstanceService matomoInstanceService;

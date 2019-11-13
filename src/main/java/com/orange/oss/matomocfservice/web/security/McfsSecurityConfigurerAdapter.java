@@ -35,7 +35,7 @@ import com.orange.oss.matomocfservice.web.security.SecurityConfig.McfsLogoutSucc
 @Configuration
 @Order(1)
 public class McfsSecurityConfigurerAdapter extends WebSecurityConfigurerAdapter {
-	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+	private final static Logger LOGGER = LoggerFactory.getLogger(McfsSecurityConfigurerAdapter.class);
 	@Value("${matomo-service.security.adminSessionTimeout:15}")
 	private int adminSessionTimeout;
 

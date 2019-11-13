@@ -25,7 +25,6 @@ import javax.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cloud.servicebroker.exception.ServiceInstanceDoesNotExistException;
 import org.springframework.cloud.servicebroker.model.instance.OperationState;
 
 import com.orange.oss.matomocfservice.api.model.OpCode;
@@ -39,7 +38,7 @@ import com.orange.oss.matomocfservice.web.repository.PPlatformRepository;
  *
  */
 public abstract class OperationStatusService {
-	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+	private final static Logger LOGGER = LoggerFactory.getLogger(OperationStatusService.class);
 	private final long TIMEOUT_FROZENINPROGRESS = 1800; // in seconds
 	@Autowired
 	private PPlatformRepository pfRepo;

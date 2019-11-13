@@ -44,7 +44,7 @@ import reactor.core.publisher.Mono;
  */
 @Service
 public class MatomoServiceInstanceBindingService implements ServiceInstanceBindingService {
-	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+	private final static Logger LOGGER = LoggerFactory.getLogger(MatomoServiceInstanceBindingService.class);
 	@Autowired
 	private BindingService bindingServ;
 

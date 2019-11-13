@@ -49,7 +49,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.orange.oss.matomocfservice.api.model.MiParameters;
-import com.orange.oss.matomocfservice.config.ServiceCatalogConfiguration;
+import com.orange.oss.matomocfservice.servicebroker.ServiceCatalogConfiguration;
 
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
@@ -62,7 +62,7 @@ import reactor.core.publisher.Mono;
  */
 @Service
 public class CloudFoundryMgr {
-	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+	private final static Logger LOGGER = LoggerFactory.getLogger(CloudFoundryMgr.class);
 	private final static String MATOMO_ANPREFIX = "MATOMO_";
 	private final static String MATOMO_AUPREFIX = "M";
 	public final static long CREATEDBSERV_TIMEOUT = 90; // in minutes

@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
-import com.orange.oss.matomocfservice.config.ServiceCatalogConfiguration;
+import com.orange.oss.matomocfservice.servicebroker.ServiceCatalogConfiguration;
 
 /**
  * @author P. Déchamboux
@@ -35,7 +35,7 @@ import com.orange.oss.matomocfservice.config.ServiceCatalogConfiguration;
  */
 @Configuration
 public class CloudFoundryMgrProperties {
-	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+	private final static Logger LOGGER = LoggerFactory.getLogger(CloudFoundryMgrProperties.class);
 	private final static String SMTPINSTNAME = "mcfs-smtp";
 	final static String GLOBSHAREDDBINSTNAME = "mcfs-globshared-db";
 	private final static String SHAREDDBINSTNAME = "mcfs-shared-db";
@@ -213,6 +213,7 @@ public class CloudFoundryMgrProperties {
 
 		public String getJdbcUrl(Map<String, Object> vcapServices) {
 			StringBuffer sb = new StringBuffer("jdbc:mysql://");
+			@SuppressWarnings("unchecked")
 			Map<String, Object> creds = (Map<String, Object>)((Map<String, Object>)((List<Object>)vcapServices.get(this.service)).get(0)).get("credentials");
 			sb.append(creds.get(this.host));
 			sb.append(":3306/");

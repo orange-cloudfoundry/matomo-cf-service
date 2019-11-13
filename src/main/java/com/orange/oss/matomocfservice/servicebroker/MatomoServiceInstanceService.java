@@ -42,7 +42,6 @@ import com.orange.oss.matomocfservice.api.model.MiParameters;
 import com.orange.oss.matomocfservice.api.model.OpCode;
 import com.orange.oss.matomocfservice.api.model.PlatformKind;
 import com.orange.oss.matomocfservice.cfmgr.MatomoReleases;
-import com.orange.oss.matomocfservice.config.ServiceCatalogConfiguration;
 import com.orange.oss.matomocfservice.web.service.MatomoInstanceService;
 import com.orange.oss.matomocfservice.web.service.OperationStatusService.OperationAndState;
 
@@ -54,7 +53,7 @@ import reactor.core.publisher.Mono;
  */
 @Service
 public class MatomoServiceInstanceService implements ServiceInstanceService {
-	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+	private final static Logger LOGGER = LoggerFactory.getLogger(MatomoServiceInstanceService.class);
 	private final static String PARAM_VERSION = "matomoVersion";
 	private final static String PARAM_TZ = "matomoTimeZone";
 	private final static String PARAM_INSTANCES = "matomoInstances";

@@ -36,7 +36,7 @@ import com.orange.oss.matomocfservice.web.repository.PPlatformRepository;
  */
 @Service
 public class PlatformService {
-	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+	private final static Logger LOGGER = LoggerFactory.getLogger(PlatformService.class);
 	public final static String UNKNOWNPLATFORM_NAME = "UnknownPlatform";
 	private final static String UNKNOWNPLATFORM_DESC = "This is the platform to which to attach service instances that are created with no platform.";
 	@Autowired

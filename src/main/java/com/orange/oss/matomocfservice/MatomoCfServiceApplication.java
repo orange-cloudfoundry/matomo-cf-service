@@ -19,9 +19,7 @@ package com.orange.oss.matomocfservice;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.Enumeration;
-import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
 import org.slf4j.Logger;
@@ -35,7 +33,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  */
 @SpringBootApplication
 public class MatomoCfServiceApplication {
-	private static final Logger LOGGER = LoggerFactory.getLogger(MatomoCfServiceApplication.class);
+	private final static Logger LOGGER = LoggerFactory.getLogger(MatomoCfServiceApplication.class);
 
 	public static void main(String[] args) {
 		SpringApplication.run(MatomoCfServiceApplication.class, args);

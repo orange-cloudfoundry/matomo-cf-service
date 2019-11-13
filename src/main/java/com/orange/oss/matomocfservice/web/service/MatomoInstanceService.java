@@ -48,7 +48,7 @@ import com.orange.oss.matomocfservice.api.model.OpCode;
 import com.orange.oss.matomocfservice.cfmgr.CloudFoundryMgr;
 import com.orange.oss.matomocfservice.cfmgr.CloudFoundryMgrProperties;
 import com.orange.oss.matomocfservice.cfmgr.MatomoReleases;
-import com.orange.oss.matomocfservice.config.ServiceCatalogConfiguration;
+import com.orange.oss.matomocfservice.servicebroker.ServiceCatalogConfiguration;
 import com.orange.oss.matomocfservice.web.domain.PMatomoInstance;
 import com.orange.oss.matomocfservice.web.domain.PPlatform;
 import com.orange.oss.matomocfservice.web.repository.PMatomoInstanceRepository;
@@ -61,7 +61,7 @@ import reactor.core.publisher.Mono;
  */
 @Service
 public class MatomoInstanceService extends OperationStatusService {
-	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+	private final static Logger LOGGER = LoggerFactory.getLogger(MatomoInstanceService.class);
 	private final static String MATOMOINSTANCE_ROOTUSER = "admin";
 	private final static String NOTINSTALLED = "NOT_INST";
 	@Autowired

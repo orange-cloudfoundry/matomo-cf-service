@@ -37,7 +37,7 @@ import com.orange.oss.matomocfservice.api.model.ErrorCode;
  *
  */
 public class PlatformApiExceptionHandler extends ResponseEntityExceptionHandler {
-	private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
+	private final static Logger LOGGER = LoggerFactory.getLogger(PlatformApiExceptionHandler.class);
 	
 	// when trying to get a non existing resource 
 	@ExceptionHandler(IllegalArgumentException.class)
