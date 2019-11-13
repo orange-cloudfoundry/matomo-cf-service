@@ -1,3 +1,6 @@
+# local manifest
+*.loc.yml
+
 # Compiled class file
 *target*
 *.class
