@@ -29,8 +29,6 @@ import javax.persistence.Table;
 
 import org.springframework.cloud.servicebroker.model.instance.OperationState;
 
-import com.orange.oss.matomocfservice.api.model.OpCode;
-
 /**
  * @author P. Déchamboux
  *
@@ -40,12 +38,12 @@ import com.orange.oss.matomocfservice.api.model.OpCode;
 @Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
 public abstract class POperationStatus {
 	protected final static int LENGTH_ID = 36;
-	private final static int LENGTH_OPCODE = 8;
+	private final static int LENGTH_OPCODE = 32;
 	private final static int LENGTH_OPSTATE = 12;
 
 	@Id
 	@Column(length = LENGTH_ID, updatable = false, nullable = false)
-	private final String id;
+	private final String uuid;
 
 	private final ZonedDateTime createTime;
 
@@ -63,21 +61,21 @@ public abstract class POperationStatus {
 
 	@SuppressWarnings("unused")
 	protected POperationStatus() {
-		this.id = null;
+		this.uuid = null;
 		this.createTime = null;
 	}
 
-	public POperationStatus(String id, String opcode, String opstate, PPlatform ppf) {
-		this.id = id;
+	public POperationStatus(String uuid, OpCode opcode, OperationState opstate, PPlatform ppf) {
+		this.uuid = uuid;
 		this.createTime = ZonedDateTime.now();
 		this.updateTime = this.createTime;		
-		this.lastOperation = opcode;
-		this.lastOperationState = opstate;
+		this.lastOperation = opcode.toString();
+		this.lastOperationState = opstate.toString();
 		this.platform = ppf;
 	}
 
-	public String getId() {
-		return this.id;
+	public String getUuid() {
+		return this.uuid;
 	}
 
 	public ZonedDateTime getCreateTime() {
@@ -98,13 +96,19 @@ public abstract class POperationStatus {
 	}
 
 	public OpCode getLastOperation() {
-		return lastOperation.equals(OpCode.CREATE.toString())
-				? OpCode.CREATE
-						: (lastOperation.equals(OpCode.READ.toString())
-								? OpCode.READ
-										: (lastOperation.equals(OpCode.UPDATE.toString())
-												? OpCode.UPDATE
-														: OpCode.DELETE));	
+		if (OpCode.CREATE_SERVICE_INSTANCE.toString().equals(lastOperation)) {
+			return OpCode.CREATE_SERVICE_INSTANCE;
+		}
+		if (OpCode.UPDATE_SERVICE_INSTANCE.toString().equals(lastOperation)) {
+			return OpCode.UPDATE_SERVICE_INSTANCE;
+		}
+		if (OpCode.DELETE_SERVICE_INSTANCE.toString().equals(lastOperation)) {
+			return OpCode.DELETE_SERVICE_INSTANCE;
+		}
+		if (OpCode.CREATE_SERVICE_INSTANCE_APP_BINDING.toString().equals(lastOperation)) {
+			return OpCode.CREATE_SERVICE_INSTANCE_APP_BINDING;
+		}
+		return OpCode.DELETE_SERVICE_INSTANCE_APP_BINDING;
 	}
 
 	public void setLastOperationState(OperationState opst) {
@@ -113,18 +117,36 @@ public abstract class POperationStatus {
 	}
 
 	public OperationState getLastOperationState() {
-		OperationState res;
-		if (lastOperationState.equals(OperationState.IN_PROGRESS.getValue())) {
-			res = OperationState.IN_PROGRESS;
-		} else if (lastOperationState.equals(OperationState.SUCCEEDED.getValue())) {
-			res = OperationState.SUCCEEDED;
-		} else {
-			res = OperationState.FAILED;
+		System.out.println("lastOperationState=<" + lastOperationState + ">");
+		if (OperationState.SUCCEEDED.getValue().equals(lastOperationState)) {
+			return OperationState.SUCCEEDED;
 		}
-		return res;
+		if (OperationState.IN_PROGRESS.getValue().equals(lastOperationState)) {
+			return OperationState.IN_PROGRESS;
+		}
+		return OperationState.FAILED;
 	}
 
 	public PPlatform getPlatform() {
 		return this.platform;
+	}
+
+	public static enum OpCode {
+		CREATE_SERVICE_INSTANCE ("CreateServiceInstance"),
+		UPDATE_SERVICE_INSTANCE ("UpdateServiceInstance"),
+		DELETE_SERVICE_INSTANCE ("DeleteServiceInstance"),
+		CREATE_SERVICE_INSTANCE_APP_BINDING ("CreateServiceInstanceAppBinding"),
+		DELETE_SERVICE_INSTANCE_APP_BINDING ("DeleteServiceInstanceAppBinding");
+
+		private String opCode;
+
+		private OpCode(String opcode) {
+			this.opCode = opcode;
+		}
+
+		@Override
+		public String toString() {
+			return this.opCode;
+		}
 	}
 }

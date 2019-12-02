@@ -32,7 +32,7 @@ import org.springframework.cloud.servicebroker.model.binding.GetServiceInstanceB
 import org.springframework.cloud.servicebroker.service.ServiceInstanceBindingService;
 import org.springframework.stereotype.Service;
 
-import com.orange.oss.matomocfservice.api.model.OpCode;
+import com.orange.oss.matomocfservice.web.domain.POperationStatus.OpCode;
 import com.orange.oss.matomocfservice.web.service.BindingService;
 import com.orange.oss.matomocfservice.web.service.OperationStatusService.OperationAndState;
 
@@ -86,7 +86,7 @@ public class MatomoServiceInstanceBindingService implements ServiceInstanceBindi
 		LOGGER.debug("BROKER::getLastOperation");
 		OperationAndState opandstate = bindingServ.getLastOperationAndState(request.getPlatformInstanceId(), request.getServiceInstanceId());
 		return Mono.just(GetLastServiceBindingOperationResponse.builder()
-				.deleteOperation(opandstate.getOperation().equals(OpCode.DELETE))
+				.deleteOperation(opandstate.getOperation().equals(OpCode.DELETE_SERVICE_INSTANCE_APP_BINDING))
 				.operationState(opandstate.getState())
 				.description(opandstate.getOperationMessage())
 				.build());

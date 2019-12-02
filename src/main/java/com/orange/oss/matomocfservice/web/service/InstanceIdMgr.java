@@ -103,7 +103,7 @@ public class InstanceIdMgr {
 			}
 		}
 		if (pii == null) {
-			throw new RuntimeException("Cannot allocate more Matomo service instance");
+			throw new RuntimeException("Cannot allocate more ID");
 		}
 		pii.setAllocated(true);
 		piiRepo.save(pii);
@@ -116,9 +116,12 @@ public class InstanceIdMgr {
 	@Transactional
 	public void freeInstanceId(int id) {
 		LOGGER.debug("SERV::InstanceIdMgr-freeInstanceId");
+		if ((id < 0) || (id >= cfMgrProp.getMaxServiceInstances())) {
+			throw new RuntimeException("Cannot free ID: out of range");
+		}
 		Optional<PInstanceId> opii = piiRepo.findById(id);
 		if (!opii.get().isAllocated()) {
-			return;
+			throw new RuntimeException("Cannot free ID: not allocated");
 		}
 		opii.get().setAllocated(false);
 		piiRepo.save(opii.get());

@@ -22,10 +22,8 @@ import javax.persistence.Table;
 
 import org.springframework.cloud.servicebroker.model.instance.OperationState;
 
-import com.orange.oss.matomocfservice.api.model.MiParameters;
-import com.orange.oss.matomocfservice.api.model.OpCode;
-import com.orange.oss.matomocfservice.api.model.PlatformKind;
 import com.orange.oss.matomocfservice.servicebroker.ServiceCatalogConfiguration;
+
 
 /**
  * @author P. Déchamboux
@@ -108,8 +106,8 @@ public class PMatomoInstance extends POperationStatus {
 		this.timeZone = null;
 	}
 
-	public PMatomoInstance(String id, int idUrl, String servDefId, String name, PlatformKind pfkind, String pfapi, String planid, PPlatform pf, MiParameters mip) {
-		super(id, OpCode.CREATE.toString(), OperationState.IN_PROGRESS.getValue(), pf);
+	public PMatomoInstance(String uuid, int idUrl, String servDefId, String name, PlatformKind pfkind, String pfapi, String planid, PPlatform pf, Parameters mip) {
+		super(uuid, POperationStatus.OpCode.CREATE_SERVICE_INSTANCE, OperationState.IN_PROGRESS, pf);
 		this.idUrl = idUrl;
 		this.serviceDefinitionId = servDefId;
 		this.name = name;
@@ -148,7 +146,7 @@ public class PMatomoInstance extends POperationStatus {
 	}
 
 	public PlatformKind getPlatformKind() {
-		return PlatformKind.fromValue(platformKind);
+		return PlatformKind.valueOf(platformKind);
 	}
 
 	public String getPlatformApiLocation() {
@@ -240,5 +238,32 @@ public class PMatomoInstance extends POperationStatus {
 
 	public String getTokenAuth() {
 		return this.tokenAuth;
+	}
+
+	public Parameters getParameters() {
+		return new Parameters()
+				.version(this.installedVersion)
+				.autoVersionUpgrade(this.automaticVersionUpgrade)
+				.cfInstances(this.instances)
+				.memorySize(this.memorySize)
+				.timeZone(this.timeZone);
+	}
+
+	public enum PlatformKind {
+		CLOUDFOUNDRY ("CLOUDFOUNDRY"),
+		KUBERNETES ("KUBERNETES"),
+		OPENSHIFT ("OPENSHIFT"),
+		OTHER ("OTHER");
+
+		private String value;
+
+		private PlatformKind(String value) {
+			this.value = value;
+		}
+
+		@Override
+		public String toString() {
+			return this.value;
+		}
 	}
 }

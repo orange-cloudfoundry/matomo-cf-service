@@ -24,14 +24,12 @@ import org.springframework.cloud.servicebroker.model.catalog.Plan;
 import org.springframework.cloud.servicebroker.model.catalog.ServiceDefinition;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
 
 /**
  * @author P. Déchamboux
  *
  */
 @Configuration
-@PropertySource(name = "MatomoServiceProperties", value = "classpath:application.yml")
 public class ServiceCatalogConfiguration {
 	private final static Logger LOGGER = LoggerFactory.getLogger(ServiceCatalogConfiguration.class);
 	public final static String PLANGLOBSHARDB_NAME = "global-shared-db";
@@ -44,9 +42,14 @@ public class ServiceCatalogConfiguration {
 	@Bean
 	public Catalog catalog() {
 		LOGGER.debug("CONFIG - retrieve OSB catalog information.");
-		JSONObject jres = new JSONObject(System.getenv("VCAP_APPLICATION"));
-		String serviceName = jres.getString("name");
-		String serviceUri = jres.getJSONArray("uris").getString(0);
+		String env_vcapApp = System.getenv("VCAP_APPLICATION");
+		String serviceName = "matomo-service";
+		String serviceUri = "none";
+		if (env_vcapApp != null) {
+			JSONObject jres = new JSONObject(env_vcapApp);
+			serviceName = jres.getString("name");
+			serviceUri = jres.getJSONArray("uris").getString(0);
+		}
 		Plan plan1 = Plan.builder()
 				.name(PLANGLOBSHARDB_NAME)
 				.id(PLANGLOBSHARDB_UUID.toString())

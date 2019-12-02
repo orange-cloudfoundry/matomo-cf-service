@@ -16,8 +16,6 @@
 
 package com.orange.oss.matomocfservice.web.service;
 
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,7 +24,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.orange.oss.matomocfservice.api.model.Platform;
 import com.orange.oss.matomocfservice.web.domain.PPlatform;
 import com.orange.oss.matomocfservice.web.repository.PPlatformRepository;
 
@@ -60,47 +57,39 @@ public class PlatformService {
 		return unknownPlatformId;
 	}
 
-	public Platform createPlatform(Platform platform) {
-		LOGGER.debug("SERV::createPlatform: platform={}", platform.toString());
-		PPlatform ppf = new PPlatform(platform.getUuid(), platform.getName(), platform.getDescription());
-		pfRepo.save(ppf);
-		return toApiModel(ppf);
+	public PPlatform createPlatform(String uuid, String name, String desc) {
+		LOGGER.debug("SERV::createPlatform: platform={}", name);
+		PPlatform ppf = new PPlatform(uuid, name, desc);
+		return pfRepo.save(ppf);
 	}
 
-	public Platform getPlatform(String platformId) {
-		LOGGER.debug("SERV::getPlatform: platformId={}", platformId);
-		return toApiModel(pfRepo.getOne(platformId));
+	public PPlatform getPlatform(String uuid) {
+		LOGGER.debug("SERV::getPlatform: platformId={}", uuid);
+		return pfRepo.getOne(uuid);
 	}
 
-	public List<Platform> findPlatform() {
+	public List<PPlatform> findPlatform() {
 		LOGGER.debug("SERV::findPlatform");
-		List<Platform> pfs = new ArrayList<Platform>();
-		for (PPlatform ppf : pfRepo.findAll()) {
-			pfs.add(toApiModel(ppf));
-		}
-		return pfs;
+		return pfRepo.findAll();
 	}
 
-	public Platform deletePlatform(String platformId) {
+	public void deletePlatform(String platformId) {
 		LOGGER.debug("SERV::deletePlatform: platformId={}", platformId);
-		PPlatform ppf = pfRepo.getOne(platformId);
-		Platform pf = toApiModel(ppf);
 		pfRepo.delete(pfRepo.getOne(platformId));
-		return pf;
 	}
 
-	public Platform updatePlatform(String platformId, Platform pf) {
-		LOGGER.debug("SERV::updatePlatform: platformId={} platform={}", platformId, pf.toString());
+	public PPlatform updatePlatform(String uuid) {
+		LOGGER.debug("SERV::updatePlatform: platformId={}", uuid);
 		// TODO: not implemented
-		return pf;
+		return pfRepo.getOne(uuid);
 	}
 
-	private Platform toApiModel(PPlatform ppf) {
-		return new Platform()
-				.uuid(ppf.getId())
-				.name(ppf.getName())
-				.description(ppf.getDescription())
-				.createTime(ppf.getCreateTime().format(DateTimeFormatter.ISO_ZONED_DATE_TIME))
-				.updateTime(ppf.getUpdateTime().format(DateTimeFormatter.ISO_ZONED_DATE_TIME));
-	}
+//	private Platform toApiModel(PPlatform ppf) {
+//		return new Platform()
+//				.uuid(ppf.getId())
+//				.name(ppf.getName())
+//				.description(ppf.getDescription())
+//				.createTime(ppf.getCreateTime().format(DateTimeFormatter.ISO_ZONED_DATE_TIME))
+//				.updateTime(ppf.getUpdateTime().format(DateTimeFormatter.ISO_ZONED_DATE_TIME));
+//	}
 }

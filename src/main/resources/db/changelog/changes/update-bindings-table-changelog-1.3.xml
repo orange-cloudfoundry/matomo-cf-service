@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ * Copyright 2019 Orange and the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+-->
+
+<databaseChangeLog
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+	xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+	xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd
+		http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+	<changeSet author="admin" id="1.3_update_table_bindings">
+		<modifyDataType tableName="bindings" columnName="last_operation" newDataType="varchar(32)"/>
+		<renameColumn tableName="bindings" newColumnName="uuid" oldColumnName="id" columnDataType="varchar(36)"/>
+		<update tableName="bindings">
+			<column name="last_operation">CreateServiceInstanceAppBinding</column>
+			<where>last_operation='CREATE'</where>
+		</update>
+		<update tableName="bindings">
+			<column name="last_operation">DeleteServiceInstanceAppBinding</column>
+			<where>last_operation='DELETE'</where>
+		</update>
+		<rollback>
+			<update tableName="bindings">
+				<column name="last_operation">CREATE</column>
+				<where>last_operation='CreateServiceInstanceAppBinding'</where>
+			</update>
+			<update tableName="bindings">
+				<column name="last_operation">DELETE</column>
+				<where>last_operation='DeleteServiceInstanceAppBinding'</where>
+			</update>
+			<modifyDataType tableName="bindings" columnName="last_operation" newDataType="varchar(8)"/>
+			<renameColumn tableName="bindings" newColumnName="id" oldColumnName="uuid"/>
+		</rollback>
+	</changeSet>
+</databaseChangeLog>

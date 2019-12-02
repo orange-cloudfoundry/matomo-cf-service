@@ -4,7 +4,7 @@
 
 This is the user guide of the [Matomo](https://matomo.org/) service. As soon as it has been made available into a marketplace, it can be used as any OSB broker. For instance, on a [CloudFoundry](https://www.cloudfoundry.org/) (CF) platform, it supports all the functions of a broker: creating/deleting service instances, allowing application to bind/unbind to/from a service instance. The remainder of the document assumes a CloudFoundry platform through its examples.
 
-Note that the actual releases proposed by the service can be found [here](releases.html) (this link is only active when accessing the documentation through a deployed service, else lead to 404). One of them may be explicitely specified at creation time. Furthermore, a draft API is available [here](swagger-ui.html) to manage the service. 
+Note that the actual releases proposed by the service can be found [here](releases.html) (this link is only active when accessing the documentation through a deployed service, else lead to 404). One of them may be explicitely specified at creation time. 
 
 
 ## Create instances

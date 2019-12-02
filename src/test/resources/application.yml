@@ -1,0 +1,62 @@
+debug: false
+
+logging:
+  level:
+    root: error
+#    org.springframework: DEBUG
+    com.orange.oss.matomocfservice: DEBUG
+    org.cloudfoundry.operations: DEBUG
+#    org.springframework.cloud.servicebroker: DEBUG
+#    com.jcraft.jsch: DEBUG
+    liquibase: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    mappings:
+      enabled: true
+
+spring:
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: none
+  liquibase:
+    change-log: classpath:/db/changelog/changelog-master.xml
+#    drop-first: true
+
+cf:
+  apiHost: none
+  username: none
+  password: none
+  organization: none
+  space: none
+matomo-service:
+  matomo-debug: false
+  contact:
+    name: none
+    url: none
+    email: none
+  security:
+    adminName: none
+    adminPassword: none
+    adminSessionTimeout: 30
+  domain: none
+  phpBuildpack: none
+  max-service-instances: 10
+  smtp:
+    creds: none:none:host:port:username:password
+  shared-db:
+    creds: none:none:name:hostname:port:username:password
+  matomo-shared-db:
+    creds: none:none:name:hostname:port:username:password
+  dedicated-db:
+    creds: none:none:name:hostname:port:username:password
+
+test:
+  currentRelease: 3.13.0
+  lowerReleaseNotAvailable: 3.6.1
+

@@ -37,12 +37,11 @@ import org.springframework.cloud.servicebroker.model.instance.UpdateServiceInsta
 import org.springframework.cloud.servicebroker.service.ServiceInstanceService;
 import org.springframework.stereotype.Service;
 
-import com.orange.oss.matomocfservice.api.model.MatomoInstance;
-import com.orange.oss.matomocfservice.api.model.MiParameters;
-import com.orange.oss.matomocfservice.api.model.OpCode;
-import com.orange.oss.matomocfservice.api.model.PlatformKind;
-import com.orange.oss.matomocfservice.cfmgr.MatomoReleases;
+import com.orange.oss.matomocfservice.web.domain.PMatomoInstance;
+import com.orange.oss.matomocfservice.web.domain.POperationStatus;
+import com.orange.oss.matomocfservice.web.domain.Parameters;
 import com.orange.oss.matomocfservice.web.service.MatomoInstanceService;
+import com.orange.oss.matomocfservice.web.service.MatomoReleases;
 import com.orange.oss.matomocfservice.web.service.OperationStatusService.OperationAndState;
 
 import reactor.core.publisher.Mono;
@@ -74,39 +73,39 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 		LOGGER.debug("BROKER::createServiceInstance: platformId={} / serviceId={}", request.getPlatformInstanceId(), request.getServiceInstanceId());
 //		LOGGER.debug("BROKER::   request=" + request.toString());
 		LOGGER.debug("BROKER::   platform={}", request.getContext().getPlatform());
-		PlatformKind pfkind;
-		String instn, tid, stid;
+		PMatomoInstance.PlatformKind pfkind;
+		String instname, tenantid, subtenantid;
 		switch (request.getContext().getPlatform()) {
 		case "cloudfoundry":
-			pfkind = PlatformKind.CLOUDFOUNDRY;
-			instn = (String)request.getContext().getProperty("instance_name");
-			tid = (String)request.getContext().getProperty("organizationGuid");
-			stid = (String)request.getContext().getProperty("spaceGuid");
+			pfkind = PMatomoInstance.PlatformKind.CLOUDFOUNDRY;
+			instname = (String)request.getContext().getProperty("instance_name");
+			tenantid = (String)request.getContext().getProperty("organizationGuid");
+			subtenantid = (String)request.getContext().getProperty("spaceGuid");
 			break;
 		default:
 			LOGGER.warn("BROKER::   unknown kind of platform -> " + request.getContext().getPlatform());
-			pfkind = PlatformKind.OTHER;
-			instn = tid = stid = "";
+			pfkind = PMatomoInstance.PlatformKind.OTHER;
+			instname = tenantid = subtenantid = "";
 		}
-		MatomoInstance mi = miServ.createMatomoInstance(new MatomoInstance()
-				.uuid(request.getServiceInstanceId())
-				.serviceDefinitionId(request.getServiceDefinitionId())
-				.name(instn)
-				.tenantId(tid)
-				.subtenantId(stid)
-				.platformKind(pfkind)
-				.platformApiLocation(request.getApiInfoLocation())
-				.planId(request.getPlanId())
-				.platformId(request.getPlatformInstanceId())
-				.parameters(toMiParameters(request.getParameters(), request.getPlanId())));
-		if (mi == null) {
+		PMatomoInstance pmi = miServ.createMatomoInstance(
+				request.getServiceInstanceId(),
+				request.getServiceDefinitionId(),
+				instname,
+				tenantid,
+				subtenantid,
+				pfkind,
+				request.getApiInfoLocation(),
+				request.getPlanId(),
+				request.getPlatformInstanceId(),
+				toParameters(request.getParameters(), request.getPlanId()));
+		if (pmi == null) {
 			throw new ServiceInstanceExistsException(request.getServiceInstanceId(), request.getServiceDefinitionId());
 		}
 		return Mono.just(CreateServiceInstanceResponse.builder()
 				.async(true)
-				.dashboardUrl(mi.getDashboardUrl())
+				.dashboardUrl(miServ.getInstanceUrl(pmi))
 				.instanceExisted(false)
-				.operation("Create Matomo Service Instance \"" + instn + "\"")
+				.operation("Create Matomo Service Instance \"" + instname + "\"")
 				.build());
 	}
 
@@ -118,7 +117,7 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 			throw new ServiceInstanceDoesNotExistException("Cannot find instance " + request.getServiceInstanceId());
 		}
 		return Mono.just(GetLastServiceOperationResponse.builder()
-				.deleteOperation(opandstate.getOperation().equals(OpCode.DELETE))
+				.deleteOperation(opandstate.getOperation().equals(POperationStatus.OpCode.DELETE_SERVICE_INSTANCE))
 				.operationState(opandstate.getState())
 				.description(opandstate.getOperationMessage())
 				.build());
@@ -127,15 +126,15 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 	@Override
 	public Mono<GetServiceInstanceResponse> getServiceInstance(GetServiceInstanceRequest request) {
 		LOGGER.debug("BROKER::getServiceInstance: platformId={}, instanceId={}", request.getPlatformInstanceId(), request.getServiceInstanceId());
-		MatomoInstance mi = miServ.getMatomoInstance(request.getPlatformInstanceId(), request.getServiceInstanceId());
-		if (mi == null) {
+		PMatomoInstance pmi = miServ.getMatomoInstance(request.getPlatformInstanceId(), request.getServiceInstanceId());
+		if (pmi == null) {
 			throw new ServiceInstanceDoesNotExistException("Cannot find instance " + request.getServiceInstanceId());
 		}
 		return Mono.just(GetServiceInstanceResponse.builder()
-				.serviceDefinitionId(mi.getServiceDefinitionId())
-				.planId(mi.getPlanId())
-				.dashboardUrl(mi.getDashboardUrl())
-				.parameters(toMap(mi.getParameters()))
+				.serviceDefinitionId(pmi.getServiceDefinitionId())
+				.planId(pmi.getPlanId())
+				.dashboardUrl(miServ.getInstanceUrl(pmi))
+				.parameters(toMap(pmi.getParameters()))
 				.build());
 	}
 
@@ -154,43 +153,31 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 	@Override
 	public Mono<UpdateServiceInstanceResponse> updateServiceInstance(UpdateServiceInstanceRequest request) {
 		LOGGER.debug("BROKER::updateServiceInstance: platformId={}, instanceId={}", request.getPlatformInstanceId(), request.getServiceInstanceId());
-		PlatformKind pfkind;
-		String instn, tid, stid;
+		String instn;
 		switch (request.getContext().getPlatform()) {
 		case "cloudfoundry":
-			pfkind = PlatformKind.CLOUDFOUNDRY;
 			instn = (String)request.getContext().getProperty("instance_name");
-			tid = (String)request.getContext().getProperty("organizationGuid");
-			stid = (String)request.getContext().getProperty("spaceGuid");
 			break;
 		default:
 			LOGGER.warn("BROKER::   unknown kind of platform -> " + request.getContext().getPlatform());
-			pfkind = PlatformKind.OTHER;
-			instn = tid = stid = "";
+			instn = "";
 		}
-		MatomoInstance mi = miServ.updateMatomoInstance(new MatomoInstance()
-				.uuid(request.getServiceInstanceId())
-				.serviceDefinitionId(request.getServiceDefinitionId())
-				.name(instn)
-				.tenantId(tid)
-				.subtenantId(stid)
-				.platformKind(pfkind)
-				.platformApiLocation(request.getApiInfoLocation())
-				.planId(request.getPlanId())
-				.platformId(request.getPlatformInstanceId())
-				.parameters(toMiParameters(request.getParameters(), request.getPlanId())));
-		if (mi == null) {
+		PMatomoInstance pmi = miServ.updateMatomoInstance(
+				request.getServiceInstanceId(),
+				request.getPlatformInstanceId(),
+				toParameters(request.getParameters(), request.getPlanId()));
+		if (pmi == null) {
 			throw new ServiceInstanceDoesNotExistException("Cannot find instance " + request.getServiceInstanceId());
 		}
 		return Mono.just(UpdateServiceInstanceResponse.builder()
 					.async(true)
-					.dashboardUrl(mi.getDashboardUrl())
+					.dashboardUrl(miServ.getInstanceUrl(pmi))
 					.operation("Update Matomo Service Instance \"" + instn + "\"")
 					.build());
 	}
 
-	private MiParameters toMiParameters(Map<String, Object> map, String planid) {
-		return new MiParameters()
+	private Parameters toParameters(Map<String, Object> map, String planid) {
+		return new Parameters()
 				.autoVersionUpgrade(getAutomaticVersionUpgrade(map))
 				.cfInstances(getInstances(map, planid))
 				.memorySize(getMemorySize(map, planid))
@@ -198,7 +185,7 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 				.version(getVersion(map));
 	}
 
-	private Map<String, Object> toMap(MiParameters mip) {
+	private Map<String, Object> toMap(Parameters mip) {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put(PARAM_VERSION, mip.getVersion());
 		params.put(PARAM_TZ, mip.getTimeZone());

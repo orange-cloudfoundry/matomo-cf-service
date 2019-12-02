@@ -55,8 +55,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 	public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
 		LOGGER.debug("CONFIG::security: configureGlobal");
 		auth.inMemoryAuthentication()
-		.withUser(adminName).password("{noop}" + adminPassword).roles(ROLE_ADMIN)
-		;
+		.withUser(adminName)
+		.password("{noop}" + adminPassword)
+		.roles(ROLE_ADMIN);
 	}
 
 	public static class McfsLogoutSuccessHandler implements LogoutSuccessHandler {

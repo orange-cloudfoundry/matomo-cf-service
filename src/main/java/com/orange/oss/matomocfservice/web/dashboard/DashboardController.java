@@ -24,7 +24,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
-import com.orange.oss.matomocfservice.cfmgr.MatomoReleases;
+import com.orange.oss.matomocfservice.web.service.MatomoReleases;
 
 /**
  * @author P. Déchamboux

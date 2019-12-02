@@ -30,10 +30,11 @@ import org.springframework.core.env.Environment;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com.orange.oss.matomocfservice.cfmgr.CloudFoundryMgr;
-import com.orange.oss.matomocfservice.cfmgr.MatomoReleases;
+import com.orange.oss.matomocfservice.cfmgr.CloudFoundryMgrImpl;
 import com.orange.oss.matomocfservice.web.service.ApplicationInformation;
 import com.orange.oss.matomocfservice.web.service.InstanceIdMgr;
 import com.orange.oss.matomocfservice.web.service.MatomoInstanceService;
+import com.orange.oss.matomocfservice.web.service.MatomoReleases;
 import com.orange.oss.matomocfservice.web.service.PlatformService;
 
 /**
@@ -71,6 +72,13 @@ public class ApplicationConfiguration {
 	}
 
 	@Bean
+	@ConditionalOnCloudPlatform(CloudPlatform.CLOUD_FOUNDRY)
+	public CloudFoundryMgr cloudFoundryMgr() {
+		LOGGER.debug("CONFIG - run in Cloud Foundry");
+		return new CloudFoundryMgrImpl();
+	}
+
+	@Bean
 	@ConditionalOnMissingBean(ApplicationInformation.class)
 	public ApplicationInformation defaultApplicationInformation() {
 		LOGGER.debug("CONFIG - run in local mode");
@@ -83,9 +91,9 @@ public class ApplicationConfiguration {
 		applicationInformation = new ApplicationInformation(baseUrl);
 		return applicationInformation;
 	}
-	
+
 	@EventListener(ApplicationReadyEvent.class)
-	public void doSomethingAfterStartup() {
+	public void initializeAfterStartup() {
 		LOGGER.debug("CONFIG - run initialization code after application startup has completed");
 		matomoReleases.initialize();
 		cfMgr.initialize();

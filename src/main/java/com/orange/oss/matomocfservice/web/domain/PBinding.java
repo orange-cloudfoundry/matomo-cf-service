@@ -25,8 +25,6 @@ import javax.persistence.Table;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.cloud.servicebroker.model.instance.OperationState;
 
-import com.orange.oss.matomocfservice.api.model.OpCode;
-
 /**
  * @author P. Déchamboux
  *
@@ -82,7 +80,7 @@ public class PBinding extends POperationStatus {
 	}
 
 	public PBinding(String id, PMatomoInstance pmi, String appid, String sitename, String trackedurl, String adminemail, PPlatform ppf, String matomoUrl) {
-		super(id, OpCode.CREATE.toString(), OperationState.IN_PROGRESS.getValue(), ppf);
+		super(id, POperationStatus.OpCode.CREATE_SERVICE_INSTANCE_APP_BINDING, OperationState.IN_PROGRESS, ppf);
 		this.pmatomoInstance = pmi;
 		this.appId = appid;
 		this.siteName = sitename;

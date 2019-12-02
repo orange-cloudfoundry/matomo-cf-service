@@ -32,10 +32,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import com.orange.oss.matomocfservice.api.model.OpCode;
 import com.orange.oss.matomocfservice.cfmgr.CloudFoundryMgrProperties;
 import com.orange.oss.matomocfservice.web.domain.PBinding;
 import com.orange.oss.matomocfservice.web.domain.PMatomoInstance;
+import com.orange.oss.matomocfservice.web.domain.POperationStatus;
 import com.orange.oss.matomocfservice.web.domain.PPlatform;
 import com.orange.oss.matomocfservice.web.repository.PBindingRepository;
 import com.orange.oss.matomocfservice.web.repository.PMatomoInstanceRepository;
@@ -122,23 +122,17 @@ public class BindingService extends OperationStatusService {
 				}
 				return true;
 			}
-			pb = new PBinding(
-					bindid,
-					opmi.get(),
-					appid,
-					sn,
-					tu,
-					am,
+			pb = new PBinding(bindid, opmi.get(), appid, sn, tu, am,
 					opmi.get().getPlatform(),
-					getMatomoUrl(opmi.get().getId()));
+					getMatomoUrl(opmi.get().getUuid()));
 			pbindingRepo.save(pb);
 			defineNewMatomoSite(opmi.get(), pb, (String) parameters.get(PARAM_SITENAME), (String) parameters.get(PARAM_TRACKEDURL), (String) parameters.get(PARAM_ADMINEMAIL));
-			pb.setLastOperation(OpCode.CREATE);
+			pb.setLastOperation(POperationStatus.OpCode.CREATE_SERVICE_INSTANCE_APP_BINDING);
 			pb.setLastOperationState(OperationState.SUCCEEDED);
 			pbindingRepo.save(pb);
 		} catch (RuntimeException e) {
 			if (pb != null) {
-				pb.setLastOperation(OpCode.CREATE);
+				pb.setLastOperation(POperationStatus.OpCode.CREATE_SERVICE_INSTANCE_APP_BINDING);
 				pb.setLastOperationState(OperationState.FAILED);
 				pbindingRepo.save(pb);
 			}
@@ -158,9 +152,9 @@ public class BindingService extends OperationStatusService {
 			return "Error: wrong platform with ID=" + platformId + " for Matomo service instance binding with ID=" + instanceId + ".";
 		}
 		if (pb.getLastOperationState() == OperationState.IN_PROGRESS) {
-			return "Error: cannot delete Matomo service instance binding with ID=" + pb.getId() + ": operation already in progress.";
+			return "Error: cannot delete Matomo service instance binding with ID=" + pb.getUuid() + ": operation already in progress.";
 		}
-		pb.setLastOperation(OpCode.DELETE);
+		pb.setLastOperation(POperationStatus.OpCode.DELETE_SERVICE_INSTANCE_APP_BINDING);
 //		pb.setLastOperationState(OperationState.IN_PROGRESS);
 //		pbindingRepo.save(pb);
 //		deleteMatomoSite(pb);
@@ -170,10 +164,10 @@ public class BindingService extends OperationStatusService {
 	}
 
 	private void defineNewMatomoSite(PMatomoInstance pmi, PBinding pb, String sitename, String trackedurl, String adminemail) {
-		LOGGER.debug("SERV::defineNewMatomoSite: instId={}, siteName{}, trackedUrl={}", pmi.getId(), sitename, trackedurl);
+		LOGGER.debug("SERV::defineNewMatomoSite: instId={}, siteName{}, trackedUrl={}", pmi.getUuid(), sitename, trackedurl);
 		RestTemplate restTemplate = new RestTemplate();
 		try {
-			URI uri = new URI("https://" + getMatomoUrl(pb.getPMatomoInstance().getId()) + "/index.php");
+			URI uri = new URI("https://" + getMatomoUrl(pb.getPMatomoInstance().getUuid()) + "/index.php");
 			MultipartBodyBuilder mbb = new MultipartBodyBuilder();
 			mbb.part("module", "API");
 			mbb.part("method", "SitesManager.addSite");

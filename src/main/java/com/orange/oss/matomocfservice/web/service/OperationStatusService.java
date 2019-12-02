@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.servicebroker.model.instance.OperationState;
 
-import com.orange.oss.matomocfservice.api.model.OpCode;
 import com.orange.oss.matomocfservice.web.domain.POperationStatus;
 import com.orange.oss.matomocfservice.web.domain.PPlatform;
 import com.orange.oss.matomocfservice.web.repository.POperationStatusRepository;
@@ -77,7 +76,7 @@ public abstract class OperationStatusService {
 	}
 
 	public static class OperationAndState {
-		private OpCode opCode;
+		private POperationStatus.OpCode opCode;
 		private OperationState opState;
 
 		public OperationAndState() {
@@ -85,23 +84,27 @@ public abstract class OperationStatusService {
 			opState = null;
 		}
 
-		public OpCode getOperation() {
+		public POperationStatus.OpCode getOperation() {
 			return opCode;
 		}
 
 		public String getOperationMessage() {
-			if (opCode.equals(OpCode.CREATE)) {
-				return "Create Matomo Service Instance or Binding";
-			} else if (opCode.equals(OpCode.READ)) {
-				return "Read Matomo Service Instance or Binding";
-			} else if (opCode.equals(OpCode.UPDATE)) {
-				return "Update Matomo Service Instance or Binding";
-			} else {
-				return "Delete Matomo Service Instance or Binding";
+			switch (opCode) {
+			case CREATE_SERVICE_INSTANCE:
+				return "Create Matomo Service Instance";
+			case UPDATE_SERVICE_INSTANCE:
+				return "Update Matomo Service Instance";
+			case DELETE_SERVICE_INSTANCE:
+				return "Delete Matomo Service Instance";
+			case CREATE_SERVICE_INSTANCE_APP_BINDING:
+				return "Create Matomo Service Instance Application Binding";
+			case DELETE_SERVICE_INSTANCE_APP_BINDING:
+				return "Delete Matomo Service Instance Application Binding";
 			}
+			return "";
 		}
 
-		void setOperation(OpCode opCode) {
+		void setOperation(POperationStatus.OpCode opCode) {
 			this.opCode = opCode;
 		}
 
