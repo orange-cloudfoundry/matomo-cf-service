@@ -17,7 +17,10 @@
 package com.orange.oss.matomocfservice.web.service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+
+import javax.persistence.EntityNotFoundException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +29,8 @@ import org.springframework.stereotype.Service;
 
 import com.orange.oss.matomocfservice.web.domain.PPlatform;
 import com.orange.oss.matomocfservice.web.repository.PPlatformRepository;
+
+import io.jsonwebtoken.lang.Assert;
 
 /**
  * @author P. Déchamboux
@@ -58,14 +63,22 @@ public class PlatformService {
 	}
 
 	public PPlatform createPlatform(String uuid, String name, String desc) {
+		Assert.notNull(uuid);
+		Assert.notNull(name);
+		Assert.notNull(desc);
 		LOGGER.debug("SERV::createPlatform: platform={}", name);
 		PPlatform ppf = new PPlatform(uuid, name, desc);
 		return pfRepo.save(ppf);
 	}
 
 	public PPlatform getPlatform(String uuid) {
+		Assert.notNull(uuid);
 		LOGGER.debug("SERV::getPlatform: platformId={}", uuid);
-		return pfRepo.getOne(uuid);
+		Optional<PPlatform> oppf = pfRepo.findById(uuid);
+		if (!oppf.isPresent()) {
+			throw new EntityNotFoundException("Platformwith ID=\"" + uuid + "\" does not exist");
+		}
+		return oppf.get();
 	}
 
 	public List<PPlatform> findPlatform() {
@@ -73,23 +86,15 @@ public class PlatformService {
 		return pfRepo.findAll();
 	}
 
-	public void deletePlatform(String platformId) {
-		LOGGER.debug("SERV::deletePlatform: platformId={}", platformId);
-		pfRepo.delete(pfRepo.getOne(platformId));
+	public void deletePlatform(String uuid) {
+		Assert.notNull(uuid);
+		LOGGER.debug("SERV::deletePlatform: platformId={}", uuid);
+		pfRepo.delete(getPlatform(uuid));
 	}
 
 	public PPlatform updatePlatform(String uuid) {
+		Assert.notNull(uuid);
 		LOGGER.debug("SERV::updatePlatform: platformId={}", uuid);
-		// TODO: not implemented
-		return pfRepo.getOne(uuid);
+		return getPlatform(uuid);
 	}
-
-//	private Platform toApiModel(PPlatform ppf) {
-//		return new Platform()
-//				.uuid(ppf.getId())
-//				.name(ppf.getName())
-//				.description(ppf.getDescription())
-//				.createTime(ppf.getCreateTime().format(DateTimeFormatter.ISO_ZONED_DATE_TIME))
-//				.updateTime(ppf.getUpdateTime().format(DateTimeFormatter.ISO_ZONED_DATE_TIME));
-//	}
 }

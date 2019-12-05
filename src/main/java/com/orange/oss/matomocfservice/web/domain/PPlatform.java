@@ -23,6 +23,8 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
+import io.jsonwebtoken.lang.Assert;
+
 /**
  * @author P. Déchamboux
  *
@@ -30,20 +32,25 @@ import javax.persistence.Table;
 @Entity
 @Table(name = "platforms")
 public class PPlatform {
+	private final static int LENGTH_ID = 36;
+	private final static int LENGTH_NAME = 64;
+	private final static int LENGTH_DESC = 256;
+	private final static int LENGTH_TIME = 128;
+
 	@Id
-	@Column(length = 36)
+	@Column(length = LENGTH_ID)
 	private final String id;
 
-	@Column(length = 64)
+	@Column(length = LENGTH_NAME)
 	private final String name;
 
-	@Column(length = 256)
+	@Column(length = LENGTH_DESC)
 	private String description;
 
-	@Column(length = 128)
+	@Column(length = LENGTH_TIME)
 	private final ZonedDateTime createTime;
 
-	@Column(length = 128)
+	@Column(length = LENGTH_TIME)
 	private ZonedDateTime updateTime;
 
 	@SuppressWarnings("unused")
@@ -56,8 +63,20 @@ public class PPlatform {
 	}
 
 	public PPlatform(String id, String n, String d) {
+		Assert.isTrue(id.length() <= LENGTH_ID, "Maximum length for id is " + LENGTH_ID);
 		this.id = id;
-		this.name = n;
+		if (n.length() > LENGTH_NAME) {
+			// truncate
+			this.name = n.substring(0, LENGTH_NAME);
+		} else {
+			this.name = n;
+		}
+		if (d.length() > LENGTH_DESC) {
+			// truncate
+			this.description = d.substring(0, LENGTH_DESC);
+		} else {
+			this.description = d;
+		}
 		this.description = d;
 		this.createTime = ZonedDateTime.now();
 		this.updateTime = this.createTime;
