@@ -29,5 +29,5 @@ import com.orange.oss.matomocfservice.web.domain.POperationStatus;
  */
 @Repository
 public interface POperationStatusRepository extends JpaRepository<POperationStatus, String> {
-	Optional<POperationStatus> findById(String id);
+	Optional<POperationStatus> findByUuid(String id);
 }

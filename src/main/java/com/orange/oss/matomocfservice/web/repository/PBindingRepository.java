@@ -27,6 +27,6 @@ import com.orange.oss.matomocfservice.web.domain.PBinding;
  *
  */
 public interface PBindingRepository extends JpaRepository<PBinding, String> {
-	Optional<PBinding> findById(String id);
+	Optional<PBinding> findByUuid(String id);
 	Optional<PBinding> findByTrackedUrl(String url);
 }
