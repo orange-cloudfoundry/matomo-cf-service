@@ -34,7 +34,7 @@ else
 	INDEFREL=`dirname $0`/default-release.txt
 fi
 while IFS= read -r vers; do
-	echo -e "${CYAN}Prepare release $vers to be used in Matomo CF service:${NOCOL}"
+	/bin/echo -e "${CYAN}Prepare release $vers to be used in Matomo CF service:${NOCOL}"
 	if [ $vers = "latest" ] ; then
 		`dirname $0`/piwik2cf.sh $@
 		RES=$?
@@ -54,14 +54,14 @@ while IFS= read -r vers; do
 	fi
 done < ${INREL}
 if [ -z ${FIRST+x} ]; then
-	echo -e "${RED}Did not succeed to prepare any release!!${NOCOL}"
+	/bin/echo -e "${RED}Did not succeed to prepare any release!!${NOCOL}"
 	exit 1
 fi
 while IFS= read -r defv; do
-	echo -e "${CYAN}Looking for default release${NOCOL}"
+	/bin/echo -e "${CYAN}Looking for default release${NOCOL}"
 	if [ $defv = "latest" ] ; then
 		if [ -z ${LATEST+x} ]; then
-			echo -e "${YELLOW}Request latest release as the default one but not a target!${NOCOL}"
+			/bin/echo -e "${YELLOW}Request latest release as the default one but not a target!${NOCOL}"
 		else
 			echo ${LATEST} > ${TARGETDIR}/DefaultVersion
 			DEF=${LATEST}
@@ -78,11 +78,11 @@ while IFS= read -r defv; do
 	done < ${TARGETDIR}/rels
 	rm -f ${TARGETDIR}/rels
 	if [ -z ${DEF+x} ]; then
-		echo -e "${YELLOW}Request ${defv} release as the default one but not a target!${NOCOL}"
+		/bin/echo -e "${YELLOW}Request ${defv} release as the default one but not a target!${NOCOL}"
 	fi
 done < ${INDEFREL}
 if [ -z ${DEF+x} ]; then
  	echo ${FIRST} > ${TARGETDIR}/DefaultVersion
  	DEF=${FIRST}
 fi
-echo -e "${CYAN}Release ${DEF} is the default one.${NOCOL}"
+/bin/echo -e "${CYAN}Release ${DEF} is the default one.${NOCOL}"

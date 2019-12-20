@@ -14,9 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+command -v curl >/dev/null 2>&1 || { echo >&2 "I require \"curl\" but it's not installed.  Aborting."; exit 1; }
+command -v unzip >/dev/null 2>&1 || { echo >&2 "I require \"unzip\" but it's not installed.  Aborting."; exit 1; }
 FORCE=0
 DEBUG=0
-while [[ $# -gt 0 ]]
+while [ $# -gt 0 ]
 do
 key="$1"
 case $key in
@@ -84,7 +86,7 @@ fi
 
 if [ -e ${GENERATE_DIR}/${PIWIKVERSION} ]; then
 	if [ ${FORCE} -eq 0 ]; then
-		echo -e "	${RED}Matomo version ${PIWIKVERSION} has already been prepared: skip${NOCOL}"
+		/bin/echo -e "	${RED}Matomo version ${PIWIKVERSION} has already been prepared: skip${NOCOL}"
 		exit 0
 	fi
 fi
@@ -96,20 +98,20 @@ SOURCEDIR=${TMPDIR}/matomo
 # Fetch PIWIK from Internet and adapt it to CF
 if [ ${PIWIKVERSION} = "LatestVersion" ]; then
 	SOURCEURL="https://builds.matomo.org/matomo.zip"
-	echo -e "	- ${YELLOW}Fetch latest Matomo release from Internet${NOCOL}"
+	/bin/echo -e "	- ${YELLOW}Fetch latest Matomo release from Internet${NOCOL}"
 else
 	SOURCEURL="https://builds.matomo.org/matomo-${PIWIKVERSION}.zip"
-	echo -e "	- ${YELLOW}Fetch Matomo release ${PIWIKVERSION} from Internet${NOCOL}"
+	/bin/echo -e "	- ${YELLOW}Fetch Matomo release ${PIWIKVERSION} from Internet${NOCOL}"
 fi
 
 curl ${SOURCEURL} >${TMPDIR}/piwik.zip 2>/dev/null
-if [ "`grep "404 Not Found" ${TMPDIR}/piwik.zip`" == "<title>404 Not Found</title>" ]; then
-	echo "Matomo version ${PIWIKVERSION} does not exist"
+if [ "`grep "404 Not Found" ${TMPDIR}/piwik.zip`" = "<title>404 Not Found</title>" ]; then
+	/bin/echo -e "Matomo version ${PIWIKVERSION} does not exist"
 	rm ${TMPDIR}/piwik.zip
 	rm -rf ${TMPDIR}
 	exit 1
 fi
-echo -e "	- ${YELLOW}Unzip Matomo package${NOCOL}"
+/bin/echo -e "	- ${YELLOW}Unzip Matomo package${NOCOL}"
 unzip -d ${TMPDIR} ${TMPDIR}/piwik.zip >/dev/null
 rm ${TMPDIR}/piwik.zip
 CODEPIWIKVERSION=`grep VERSION ${TMPDIR}/matomo/core/Version.php | awk -F "'" '{print $2}'`
@@ -134,7 +136,7 @@ VMIN=`echo ${PIWIKVERSION} | awk -F '.' '{print $2}'`
 rm -f ${SOURCEDIR}/composer.json
 rm -f ${SOURCEDIR}/composer.lock
 
-echo -e "	- ${YELLOW}Adapt it to CloudFoundry${NOCOL}"
+/bin/echo -e "	- ${YELLOW}Adapt it to CloudFoundry${NOCOL}"
 # Create bootstrap.php file
 echo "<?php
   \$_ENV[\"SQLDB\"] = NULL;
@@ -190,7 +192,7 @@ echo "<?php
 
 # Change setup of datasource to be retrieved from CF environment - File: FormDatabaseSetup.php
 cp ${SOURCEDIR}/plugins/Installation/FormDatabaseSetup.php ${TMPDIR}/workingfile
-if [[ ${VMIN} -gt 7 ]]; then
+if [ ${VMIN} -gt 7 ]; then
   LNSRCH=`grep -n '\$defaults = array' ${TMPDIR}/workingfile | awk -F ':' '{print $1}'`
 else
   LNSRCH=`grep -n '\$this->addDataSource' ${TMPDIR}/workingfile | awk -F ':' '{print $1}'`
@@ -277,9 +279,9 @@ extension=pdo_mysql.so
 extension=mbstring.so
 " >${SOURCEDIR}/.bp-config/php/php.ini.d/matomo.ini
 (cd ${SOURCEDIR}; cp -r . ${RELEASEDIR} >/dev/null)
-echo -e "	- ${YELLOW}Update supported versions${NOCOL}"
+/bin/echo -e "	- ${YELLOW}Update supported versions${NOCOL}"
 if [ $LATEST -eq 1 ] ; then
-	(cd ${GENERATE_DIR}; rm -f LatestVersion; echo -n -e "${PIWIKVERSION}" >LatestVersion)
+	(cd ${GENERATE_DIR}; rm -f LatestVersion; echo -n "${PIWIKVERSION}" >LatestVersion)
 fi
 rm -rf ${TMPDIR}
 echo -n >${GENERATE_DIR}/Versions
@@ -295,5 +297,5 @@ addVersion()
 	SEP=";"
 }
 (cd ${GENERATE_DIR}; find . -maxdepth 1 -type d | while read dir; do addVersion "$dir"; done)
-echo -e "	${GREEN}DONE${NOCOL}"
+/bin/echo -e "	${GREEN}DONE${NOCOL}"
 exit 0
