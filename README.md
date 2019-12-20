@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/orange-cloudfoundry/matomo-cf-service.svg?style=svg)](https://circleci.com/gh/orange-cloudfoundry/matomo-cf-service)
+
 # matomo-cf-service
 
 This is a service broker (OSB compliant) that provides [Matomo](https://matomo.org/) service instance as dedicated [CloudFoundry](https://www.cloudfoundry.org/) (CF) applications. It requires CF for managing the service but can be used on any platform supporting the OSB API.
