@@ -70,13 +70,13 @@ public class CloudFoundryMgr4Test extends CloudFoundryMgrAbs {
 		return Mono.empty();
 	}
 
-	public Mono<Void> createDedicatedDb(String instid) {
-		LOGGER.debug("CFMGR::createDedicatedDb: instId={}", instid);
+	public Mono<Void> createDedicatedDb(String instid, String planid) {
+		LOGGER.debug("CFMGR::createDedicatedDb: instId={}, planid={}", instid, planid);
 		return Mono.empty();
 	}
 
-	public Mono<Void> deleteDedicatedDb(String instid) {
-		LOGGER.debug("CFMGR::deleteDedicatedDb: instId={}", instid);
+	public Mono<Void> deleteDedicatedDb(String instid, String planid) {
+		LOGGER.debug("CFMGR::deleteDedicatedDb: instId={}, planid={}", instid, planid);
 		return Mono.empty();
 	}
 

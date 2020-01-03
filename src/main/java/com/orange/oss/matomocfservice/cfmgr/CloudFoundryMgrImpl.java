@@ -141,36 +141,6 @@ public class CloudFoundryMgrImpl extends CloudFoundryMgrAbs {
 			globalSharedReady = true;
 		})
 		.subscribe();
-		// Check if Matomo shared DB service has already been created and create otherwise
-		cfops.services().getInstance(GetServiceInstanceRequest.builder()
-				.name(properties.getDbCreds(ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID).getInstanceServiceName(null))
-				.build())
-		.doOnError(t -> {
-			LOGGER.debug("CONFIG::CloudFoundryMgr-initialize: create Matomo shared db service instance");
-			cfops.services().createInstance(CreateServiceInstanceRequest.builder()
-					.serviceInstanceName(properties.getDbCreds(ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID).getInstanceServiceName(null))
-					.serviceName(properties.getDbCreds(ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID).getServiceName())
-					.planName(properties.getDbCreds(ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID).getPlanName())
-					.completionTimeout(Duration.ofMinutes(CREATEDBSERV_TIMEOUT))
-					.build())
-			.timeout(Duration.ofMinutes(CREATEDBSERV_TIMEOUT))
-			.doOnError(tt -> {
-				LOGGER.error("CONFIG::CloudFoundryMgr-initialize: cannot create Matomo shared db service instance ("
-						+ tt.getMessage()
-						+ ") -> plan matomo-shared-db unavailable");
-				tt.printStackTrace();
-			})
-			.doOnSuccess(v -> {
-				LOGGER.info("CONFIG::CloudFoundryMgr-initialize: Matomo shared db service instance created -> plan matomo-shared-db ready");
-				matomoSharedReady = true;
-			})
-			.subscribe();
-		})
-		.doOnSuccess(v -> {
-			LOGGER.debug("CONFIG::CloudFoundryMgr-initialize: Matomo shared DB service instance already exist");
-			matomoSharedReady = true;
-		})
-		.subscribe();
 		LOGGER.debug("CONFIG::CloudFoundryMgr-initialize: finished");
 	}
 
@@ -232,14 +202,14 @@ public class CloudFoundryMgrImpl extends CloudFoundryMgrAbs {
 	 * @param instid	The code name of the instance
 	 * @return	The Mono to signal the end of the async process (produce nothing indeed)
 	 */
-	public Mono<Void> createDedicatedDb(String instid) {
+	public Mono<Void> createDedicatedDb(String instid, String planid) {
 		LOGGER.debug("CFMGR::createDedicatedDb: instId={}", instid);
 		return cfops.services().createInstance(CreateServiceInstanceRequest.builder()
-				.serviceInstanceName(properties.getDbCreds(ServiceCatalogConfiguration.PLANDEDICATEDDB_UUID).getInstanceServiceName(getAppName(instid)))
-				.serviceName(properties.getDbCreds(ServiceCatalogConfiguration.PLANDEDICATEDDB_UUID).getServiceName())
-				.planName(properties.getDbCreds(ServiceCatalogConfiguration.PLANDEDICATEDDB_UUID).getPlanName())
-				.completionTimeout(Duration.ofMinutes(CREATEDBSERV_TIMEOUT))
-				.build());
+					.serviceInstanceName(properties.getDbCreds(planid).getInstanceServiceName(getAppName(instid)))
+					.serviceName(properties.getDbCreds(planid).getServiceName())
+					.planName(properties.getDbCreds(planid).getPlanName())
+					.completionTimeout(Duration.ofMinutes(CREATEDBSERV_TIMEOUT))
+					.build());
 	}
 
 	/**
@@ -247,11 +217,11 @@ public class CloudFoundryMgrImpl extends CloudFoundryMgrAbs {
 	 * @param instid	The code name of the instance
 	 * @return	The Mono to signal the end of the async process (produce nothing indeed)
 	 */
-	public Mono<Void> deleteDedicatedDb(String instid) {
+	public Mono<Void> deleteDedicatedDb(String instid, String planid) {
 		LOGGER.debug("CFMGR::deleteDedicatedDb: instId={}", instid);
 		return cfops.services().deleteInstance(DeleteServiceInstanceRequest.builder()
-				.name(properties.getDbCreds(ServiceCatalogConfiguration.PLANDEDICATEDDB_UUID).getInstanceServiceName(getAppName(instid)))
-				.build());
+					.name(properties.getDbCreds(planid).getInstanceServiceName(getAppName(instid)))
+					.build());
 	}
 
 	public Mono<Map<String, Object>> getApplicationEnv(String instid) {
@@ -281,16 +251,16 @@ public class CloudFoundryMgrImpl extends CloudFoundryMgrAbs {
 				.applicationName(getAppName(instid))
 				.build())
 				.doOnError(t -> {
-					LOGGER.error("CFMGR::deleteMatomoCfAppBindToGlobalSharedDb: problem to unbind from DB.", t);
+					LOGGER.error("CFMGR::deleteMatomoCfApp: problem to unbind from DB.", t);
 					cfops.applications().delete(DeleteApplicationRequest.builder()
 							.deleteRoutes(true)
 							.name(getAppName(instid))
 							.build())
 					.doOnError(tt -> {
-						LOGGER.error("CFMGR::deleteMatomoCfAppBindToGlobalSharedDb: problem to delete app (no unbind).", tt);
+						LOGGER.error("CFMGR::deleteMatomoCfApp: problem to delete app (no unbind).", tt);
 					})
 					.doOnSuccess(vv -> {
-						LOGGER.debug("CFMGR::deleteMatomoCfAppBindToGlobalSharedDb: app unbound and deleted.");
+						LOGGER.debug("CFMGR::deleteMatomoCfApp: app unbound and deleted.");
 					})
 					.subscribe();
 				})
@@ -300,10 +270,10 @@ public class CloudFoundryMgrImpl extends CloudFoundryMgrAbs {
 							.name(getAppName(instid))
 							.build())
 					.doOnError(tt -> {
-						LOGGER.error("CFMGR::deleteMatomoCfAppBindToGlobalSharedDb: problem to delete app (unbind).", tt);
+						LOGGER.error("CFMGR::deleteMatomoCfApp: problem to delete app (after unbind).", tt);
 					})
 					.doOnSuccess(vv -> {
-						LOGGER.debug("CFMGR::deleteMatomoCfAppBindToGlobalSharedDb: app unbound and deleted.");
+						LOGGER.debug("CFMGR::deleteMatomoCfApp: app unbound and deleted.");
 					})
 					.subscribe();
 				});

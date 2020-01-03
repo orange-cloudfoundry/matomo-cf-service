@@ -16,14 +16,8 @@
 
 package com.orange.oss.matomocfservice.cfmgr;
 
-import java.time.Duration;
 import java.util.Map;
 
-import org.cloudfoundry.client.v2.info.GetInfoRequest;
-import org.cloudfoundry.operations.services.CreateServiceInstanceRequest;
-import org.cloudfoundry.operations.services.GetServiceInstanceRequest;
-
-import com.orange.oss.matomocfservice.servicebroker.ServiceCatalogConfiguration;
 import com.orange.oss.matomocfservice.web.domain.Parameters;
 
 import reactor.core.publisher.Mono;
@@ -40,12 +34,12 @@ public interface CloudFoundryMgr {
 	public boolean isMatomoSharedReady();
 	public boolean isGlobalSharedReady();
 	public String getAppName(String appcode);
-	public String getAppUrlPrefix(String appcode);
+	public String getTablePrefix(String appcode, String planid);
 	public String getInstanceUrl(String uuid);
 	public Mono<Void> deployMatomoCfApp(String instid, String uuid, String planid, Parameters mip, int memsize, int nbinst);
 	public Mono<Void> scaleMatomoCfApp(String instid, int instances, int memsize);
-	public Mono<Void> createDedicatedDb(String instid);
-	public Mono<Void> deleteDedicatedDb(String instid);
+	public Mono<Void> createDedicatedDb(String instid, String planid);
+	public Mono<Void> deleteDedicatedDb(String instid, String planid);
 	public Mono<Map<String, Object>> getApplicationEnv(String instid);
 	public Mono<Void> deleteMatomoCfApp(String instid, String planid);
 	public Mono<AppConfHolder> getInstanceConfigFile(String instid, String version, boolean clustermode);

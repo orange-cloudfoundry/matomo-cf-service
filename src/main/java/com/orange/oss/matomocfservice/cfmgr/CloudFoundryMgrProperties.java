@@ -38,7 +38,7 @@ public class CloudFoundryMgrProperties {
 	private final static Logger LOGGER = LoggerFactory.getLogger(CloudFoundryMgrProperties.class);
 	private final static String SMTPINSTNAME = "mcfs-smtp";
 	final static String GLOBSHAREDDBINSTNAME = "mcfs-globshared-db";
-	private final static String SHAREDDBINSTNAME = "mcfs-shared-db";
+	private final static String SERVICESUFFIX = "-DB";
 	@Value("${matomo-service.matomo-debug:false}")
 	private boolean matomoDebug;
 	@Value("${matomo-service.smtp.creds}")
@@ -92,7 +92,7 @@ public class CloudFoundryMgrProperties {
 		}
 		if (planid.equals(ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID)) {
 			if (sharedDedicatedDbCreds == null) {
-				sharedDedicatedDbCreds = new DbCreds(sharedDedicatedDbCredsStr, SHAREDDBINSTNAME);
+				sharedDedicatedDbCreds = new DbCreds(sharedDedicatedDbCredsStr, null);
 			}
 			return sharedDedicatedDbCreds;
 		}
@@ -187,7 +187,7 @@ public class CloudFoundryMgrProperties {
 			if (sharedServiceName != null) {
 				services.add(sharedServiceName);
 			} else {
-				services.add(appName + "-DB");
+				services.add(appName + SERVICESUFFIX);
 			}
 			return this;
 		}
@@ -198,7 +198,7 @@ public class CloudFoundryMgrProperties {
 
 		public String getInstanceServiceName(String appName) {
 			if (sharedServiceName == null) {
-				return appName + "-DB";
+				return appName + SERVICESUFFIX;
 			}
 			return this.sharedServiceName;
 		}

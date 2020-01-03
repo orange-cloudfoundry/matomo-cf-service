@@ -14,10 +14,10 @@ Note that the actual releases proposed by the service can be found [here](releas
 Go to your CF marketplace and create a service instance by choosing among the proposed plans. There are three (only the first one is currently implemented, the two others are expected soon). Their objective is to provide different isolation levels in term of load and security of an instance, especially on the management of data (information from tracked Web sites):
 
 1. global-shared-db
-   Data of all instances are stored in a database platform mutualized with many others (useful for dev purpose). Matomo is run by one container (application instance) within CloudFoundry.
+   Data of all instances are stored in a database platform mutualized with many others (useful for dev purpose) within a unique schema. Matomo is run by one container (application instance) within CloudFoundry.
 
 2. matomo-shared-db
-   Data of all instances are stored in a database platform mutualized with all other Matomo service instances of this kind (useful for tracked Web sites with small / medium traffic). Matomo is run by a cluster of two containers and is configured to run in cluster mode.
+   Data of this Matomo service instance is stored in a mutualized database platform with all other Matomo service instances of this kind (useful for tracked Web sites with small / medium traffic) but within dedicated schema. Matomo is run by a cluster of two containers and is configured to run in cluster mode.
 
 3. dedicated-db
    Data of this Matomo service instance is stored in a dedicated database platform (useful for tracked Web sites with high traffic). Matomo is run by a cluster of at least two containers and is configured to run in cluster mode. It may scale up two a ten containers cluster as requested by the owner of the service instance.
@@ -98,17 +98,13 @@ You can bind a Matomo service instance to an application, meaning that you want 
 
 All the required information to use such a Matomo site is provided by the credential of the binding associated with the application concerned. Credentials contain:
 
-* mcfs-matomoUrl
-  This is the URL of the Matomo instance to be used when usage information are published (usually by browsers). It is defined within the script that is added to Web pages so that analytics information can be pushed to this Matomo instance.
+* `mcfs-matomoUrl`: This is the URL of the Matomo instance to be used when usage information are published (usually by browsers). It is defined within the script that is added to Web pages so that analytics information can be pushed to this Matomo instance.
 
-* mcfs-siteId
-  This is the site id, assigned by Matomo at site creation (which occurs at binding time), as expected by the Matomo instance when it gets usage information (mainly from browsers). This information is produced by the script that is added to Web pages, such script including the site id for identifying the Matomo site that you've setup to produce analysis.
+* `mcfs-siteId`: This is the site id, assigned by Matomo at site creation (which occurs at binding time), as expected by the Matomo instance when it gets usage information (mainly from browsers). This information is produced by the script that is added to Web pages, such script including the site id for identifying the Matomo site that you've setup to produce analysis.
 
-* mcfs-userName
-  This is the user name of the admin of the created Matomo site. It is created at binding time as well.
+* `mcfs-userName`: This is the user name of the admin of the created Matomo site. It is created at binding time as well.
   
-* mcfs-password
-  This is the password of the admin user of the created Matomo site. It is created at binding time to.
+* `mcfs-password`: This is the password of the admin user of the created Matomo site. It is created at binding time to.
 
 Indeed both user name and password allow you to logged in the related Matomo instance (accessible through the dashboard associated to the service instance). You can then act as the admin of that site.
 
@@ -145,14 +141,11 @@ System-Provided: {
 
 There are mandatory parameters that should be provided at binding time:
 
-* siteName
-  This is the name of the [Matomo site](https://matomo.org/docs/manage-websites/) that will be intanciated at binding to track the Web site associated with the application that binds to.
+* `siteName`: This is the name of the [Matomo site](https://matomo.org/docs/manage-websites/) that will be intanciated at binding to track the Web site associated with the application that binds to.
 
-* trackedUrl
-  This is the URL of the Web site to be tracked.
+* `trackedUrl`: This is the URL of the Web site to be tracked.
 
-* adminEmail
-  As the binding creates an "admin" user for managing the new Matomo site, you need also to provide the email address for that admin.
+* `adminEmail`: As the binding creates an "admin" user for managing the new Matomo site, you need also to provide the email address for that admin.
 
 Example of a binding command showing the parameters to provide:
 

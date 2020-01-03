@@ -16,6 +16,13 @@
 
 package com.orange.oss.matomocfservice.servicebroker;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.Enumeration;
+import java.util.jar.Manifest;
+
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,6 +75,23 @@ public class ServiceCatalogConfiguration {
 				.description("\"Matomo Service\" provided as a dedicated CF application with data stored in a DB dedicated to this instance")
 				.free(false)
 				.build();
+		String version = "Unknown";
+		try {
+			Enumeration<URL> urls = getClass().getClassLoader().getResources("META-INF/MANIFEST.MF");
+			while (urls.hasMoreElements()) {
+				URL url = urls.nextElement();
+				if (url.toString().equals("file:/home/vcap/app/META-INF/MANIFEST.MF")) {
+					InputStream is = url.openStream();
+					if (is != null) {
+						Manifest manifest = new Manifest(is);
+						version = (String)manifest.getMainAttributes().getValue("Implementation-Version");
+						break;
+					}
+				}
+			}
+		} catch (IOException e) {
+			// cannot get version: keep it unknown silently
+		}
 		ServiceDefinition serviceDefinition = ServiceDefinition.builder()
 				.id("matomo-cf-service")
 				.name(serviceName)
@@ -75,7 +99,7 @@ public class ServiceCatalogConfiguration {
 				.bindable(true)
 				.tags("Matomo", "Web Analytics")
 				.plans(plan1, plan2, plan3)
-				.metadata("displayName", "Matomo")
+				.metadata("displayName", "Matomo Service - Version " + version)
 				.metadata("longDescription", "CloudFoundry-based Matomo as a Service")
 				.metadata("providerDisplayName", "Orange")
 				.metadata("documentationUrl", "https://" + serviceUri + "/index.html")

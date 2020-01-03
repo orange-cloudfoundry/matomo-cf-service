@@ -48,9 +48,8 @@ public class MatomoCfServiceApplication {
 	}
 
 	private static Manifest getManifest() {
-	    Enumeration<URL> resEnum;
 	    try {
-	        resEnum = Thread.currentThread().getContextClassLoader().getResources("META-INF/MANIFEST.MF");
+	    	Enumeration<URL> resEnum = Thread.currentThread().getContextClassLoader().getResources("META-INF/MANIFEST.MF");
 	        while (resEnum.hasMoreElements()) {
 	            try {
 	                URL url = resEnum.nextElement();
