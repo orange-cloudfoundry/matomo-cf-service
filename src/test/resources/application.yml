@@ -44,19 +44,18 @@ matomo-service:
     adminName: none
     adminPassword: none
     adminSessionTimeout: 30
-  domain: none
+  domain: foo.com
   phpBuildpack: none
   max-service-instances: 10
   smtp:
-    creds: none:none:host:port:username:password
+    creds: o-smtp:smtpplan:host:port:username:password
   shared-db:
-    creds: none:none:name:hostname:port:username:password
+    creds: p-mysql:10MB:name:hostname:port:username:password
   matomo-shared-db:
-    creds: none:none:name:hostname:port:username:password
+    creds: p-mysql:10MB:name:hostname:port:username:password
   dedicated-db:
-    creds: none:none:name:hostname:port:username:password
+    creds: p-mysql:10MB:name:hostname:port:username:password
 
 test:
   currentRelease: 3.13.0
   lowerReleaseNotAvailable: 3.6.1
-

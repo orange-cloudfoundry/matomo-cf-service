@@ -18,6 +18,7 @@ package com.orange.oss.matomocfservice.cfmgr;
 
 import java.util.Map;
 
+import com.orange.oss.matomocfservice.web.domain.PMatomoInstance;
 import com.orange.oss.matomocfservice.web.domain.Parameters;
 
 import reactor.core.publisher.Mono;
@@ -31,7 +32,6 @@ public interface CloudFoundryMgr {
 
 	public void initialize();
 	public boolean isSmtpReady();
-	public boolean isMatomoSharedReady();
 	public boolean isGlobalSharedReady();
 	public String getAppName(String appcode);
 	public String getTablePrefix(String appcode, String planid);
@@ -43,6 +43,10 @@ public interface CloudFoundryMgr {
 	public Mono<Map<String, Object>> getApplicationEnv(String instid);
 	public Mono<Void> deleteMatomoCfApp(String instid, String planid);
 	public Mono<AppConfHolder> getInstanceConfigFile(String instid, String version, boolean clustermode);
+	public boolean initializeMatomoInstance(String appcode, String nuri, String pwd, String planid);
+	public boolean upgradeMatomoInstance(String appcode, String nuri);
+	public String getApiAccessToken(String dbcred, String instid, String planid);
+	public void deleteAssociatedDbSchema(PMatomoInstance pmi);
 
 	public class AppConfHolder {
 		public String appId = null;

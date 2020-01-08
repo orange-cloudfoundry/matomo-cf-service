@@ -27,6 +27,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+import com.orange.oss.matomocfservice.servicebroker.ServiceCatalogConfiguration;
+
 /**
  * @author P. Déchamboux
  *
@@ -37,7 +39,7 @@ public class MatomoCfServiceApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(MatomoCfServiceApplication.class, args);
-		Manifest manifest = getManifest();
+		Manifest manifest = ServiceCatalogConfiguration.getManifest();
 		if (manifest != null) {
 			String title = (String)manifest.getMainAttributes().getValue("Implementation-Title");
 			String version = (String)manifest.getMainAttributes().getValue("Implementation-Version");
@@ -45,29 +47,5 @@ public class MatomoCfServiceApplication {
 		} else {
 			LOGGER.info("--------------------- Starting matomo-cf-service version unknown ---------------------");
 		}
-	}
-
-	private static Manifest getManifest() {
-	    try {
-	    	Enumeration<URL> resEnum = Thread.currentThread().getContextClassLoader().getResources("META-INF/MANIFEST.MF");
-	        while (resEnum.hasMoreElements()) {
-	            try {
-	                URL url = resEnum.nextElement();
-	                if (url.toString().equals("file:/home/vcap/app/META-INF/MANIFEST.MF")) {
-	                    InputStream is = url.openStream();
-	                    if (is != null) {
-	                        Manifest manifest = new Manifest(is);
-	                        return manifest;
-	                    }
-	                }
-	            }
-	            catch (Exception e) {
-	                // Silently ignore wrong manifests on classpath?
-	            }
-	        }
-	    } catch (IOException e1) {
-	        // Silently ignore wrong manifests on classpath?
-	    }
-	    return null;
 	}
 }

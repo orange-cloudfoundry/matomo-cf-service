@@ -70,29 +70,23 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 
 	@Override
 	public Mono<CreateServiceInstanceResponse> createServiceInstance(CreateServiceInstanceRequest request) {
-		LOGGER.debug("BROKER::createServiceInstance: platformId={} / serviceId={}", request.getPlatformInstanceId(), request.getServiceInstanceId());
-//		LOGGER.debug("BROKER::   request=" + request.toString());
-		LOGGER.debug("BROKER::   platform={}", request.getContext().getPlatform());
+		LOGGER.debug("BROKER::createServiceInstance: platformId={}, serviceId={}", request.getPlatformInstanceId(), request.getServiceInstanceId());
+		LOGGER.debug("BROKER::   platform={}, serviceDefId={}", request.getContext().getPlatform(), request.getServiceDefinitionId());
 		PMatomoInstance.PlatformKind pfkind;
-		String instname, tenantid, subtenantid;
+		String instname;
 		switch (request.getContext().getPlatform()) {
 		case "cloudfoundry":
 			pfkind = PMatomoInstance.PlatformKind.CLOUDFOUNDRY;
 			instname = (String)request.getContext().getProperty("instance_name");
-			tenantid = (String)request.getContext().getProperty("organizationGuid");
-			subtenantid = (String)request.getContext().getProperty("spaceGuid");
 			break;
 		default:
 			LOGGER.warn("BROKER::   unknown kind of platform -> " + request.getContext().getPlatform());
 			pfkind = PMatomoInstance.PlatformKind.OTHER;
-			instname = tenantid = subtenantid = "";
+			instname = "";
 		}
 		PMatomoInstance pmi = miServ.createMatomoInstance(
 				request.getServiceInstanceId(),
-				request.getServiceDefinitionId(),
 				instname,
-				tenantid,
-				subtenantid,
 				pfkind,
 				request.getApiInfoLocation(),
 				request.getPlanId(),
@@ -141,7 +135,7 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 	@Override
 	public Mono<DeleteServiceInstanceResponse> deleteServiceInstance(DeleteServiceInstanceRequest request) {
 		LOGGER.debug("BROKER::deleteServiceInstance: platformId={}, instanceId={}", request.getPlatformInstanceId(), request.getServiceInstanceId());
-		if (miServ.deleteMatomoInstance(request.getPlatformInstanceId(), request.getServiceInstanceId()) == null) {
+		if (miServ.deleteMatomoInstance(request.getServiceInstanceId(), request.getPlatformInstanceId()) == null) {
 			throw new ServiceInstanceDoesNotExistException("Cannot find instance " + request.getServiceInstanceId());
 		}
 		return Mono.just(DeleteServiceInstanceResponse.builder()

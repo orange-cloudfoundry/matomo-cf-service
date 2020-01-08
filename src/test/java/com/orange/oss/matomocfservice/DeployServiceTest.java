@@ -15,8 +15,13 @@
  */
 package com.orange.oss.matomocfservice;
 
+import java.util.jar.Manifest;
+
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+
+import com.orange.oss.matomocfservice.servicebroker.ServiceCatalogConfiguration;
 
 /**
  * @author P. Déchamboux
@@ -27,5 +32,9 @@ public class DeployServiceTest {
 
 	@Test
 	void startServiceInTestModeOK() {
+		Manifest manifest = ServiceCatalogConfiguration.getManifest();
+//		Assertions.assertNotNull(manifest);
+//		Assertions.assertNotNull(manifest.getMainAttributes().getValue("Implementation-Title"));
+//		Assertions.assertNotNull(manifest.getMainAttributes().getValue("Implementation-Version"));
 	}
 }

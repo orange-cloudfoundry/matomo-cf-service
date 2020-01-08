@@ -44,6 +44,10 @@ public class TestIntanceIdMgr {
 			allocated = new boolean[max_instid];
 			for (int i = 0; i < max_instid; i++) {
 				allocated[i] = false;
+				try {
+					instIdMgr.freeInstanceId(i);
+				} catch (RuntimeException e) {
+				}
 			}
 		}
 	}
@@ -108,6 +112,9 @@ public class TestIntanceIdMgr {
 			allocateOk();
 		}
 		allocateKO();
+		for (int i = 0; i < max_instid; i++) {
+			freeOk(i);
+		}
  	}
 
 	@Test

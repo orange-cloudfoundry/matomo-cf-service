@@ -23,11 +23,11 @@ import java.util.Objects;
  * 
  */
 public class Parameters {
-	private String version = null;
-	private String timeZone = null;
-	private Boolean autoVersionUpgrade = null;
-	private Integer cfInstances = null;
-	private Integer memorySize = null;
+	private String version = "3.13.0";
+	private String timeZone = "Europe/Paris";
+	private Boolean autoVersionUpgrade = true;
+	private Integer cfInstances = 1;
+	private Integer memorySize = 256;
 
 	public Parameters() {
 	}

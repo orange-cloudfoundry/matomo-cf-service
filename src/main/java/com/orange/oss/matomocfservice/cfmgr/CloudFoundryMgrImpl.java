@@ -17,10 +17,18 @@ package com.orange.oss.matomocfservice.cfmgr;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,11 +48,17 @@ import org.cloudfoundry.operations.services.DeleteServiceInstanceRequest;
 import org.cloudfoundry.operations.services.GetServiceInstanceRequest;
 import org.cloudfoundry.operations.services.UnbindServiceInstanceRequest;
 import org.cloudfoundry.reactor.client.ReactorCloudFoundryClient;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.client.MultipartBodyBuilder;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
 
 import com.orange.oss.matomocfservice.servicebroker.ServiceCatalogConfiguration;
+import com.orange.oss.matomocfservice.web.domain.PMatomoInstance;
 import com.orange.oss.matomocfservice.web.domain.Parameters;
 import com.orange.oss.matomocfservice.web.service.MatomoReleases;
 
@@ -59,19 +73,17 @@ import reactor.core.publisher.Mono;
  */
 public class CloudFoundryMgrImpl extends CloudFoundryMgrAbs {
 	private final static Logger LOGGER = LoggerFactory.getLogger(CloudFoundryMgr.class);
+	private final static String MATOMOINSTANCE_ROOTUSER = "admin";
 	private String sshHost;
 	private int sshPort;
 	private boolean smtpReady = false;
 	private boolean globalSharedReady = false;
-	private boolean matomoSharedReady = false;
 	@Autowired
 	private CloudFoundryOperations cfops;
 	@Autowired
 	private ReactorCloudFoundryClient cfclient;
 	@Autowired
 	private MatomoReleases matomoReleases;
-	@Autowired
-	private CloudFoundryMgrProperties properties;
 
 	/**
 	 * Initialize CF manager and especially create the shared database for the dev flavor of
@@ -148,16 +160,8 @@ public class CloudFoundryMgrImpl extends CloudFoundryMgrAbs {
 		return smtpReady;
 	}
 
-	public boolean isMatomoSharedReady() {
-		return matomoSharedReady;
-	}
-
 	public boolean isGlobalSharedReady() {
 		return globalSharedReady;
-	}
-
-	public String getInstanceUrl(String uuid) {
-		return "https://" + uuid + "." + properties.getDomain();
 	}
 
 	/**
@@ -332,5 +336,202 @@ public class CloudFoundryMgrImpl extends CloudFoundryMgrAbs {
 			})
 			.subscribe();
 		});
+	}
+
+	/**
+	 * 
+	 * @param appcode
+	 * @param nuri
+	 * @param pwd
+	 * @return		true if the instance has been intialized correctly
+	 */
+	public boolean initializeMatomoInstance(String appcode, String nuri, String pwd, String planid) {
+		LOGGER.debug("CFMGR::initializeMatomoInstance: appCode={}", appcode);
+		RestTemplate restTemplate = new RestTemplate();
+		try {
+			URI uri = new URI("https://" + nuri + "." + properties.getDomain()), calluri;
+			LOGGER.debug("Base URI: {}", uri.toString());
+			String res = restTemplate.getForObject(calluri = uri, String.class);
+			LOGGER.debug("After GET on <{}>", calluri.toString());
+			res = restTemplate.getForObject(calluri = URI.create(uri.toString() + "/index.php?action=systemCheck"),
+					String.class);
+			LOGGER.debug("After GET on <{}>", calluri.toString());
+			res = restTemplate.getForObject(calluri = URI.create(uri.toString() + "/index.php?action=databaseSetup"),
+					String.class);
+			LOGGER.debug("After GET on <{}>", calluri.toString());
+			Document d = Jsoup.parse(res);
+			if (d == null) {
+				LOGGER.error("CFMGR::initializeMatomoInstance: error while decoding JSON from GET databaseSetup.");
+				return false;
+			}
+			MultipartBodyBuilder mbb = new MultipartBodyBuilder();
+			mbb.part("type", d.getElementById("type-0").attr("value"));
+			mbb.part("host", d.getElementById("host-0").attr("value"));
+			mbb.part("username", d.getElementById("username-0").attr("value"));
+			mbb.part("password", d.getElementById("password-0").attr("value"));
+			mbb.part("dbname", d.getElementById("dbname-0").attr("value"));
+			mbb.part("tables_prefix", getTablePrefix(appcode, planid) + "_");
+			mbb.part("adapter", "PDO\\MYSQL");
+			mbb.part("submit", "Suivant+%C2%BB");
+			res = restTemplate.postForObject(calluri = URI.create(uri.toString() + "/index.php?action=databaseSetup"),
+					mbb.build(), String.class);
+			LOGGER.debug("After POST on <{}>", calluri.toString());
+			res = restTemplate.getForObject(
+					calluri = URI.create(uri.toString() + "/index.php?action=tablesCreation&module=Installation"),
+					String.class);
+			LOGGER.debug("After GET on <{}>", calluri.toString());
+			res = restTemplate.getForObject(
+					calluri = URI.create(uri.toString() + "/index.php?action=setupSuperUser&module=Installation"),
+					String.class);
+			LOGGER.debug("After GET on <{}>", calluri.toString());
+			mbb = new MultipartBodyBuilder();
+			mbb.part("login", MATOMOINSTANCE_ROOTUSER);
+			mbb.part("password", pwd);
+			mbb.part("password_bis", pwd);
+			mbb.part("email", "piwik@orange.com");
+			mbb.part("subscribe_newsletter_piwikorg", "0");
+			mbb.part("subscribe_newsletter_professionalservices", "0");
+			mbb.part("submit", "Suivant+%C2%BB");
+			res = restTemplate.postForObject(
+					calluri = URI.create(uri.toString() + "/index.php?action=setupSuperUser&module=Installation"),
+					mbb.build(), String.class);
+			LOGGER.debug("After POST on <{}>", calluri.toString());
+			mbb = new MultipartBodyBuilder();
+			mbb.part("siteName", appcode);
+			mbb.part("url", uri.toASCIIString());
+			mbb.part("timezone", "Europe/Paris");
+			mbb.part("ecommerce", "0");
+			mbb.part("submit", "Suivant+%C2%BB");
+			res = restTemplate.postForObject(
+					calluri = URI.create(uri.toString() + "/index.php?action=firstWebsiteSetup&module=Installation"),
+					mbb.build(), String.class);
+			LOGGER.debug("After POST on <{}>", calluri.toString());
+			res = restTemplate.getForObject(calluri = URI.create(
+					uri.toString() + "/index.php?action=finished" + "&clientProtocol=https" + "&module=Installation"
+							+ "&site_idSite=4" + "&site_name=" + getTablePrefix(appcode, planid)),
+					String.class);
+			LOGGER.debug("After GET on <{}>", calluri.toString());
+			mbb = new MultipartBodyBuilder();
+			mbb.part("do_not_track", "1");
+			mbb.part("anonymise_ip", "1");
+			mbb.part("submit", "Continuer+vers+Matomo+%C2%BB");
+			res = restTemplate.postForObject(calluri = URI.create(uri.toString()
+					+ "/index.php?action=finished&clientProtocol=https&module=Installation&site_idSite=4&site_name="
+					+ getTablePrefix(appcode, planid)), mbb.build(), String.class);
+			LOGGER.debug("After POST on <{}>", calluri.toString());
+			res = restTemplate.getForObject(calluri = uri, String.class);
+			LOGGER.debug("After GET on <{}>", calluri.toString());
+		} catch (RestClientException e) {
+			e.printStackTrace();
+			LOGGER.error("CFMGR::initializeMatomoInstance: error while calling service instance through HTTP.", e);
+			return false;
+		} catch (URISyntaxException e) {
+			LOGGER.error("CFMGR::initializeMatomoInstance: wrong URI for calling service instance through HTTP.", e);
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * 
+	 * @param appcode
+	 * @param nuri
+	 * @return		true if the instance has been upgraded correctly
+	 */
+	public boolean upgradeMatomoInstance(String appcode, String nuri) {
+		LOGGER.debug("CFMGR::upgradeMatomoInstance: appCode={}", appcode);
+		RestTemplate restTemplate = new RestTemplate();
+		try {
+			URI uri = new URI("https://" + nuri + "." + properties.getDomain()), calluri;
+			LOGGER.debug("Base URI: {}", uri.toString());
+			restTemplate.getForObject(calluri = uri, String.class);
+			LOGGER.debug("After GET on <{}>", calluri.toString());
+			restTemplate.getForObject(calluri = URI.create(uri.toString() + "/index.php?updateCorePlugins=1"),
+					String.class);
+			LOGGER.debug("After GET on <{}>", calluri.toString());
+		} catch (RestClientException e) {
+			e.printStackTrace();
+			LOGGER.error("CFMGR::upgradeMatomoInstance: error while calling service instance through HTTP.", e);
+			return false;
+		} catch (URISyntaxException e) {
+			LOGGER.error("CFMGR::upgradeMatomoInstance: wrong URI for calling service instance through HTTP.", e);
+			return false;
+		}
+		return true;
+	}
+
+	public String getApiAccessToken(String dbcred, String instid, String planid) {
+		LOGGER.debug("CFMGR::getApiAccessToken: instId={}", instid);
+		String token = null;
+		Connection conn = null;
+		Statement stmt = null;
+		try {
+			Class.forName("org.mariadb.jdbc.Driver");
+			conn = DriverManager.getConnection(dbcred);
+			stmt = conn.createStatement();
+			stmt.execute("SELECT token_auth FROM " + getTablePrefix(instid, planid) + "_user WHERE login='" + MATOMOINSTANCE_ROOTUSER + "'");
+			if (!stmt.getResultSet().first()) {
+				LOGGER.error("Cannot retrieve the credentials of the admin user (resultset issue).");
+			}
+			token = stmt.getResultSet().getString(1);
+		} catch (ClassNotFoundException e) {
+			LOGGER.error("Cannot retrieve the credentials of the admin user (driver not found).", e);
+		} catch (SQLException e) {
+			LOGGER.error("Cannot retrieve the credentials of the admin user (sql problem).", e);
+		} finally {
+			try {
+				if (stmt != null) {
+					stmt.close();
+				}
+				if (conn != null) {
+					conn.close();
+				}
+			} catch (SQLException e) {
+				LOGGER.error("Problem while retrieving the credentials of the admin user (at connexion close): " + e.getMessage());
+			}
+		}
+		return token;
+	}
+
+	public void deleteAssociatedDbSchema(PMatomoInstance pmi) {
+		LOGGER.debug("CFMGR::deleteAssociatedDbSchema: appCode={}", pmi.getIdUrlStr());
+		if (pmi.getDbCred() == null) {
+			return;
+		}
+        Connection conn = null;
+        Statement stmt = null;
+		try {
+			Class.forName("org.mariadb.jdbc.Driver");
+			//LOGGER.debug("SERV::deleteAssociatedDbSchema: jdbcUrl={}", pmi.getDbCred());
+			conn = DriverManager.getConnection(pmi.getDbCred());
+			DatabaseMetaData m = conn.getMetaData();
+			ResultSet tables = m.getTables(null, null, "%", null);
+			while (tables.next()) {
+				if (! tables.getString(3).startsWith(getTablePrefix(pmi.getIdUrlStr(), pmi.getPlanId()))) {
+					continue;
+				}
+				stmt = conn.createStatement();
+				stmt.execute("DROP TABLE " + tables.getString(3));
+				stmt.close();
+			}
+		} catch (ClassNotFoundException e) {
+			LOGGER.error("CFMGR::deleteAssociatedDbSchema: cannot find JDBC driver.");
+			e.printStackTrace();
+			throw new RuntimeException("Cannot remove tables of deleted Matomo service instance (DRIVER).", e);
+		} catch (SQLException e) {
+			LOGGER.error("CFMGR::deleteAssociatedDbSchema: SQL problem -> {}", e.getMessage());
+			e.printStackTrace();
+			throw new RuntimeException("Cannot remove tables of deleted Matomo service instance (SQL EXEC).", e);
+		} finally {
+			try {
+				if (conn != null) {
+					conn.close();
+				}
+			} catch (SQLException e) {
+				LOGGER.error("CFMGR::deleteAssociatedDbSchema: SQL problem while closing connexion -> {}", e.getMessage());
+				e.printStackTrace();
+				throw new RuntimeException("Cannot remove tables of deleted Matomo service instance (CNX CLOSE).", e);
+			}
+		}
 	}
 }

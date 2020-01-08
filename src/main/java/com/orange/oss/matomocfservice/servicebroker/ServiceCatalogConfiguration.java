@@ -16,7 +16,6 @@
 
 package com.orange.oss.matomocfservice.servicebroker;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -75,23 +74,8 @@ public class ServiceCatalogConfiguration {
 				.description("\"Matomo Service\" provided as a dedicated CF application with data stored in a DB dedicated to this instance")
 				.free(false)
 				.build();
-		String version = "Unknown";
-		try {
-			Enumeration<URL> urls = getClass().getClassLoader().getResources("META-INF/MANIFEST.MF");
-			while (urls.hasMoreElements()) {
-				URL url = urls.nextElement();
-				if (url.toString().equals("file:/home/vcap/app/META-INF/MANIFEST.MF")) {
-					InputStream is = url.openStream();
-					if (is != null) {
-						Manifest manifest = new Manifest(is);
-						version = (String)manifest.getMainAttributes().getValue("Implementation-Version");
-						break;
-					}
-				}
-			}
-		} catch (IOException e) {
-			// cannot get version: keep it unknown silently
-		}
+		Manifest manifest = getManifest();
+		String version = manifest == null ? "Unknown" : (String)manifest.getMainAttributes().getValue("Implementation-Version");
 		ServiceDefinition serviceDefinition = ServiceDefinition.builder()
 				.id("matomo-cf-service")
 				.name(serviceName)
@@ -108,5 +92,29 @@ public class ServiceCatalogConfiguration {
 		return Catalog.builder()
 				.serviceDefinitions(serviceDefinition)
 				.build();
+	}
+
+	public static Manifest getManifest() {
+	    try {
+	    	Enumeration<URL> resEnum = Thread.currentThread().getContextClassLoader().getResources("META-INF/MANIFEST.MF");
+	        while (resEnum.hasMoreElements()) {
+	            try {
+	                URL url = resEnum.nextElement();
+	                if (url.toString().equals("file:/home/vcap/app/META-INF/MANIFEST.MF")) {
+	                    InputStream is = url.openStream();
+	                    if (is != null) {
+	                        Manifest manifest = new Manifest(is);
+	                        return manifest;
+	                    }
+	                }
+	            }
+	            catch (Exception e) {
+	                // Silently ignore wrong manifests on classpath?
+	            }
+	        }
+	    } catch (IOException e1) {
+	        // Silently ignore wrong manifests on classpath?
+	    }
+	    return null;
 	}
 }

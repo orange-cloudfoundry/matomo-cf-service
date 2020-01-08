@@ -117,7 +117,6 @@ public abstract class POperationStatus {
 	}
 
 	public OperationState getLastOperationState() {
-		System.out.println("lastOperationState=<" + lastOperationState + ">");
 		if (OperationState.SUCCEEDED.getValue().equals(lastOperationState)) {
 			return OperationState.SUCCEEDED;
 		}

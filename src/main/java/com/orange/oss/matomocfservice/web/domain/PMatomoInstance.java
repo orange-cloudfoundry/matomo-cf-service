@@ -106,10 +106,10 @@ public class PMatomoInstance extends POperationStatus {
 		this.timeZone = null;
 	}
 
-	public PMatomoInstance(String uuid, int idUrl, String servDefId, String name, PlatformKind pfkind, String pfapi, String planid, PPlatform pf, Parameters mip) {
+	public PMatomoInstance(String uuid, int idUrl, String name, PlatformKind pfkind, String pfapi, String planid, PPlatform pf, Parameters mip) {
 		super(uuid, POperationStatus.OpCode.CREATE_SERVICE_INSTANCE, OperationState.IN_PROGRESS, pf);
 		this.idUrl = idUrl;
-		this.serviceDefinitionId = servDefId;
+		this.serviceDefinitionId = "matomo-cf-service";
 		this.name = name;
 		this.platformKind = pfkind.toString();
 		this.platformApiLocation = pfapi;

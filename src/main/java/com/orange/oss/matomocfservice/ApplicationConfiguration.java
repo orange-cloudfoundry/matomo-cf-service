@@ -44,7 +44,6 @@ import com.orange.oss.matomocfservice.web.service.PlatformService;
 @Configuration
 public class ApplicationConfiguration {
 	private final static Logger LOGGER = LoggerFactory.getLogger(ApplicationConfiguration.class);
-	public static final String ADMIN_API_PATH = "/adminapi";
 	@Autowired
 	MatomoInstanceService matomoInstanceService;
 	@Autowired
@@ -100,9 +99,5 @@ public class ApplicationConfiguration {
 		instanceIdMgr.initialize();
 		platformService.initialize();
 		matomoInstanceService.initialize();
-	}
-
-	public ApplicationInformation getApplicationInformation() {
-		return applicationInformation;
 	}
 }

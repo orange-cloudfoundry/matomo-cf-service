@@ -16,8 +16,6 @@
 
 package com.orange.oss.matomocfservice.web.service;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
@@ -29,20 +27,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.servicebroker.model.instance.OperationState;
-import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
 
-//import com.orange.oss.matomocfservice.api.model.MatomoInstance;
-//import com.orange.oss.matomocfservice.api.model.MiParameters;
-//import com.orange.oss.matomocfservice.api.model.OpCode;
 import com.orange.oss.matomocfservice.cfmgr.CloudFoundryMgr;
 import com.orange.oss.matomocfservice.cfmgr.CloudFoundryMgrProperties;
 import com.orange.oss.matomocfservice.servicebroker.ServiceCatalogConfiguration;
@@ -53,6 +43,7 @@ import com.orange.oss.matomocfservice.web.domain.PPlatform;
 import com.orange.oss.matomocfservice.web.domain.Parameters;
 import com.orange.oss.matomocfservice.web.repository.PMatomoInstanceRepository;
 
+import io.jsonwebtoken.lang.Assert;
 import reactor.core.publisher.Mono;
 
 /**
@@ -62,7 +53,6 @@ import reactor.core.publisher.Mono;
 @Service
 public class MatomoInstanceService extends OperationStatusService {
 	private final static Logger LOGGER = LoggerFactory.getLogger(MatomoInstanceService.class);
-	private final static String MATOMOINSTANCE_ROOTUSER = "admin";
 	private final static String NOTINSTALLED = "NOT_INST";
 	@Autowired
 	private PMatomoInstanceRepository miRepo;
@@ -101,6 +91,8 @@ public class MatomoInstanceService extends OperationStatusService {
 	}
 
 	public PMatomoInstance getMatomoInstance(String platformId, String instanceId) {
+		Assert.notNull(platformId, "platform id mustn't be null");
+		Assert.notNull(instanceId, "instance id mustn't be null");
 		LOGGER.debug("SERV::getMatomoInstance: platformId={} instanceId={}", platformId, instanceId);
 		PPlatform ppf = getPPlatform(platformId);
 		Optional<PMatomoInstance> opmi = miRepo.findById(instanceId);
@@ -117,26 +109,32 @@ public class MatomoInstanceService extends OperationStatusService {
 	}
 
 	public List<PMatomoInstance> findMatomoInstance(String platformId) {
+		Assert.notNull(platformId, "platform id mustn't be null");
 		LOGGER.debug("SERV::findMatomoInstance: platformId={}", platformId);
+		getPPlatform(platformId);
 		return miRepo.findByPlatform(getPPlatform(platformId));
 	}
 
 	public String getInstanceUrl(PMatomoInstance pmi) {
+		Assert.notNull(pmi, "p matomo instance mustn't be null");
 		return cfMgr.getInstanceUrl(pmi.getUuid());
 	}
 
 	public PMatomoInstance createMatomoInstance(
 			String uuid,
-			String definitionid,
 			String instname,
-			String tenantid,
-			String subtenantid,
 			PlatformKind pfkind,
 			String apiinfolocation,
 			String planid,
 			String pfid,
 			Parameters parameters) {
-		LOGGER.debug("SERV::createMatomoInstance: matomoInstance={}", uuid);
+		Assert.notNull(uuid, "instance uuid mustn't be null");
+		Assert.notNull(instname, "instance name mustn't be null");
+		Assert.notNull(pfkind, "platform kind mustn't be null");
+		Assert.notNull(apiinfolocation, "api location mustn't be null");
+		Assert.notNull(planid, "planid mustn't be null");
+		Assert.notNull(parameters, "parameters mustn't be null");
+		LOGGER.debug("SERV::createMatomoInstance: instanceId={}, platformId={}, instName={}", uuid, pfid, instname);
 		PPlatform ppf = getPPlatform(pfid);
 		for (PMatomoInstance pmi : miRepo.findByPlatformAndLastOperation(ppf, POperationStatus.OpCode.DELETE_SERVICE_INSTANCE.toString())) {
 			if (pmi.getUuid().equals(uuid)) {
@@ -146,8 +144,7 @@ public class MatomoInstanceService extends OperationStatusService {
 			}
 		}
 		PMatomoInstance pmi = new PMatomoInstance(uuid, instanceIdMgr.allocateInstanceId(),
-				definitionid, instname, pfkind,
-				apiinfolocation, planid, ppf, parameters);
+				instname, pfkind, apiinfolocation, planid, ppf, parameters);
 		savePMatomoInstance(pmi);
 		if (!cfMgr.isSmtpReady()) {
 			LOGGER.warn("Cannot create any kind of instance: service unavailable (retry later on)");
@@ -155,9 +152,6 @@ public class MatomoInstanceService extends OperationStatusService {
 		} else if (planid.equals(ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID) && !cfMgr.isGlobalSharedReady()) {
 			LOGGER.warn("Cannot create an instance with plan <" + ServiceCatalogConfiguration.PLANGLOBSHARDB_NAME + ">: unavailable (retry later on)");
 			pmi.setLastOperationState(OperationState.FAILED);
-//		} else if (planid.equals(ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID) && !cfMgr.isMatomoSharedReady()) {
-//			LOGGER.warn("Cannot create an instance with plan <" + ServiceCatalogConfiguration.PLANMATOMOSHARDB_NAME + ">: unavailable (retry later on)");
-//			pmi.setLastOperationState(OperationState.FAILED);
 		}
 		if (pmi.getLastOperationState() == OperationState.FAILED) {
 			pmi.setInstalledVersion(NOTINSTALLED);
@@ -183,8 +177,8 @@ public class MatomoInstanceService extends OperationStatusService {
 			})
 			.doOnSuccess(vv -> {
 				LOGGER.debug("Async create app instance (phase 1) \"" + pmi.getUuid() + "\" succeeded");
-				deleteAssociatedDbSchema(pmi); // make sure the DB situation is clean
-				if (!initializeMatomoInstance(pmi.getIdUrlStr(), pmi.getUuid(), pmi.getPassword(), pmi.getPlanId())) {
+				cfMgr.deleteAssociatedDbSchema(pmi); // make sure the DB situation is clean
+				if (!cfMgr.initializeMatomoInstance(pmi.getIdUrlStr(), pmi.getUuid(), pmi.getPassword(), pmi.getPlanId())) {
 					matomoReleases.deleteLinkedTree(pmi.getIdUrlStr());
 					pmi.setLastOperationState(OperationState.FAILED);
 					savePMatomoInstance(pmi);
@@ -207,10 +201,10 @@ public class MatomoInstanceService extends OperationStatusService {
 		return pmi;
 	}
 
-	public String deleteMatomoInstance(String platformId, String instanceId) {
-		LOGGER.debug("SERV::deleteMatomoInstance: platformId={} instanceId={}", platformId, instanceId);
+	public String deleteMatomoInstance(String uuid, String platformId) {
+		LOGGER.debug("SERV::deleteMatomoInstance: instanceId={}, platformId={}", uuid, platformId);
 		PPlatform ppf = getPPlatform(platformId);
-		Optional<PMatomoInstance> opmi = miRepo.findById(instanceId);
+		Optional<PMatomoInstance> opmi = miRepo.findById(uuid);
 		if (!opmi.isPresent()) {
 			LOGGER.warn("SERV::deleteMatomoInstance: KO -> does not exist.");
 			return null;
@@ -223,14 +217,14 @@ public class MatomoInstanceService extends OperationStatusService {
 			pmi.setLastOperationState(OperationState.SUCCEEDED);
 			pmi.setConfigFileContent(null);
 			savePMatomoInstance(pmi);
-			return "Error: deletion already failed on platform with ID=" + platformId + " for Matomo service instance with ID=" + instanceId + ": force deletion!";
+			return "Error: deletion already failed on platform with ID=" + platformId + " for Matomo service instance with ID=" + uuid + ": force deletion!";
 		}
 		pmi.setLastOperation(POperationStatus.OpCode.DELETE_SERVICE_INSTANCE);
-		if (pmi.getPlatform() != ppf) {
+		if (!pmi.getPlatform().getId().contentEquals(ppf.getId())) {
 			LOGGER.error("SERV::deleteMatomoInstance: KO -> wrong platform.");
 			pmi.setLastOperationState(OperationState.FAILED);
 			savePMatomoInstance(pmi);
-			return "Error: wrong platform with ID=" + platformId + " for Matomo service instance with ID=" + instanceId + ".";
+			return "Error: wrong platform with ID=" + platformId + " for Matomo service instance with ID=" + uuid + ".";
 		}
 		if (pmi.getLastOperationState() == OperationState.IN_PROGRESS) {
 			LOGGER.debug("SERV::deleteMatomoInstance: KO -> operation in progress.");
@@ -244,7 +238,7 @@ public class MatomoInstanceService extends OperationStatusService {
 			return "Nothing to delete for instance with ID=" + pmi.getUuid();
 		}
 		// delete data associated with the instance under deletion
-		deleteAssociatedDbSchema(pmi);
+		cfMgr.deleteAssociatedDbSchema(pmi);
 		cfMgr.deleteMatomoCfApp(pmi.getIdUrlStr(), pmi.getPlanId())
 		.doOnError(t -> {
 			LOGGER.debug("Async delete app instance \"" + pmi.getUuid() + "\" failed -> " + t.getMessage());
@@ -380,7 +374,7 @@ public class MatomoInstanceService extends OperationStatusService {
 		})
 		.doOnSuccess(v -> {
 			LOGGER.debug("Async upgrade app instance (phase 1) \"" + pmi.getUuid() + "\" succeeded");
-			if (!upgradeMatomoInstance(pmi.getIdUrlStr(), pmi.getUuid())) {
+			if (!cfMgr.upgradeMatomoInstance(pmi.getIdUrlStr(), pmi.getUuid())) {
 				matomoReleases.deleteLinkedTree(pmi.getIdUrlStr());
 				pmi.setLastOperationState(OperationState.FAILED);
 				savePMatomoInstance(pmi);
@@ -418,15 +412,16 @@ public class MatomoInstanceService extends OperationStatusService {
 							// dirty: fetch token_auth from the database as I can't succeed to do it with
 							// the API :-(
 							pmi.setDbCred(dbCreds.getJdbcUrl((Map<String, Object>)env.get("VCAP_SERVICES")));
-							String token = getApiAccessToken(pmi.getDbCred(), pmi.getIdUrlStr(), pmi.getPlanId());
+							String token = cfMgr.getApiAccessToken(pmi.getDbCred(), pmi.getIdUrlStr(), pmi.getPlanId());
 							if (token == null) {
 								pmi.setLastOperationState(OperationState.FAILED);
+								LOGGER.debug("Async settle app instance (phase 2) \"" + pmi.getUuid() + "\" failed");
 							} else {
 								pmi.setTokenAuth(token);
 								pmi.setLastOperationState(OperationState.SUCCEEDED);
+								LOGGER.debug("Async settle app instance (phase 2) \"" + pmi.getUuid() + "\" succeeded");
 							}
 							savePMatomoInstance(pmi);
-							LOGGER.debug("Async settle app instance (phase 2) \"" + pmi.getUuid() + "\" succeeded");
 						}).subscribe();
 					} else {
 						pmi.setLastOperationState(OperationState.SUCCEEDED);
@@ -439,241 +434,5 @@ public class MatomoInstanceService extends OperationStatusService {
 	private PMatomoInstance savePMatomoInstance(PMatomoInstance pmi) {
 		miRepo.save(pmi);
 		return pmi;
-	}
-
-	/**
-	 * 
-	 * @param appcode
-	 * @param nuri
-	 * @param pwd
-	 * @return		true if the instance has been intialized correctly
-	 */
-	private boolean initializeMatomoInstance(String appcode, String nuri, String pwd, String planid) {
-		LOGGER.debug("SERV::initializeMatomoInstance: appCode={}", appcode);
-		RestTemplate restTemplate = new RestTemplate();
-		try {
-			URI uri = new URI("https://" + nuri + "." + properties.getDomain()), calluri;
-			LOGGER.debug("Base URI: {}", uri.toString());
-			String res = restTemplate.getForObject(calluri = uri, String.class);
-			LOGGER.debug("After GET on <{}>", calluri.toString());
-			res = restTemplate.getForObject(calluri = URI.create(uri.toString() + "/index.php?action=systemCheck"),
-					String.class);
-			LOGGER.debug("After GET on <{}>", calluri.toString());
-			res = restTemplate.getForObject(calluri = URI.create(uri.toString() + "/index.php?action=databaseSetup"),
-					String.class);
-			LOGGER.debug("After GET on <{}>", calluri.toString());
-			Document d = Jsoup.parse(res);
-			if (d == null) {
-				LOGGER.error("SERV::initializeMatomoInstance: error while decoding JSON from GET databaseSetup.");
-				return false;
-			}
-			MultipartBodyBuilder mbb = new MultipartBodyBuilder();
-			mbb.part("type", d.getElementById("type-0").attr("value"));
-			mbb.part("host", d.getElementById("host-0").attr("value"));
-			mbb.part("username", d.getElementById("username-0").attr("value"));
-			mbb.part("password", d.getElementById("password-0").attr("value"));
-			mbb.part("dbname", d.getElementById("dbname-0").attr("value"));
-			mbb.part("tables_prefix", cfMgr.getTablePrefix(appcode, planid) + "_");
-			mbb.part("adapter", "PDO\\MYSQL");
-			mbb.part("submit", "Suivant+%C2%BB");
-			res = restTemplate.postForObject(calluri = URI.create(uri.toString() + "/index.php?action=databaseSetup"),
-					mbb.build(), String.class);
-			LOGGER.debug("After POST on <{}>", calluri.toString());
-			res = restTemplate.getForObject(
-					calluri = URI.create(uri.toString() + "/index.php?action=tablesCreation&module=Installation"),
-					String.class);
-			LOGGER.debug("After GET on <{}>", calluri.toString());
-			res = restTemplate.getForObject(
-					calluri = URI.create(uri.toString() + "/index.php?action=setupSuperUser&module=Installation"),
-					String.class);
-			LOGGER.debug("After GET on <{}>", calluri.toString());
-			mbb = new MultipartBodyBuilder();
-			mbb.part("login", MATOMOINSTANCE_ROOTUSER);
-			mbb.part("password", pwd);
-			mbb.part("password_bis", pwd);
-			mbb.part("email", "piwik@orange.com");
-			mbb.part("subscribe_newsletter_piwikorg", "0");
-			mbb.part("subscribe_newsletter_professionalservices", "0");
-			mbb.part("submit", "Suivant+%C2%BB");
-			res = restTemplate.postForObject(
-					calluri = URI.create(uri.toString() + "/index.php?action=setupSuperUser&module=Installation"),
-					mbb.build(), String.class);
-			LOGGER.debug("After POST on <{}>", calluri.toString());
-			mbb = new MultipartBodyBuilder();
-			mbb.part("siteName", appcode);
-			mbb.part("url", uri.toASCIIString());
-			mbb.part("timezone", "Europe/Paris");
-			mbb.part("ecommerce", "0");
-			mbb.part("submit", "Suivant+%C2%BB");
-			res = restTemplate.postForObject(
-					calluri = URI.create(uri.toString() + "/index.php?action=firstWebsiteSetup&module=Installation"),
-					mbb.build(), String.class);
-			LOGGER.debug("After POST on <{}>", calluri.toString());
-			res = restTemplate.getForObject(calluri = URI.create(
-					uri.toString() + "/index.php?action=finished" + "&clientProtocol=https" + "&module=Installation"
-							+ "&site_idSite=4" + "&site_name=" + cfMgr.getTablePrefix(appcode, planid)),
-					String.class);
-			LOGGER.debug("After GET on <{}>", calluri.toString());
-			mbb = new MultipartBodyBuilder();
-			mbb.part("do_not_track", "1");
-			mbb.part("anonymise_ip", "1");
-			mbb.part("submit", "Continuer+vers+Matomo+%C2%BB");
-			res = restTemplate.postForObject(calluri = URI.create(uri.toString()
-					+ "/index.php?action=finished&clientProtocol=https&module=Installation&site_idSite=4&site_name="
-					+ cfMgr.getTablePrefix(appcode, planid)), mbb.build(), String.class);
-			LOGGER.debug("After POST on <{}>", calluri.toString());
-			res = restTemplate.getForObject(calluri = uri, String.class);
-			LOGGER.debug("After GET on <{}>", calluri.toString());
-		} catch (RestClientException e) {
-			e.printStackTrace();
-			LOGGER.error("SERV::initializeMatomoInstance: error while calling service instance through HTTP.", e);
-			return false;
-		} catch (URISyntaxException e) {
-			LOGGER.error("SERV::initializeMatomoInstance: wrong URI for calling service instance through HTTP.", e);
-			return false;
-		}
-		return true;
-	}
-
-	/**
-	 * 
-	 * @param appcode
-	 * @param nuri
-	 * @return		true if the instance has been upgraded correctly
-	 */
-	private boolean upgradeMatomoInstance(String appcode, String nuri) {
-		LOGGER.debug("SERV::upgradeMatomoInstance: appCode={}", appcode);
-		RestTemplate restTemplate = new RestTemplate();
-		try {
-			URI uri = new URI("https://" + nuri + "." + properties.getDomain()), calluri;
-			LOGGER.debug("Base URI: {}", uri.toString());
-			restTemplate.getForObject(calluri = uri, String.class);
-			LOGGER.debug("After GET on <{}>", calluri.toString());
-			restTemplate.getForObject(calluri = URI.create(uri.toString() + "/index.php?updateCorePlugins=1"),
-					String.class);
-			LOGGER.debug("After GET on <{}>", calluri.toString());
-		} catch (RestClientException e) {
-			e.printStackTrace();
-			LOGGER.error("SERV::upgradeMatomoInstance: error while calling service instance through HTTP.", e);
-			return false;
-		} catch (URISyntaxException e) {
-			LOGGER.error("SERV::upgradeMatomoInstance: wrong URI for calling service instance through HTTP.", e);
-			return false;
-		}
-		return true;
-	}
-
-	private String getApiAccessToken(String dbcred, String instid, String planid) {
-		String token = null;
-		Connection conn = null;
-		Statement stmt = null;
-		try {
-			Class.forName("org.mariadb.jdbc.Driver");
-			conn = DriverManager.getConnection(dbcred);
-			stmt = conn.createStatement();
-			stmt.execute("SELECT token_auth FROM " + cfMgr.getTablePrefix(instid, planid) + "_user WHERE login='" + MATOMOINSTANCE_ROOTUSER + "'");
-			if (!stmt.getResultSet().first()) {
-				LOGGER.error("Cannot retrieve the credentials of the admin user (resultset issue).");
-			}
-			token = stmt.getResultSet().getString(1);
-		} catch (ClassNotFoundException e) {
-			LOGGER.error("Cannot retrieve the credentials of the admin user (driver not found).", e);
-		} catch (SQLException e) {
-			LOGGER.error("Cannot retrieve the credentials of the admin user (sql problem).", e);
-		} finally {
-			try {
-				if (stmt != null) {
-					stmt.close();
-				}
-				if (conn != null) {
-					conn.close();
-				}
-			} catch (SQLException e) {
-				LOGGER.error("Problem while retrieving the credentials of the admin user (at connexion close): " + e.getMessage());
-			}
-		}
-		return token;
-	}
-	/**
-	 * Retrieve token_auth through Matomo API -> failed to make it effective
-	 * @param appcode	Service instance internal app code
-	 * @param instid	GUID for the service instance
-	 * @param pwd		Password for instance admin
-	 * @return	The token to enable API access to this Matomo instance
-	 */
-//	private String getApiAccessToken(String appcode, String instid, String pwd) {
-//		String ta = null;
-//		LOGGER.debug("SERV::initializeApiAccess: appCode={}, instId={}, pwd={}", appcode, instid, pwd);
-//		try {
-//			RestTemplate restTemplate = new RestTemplate();
-//			URI uri = new URI("https://" + instid + "." + properties.getDomain()), calluri;
-//			MultipartBodyBuilder mbb = new MultipartBodyBuilder();
-//			mbb.part("module", "API");
-//			mbb.part("method", "UsersManager.getTokenAuth");
-//			mbb.part("userLogin", MATOMOINSTANCE_ROOTUSER);
-//			String md5pw = DatatypeConverter.printHexBinary(MessageDigest.getInstance("MD5").digest(pwd.getBytes("UTF-8")));
-//			LOGGER.debug("MD5 PW: " + md5pw);
-//			mbb.part("md5Password", md5pw);
-//			mbb.part("format", "json");
-//			String res = restTemplate.postForObject(calluri = URI.create(uri.toString() + "/index.php"),
-//					mbb.build(),
-//					String.class);
-//			LOGGER.debug("After POST on <{}>", calluri.toString());
-//			LOGGER.debug("RES -> " + res);
-//			JSONObject jres = new JSONObject(res);
-//			ta = (String) jres.get("value");
-////			Document d = Jsoup.parse(res);
-////			ta = d.getElementsByTag("result").first().text();
-//			LOGGER.debug("Token_auth=" + ta);
-//		} catch (URISyntaxException e) {
-//			e.printStackTrace();
-//		} catch (NoSuchAlgorithmException e) {
-//			e.printStackTrace();
-//		} catch (UnsupportedEncodingException e) {
-//			e.printStackTrace();
-//		}
-//		return ta;
-//	}
-
-	private void deleteAssociatedDbSchema(PMatomoInstance pmi) {
-		LOGGER.debug("SERV::deleteAssociatedDbSchema: appCode={}", pmi.getIdUrlStr());
-		if (pmi.getDbCred() == null) {
-			return;
-		}
-        Connection conn = null;
-        Statement stmt = null;
-		try {
-			Class.forName("org.mariadb.jdbc.Driver");
-			//LOGGER.debug("SERV::deleteAssociatedDbSchema: jdbcUrl={}", pmi.getDbCred());
-			conn = DriverManager.getConnection(pmi.getDbCred());
-			DatabaseMetaData m = conn.getMetaData();
-			ResultSet tables = m.getTables(null, null, "%", null);
-			while (tables.next()) {
-				if (! tables.getString(3).startsWith(cfMgr.getTablePrefix(pmi.getIdUrlStr(), pmi.getPlanId()))) {
-					continue;
-				}
-				stmt = conn.createStatement();
-				stmt.execute("DROP TABLE " + tables.getString(3));
-				stmt.close();
-			}
-		} catch (ClassNotFoundException e) {
-			LOGGER.error("SERV::deleteAssociatedDbSchema: cannot find JDBC driver.");
-			e.printStackTrace();
-			throw new RuntimeException("Cannot remove tables of deleted Matomo service instance (DRIVER).", e);
-		} catch (SQLException e) {
-			LOGGER.error("SERV::deleteAssociatedDbSchema: SQL problem -> {}", e.getMessage());
-			e.printStackTrace();
-			throw new RuntimeException("Cannot remove tables of deleted Matomo service instance (SQL EXEC).", e);
-		} finally {
-			try {
-				if (conn != null) {
-					conn.close();
-				}
-			} catch (SQLException e) {
-				LOGGER.error("SERV::deleteAssociatedDbSchema: SQL problem while closing connexion -> {}", e.getMessage());
-				e.printStackTrace();
-				throw new RuntimeException("Cannot remove tables of deleted Matomo service instance (CNX CLOSE).", e);
-			}
-		}
 	}
 }
