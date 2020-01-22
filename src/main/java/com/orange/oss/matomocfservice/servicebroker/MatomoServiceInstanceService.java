@@ -84,7 +84,7 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 			pfkind = PMatomoInstance.PlatformKind.OTHER;
 			instname = "";
 		}
-		PMatomoInstance pmi = miServ.createMatomoInstance(
+		String uuid = miServ.createMatomoInstance(
 				request.getServiceInstanceId(),
 				instname,
 				pfkind,
@@ -92,12 +92,12 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 				request.getPlanId(),
 				request.getPlatformInstanceId(),
 				toParameters(request.getParameters(), request.getPlanId()));
-		if (pmi == null) {
+		if (uuid == null) {
 			throw new ServiceInstanceExistsException(request.getServiceInstanceId(), request.getServiceDefinitionId());
 		}
 		return Mono.just(CreateServiceInstanceResponse.builder()
 				.async(true)
-				.dashboardUrl(miServ.getInstanceUrl(pmi))
+				.dashboardUrl(miServ.getInstanceUrl(uuid))
 				.instanceExisted(false)
 				.operation("Create Matomo Service Instance \"" + instname + "\"")
 				.build());
@@ -106,7 +106,7 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 	@Override
 	public Mono<GetLastServiceOperationResponse> getLastOperation(GetLastServiceOperationRequest request) {
 		LOGGER.debug("BROKER::getLastOperation: platformId={}, instanceId={}", request.getPlatformInstanceId(), request.getServiceInstanceId());
-		OperationAndState opandstate = miServ.getLastOperationAndState(request.getPlatformInstanceId(), request.getServiceInstanceId());
+		OperationAndState opandstate = miServ.getLastOperationAndState(request.getServiceInstanceId(), request.getPlatformInstanceId());
 		if (opandstate == null) {
 			throw new ServiceInstanceDoesNotExistException("Cannot find instance " + request.getServiceInstanceId());
 		}
@@ -120,14 +120,14 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 	@Override
 	public Mono<GetServiceInstanceResponse> getServiceInstance(GetServiceInstanceRequest request) {
 		LOGGER.debug("BROKER::getServiceInstance: platformId={}, instanceId={}", request.getPlatformInstanceId(), request.getServiceInstanceId());
-		PMatomoInstance pmi = miServ.getMatomoInstance(request.getPlatformInstanceId(), request.getServiceInstanceId());
+		PMatomoInstance pmi = miServ.getMatomoInstance(request.getServiceInstanceId(), request.getPlatformInstanceId());
 		if (pmi == null) {
 			throw new ServiceInstanceDoesNotExistException("Cannot find instance " + request.getServiceInstanceId());
 		}
 		return Mono.just(GetServiceInstanceResponse.builder()
 				.serviceDefinitionId(pmi.getServiceDefinitionId())
 				.planId(pmi.getPlanId())
-				.dashboardUrl(miServ.getInstanceUrl(pmi))
+				.dashboardUrl(miServ.getInstanceUrl(pmi.getUuid()))
 				.parameters(toMap(pmi.getParameters()))
 				.build());
 	}
@@ -156,16 +156,16 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 			LOGGER.warn("BROKER::   unknown kind of platform -> " + request.getContext().getPlatform());
 			instn = "";
 		}
-		PMatomoInstance pmi = miServ.updateMatomoInstance(
+		String uuid = miServ.updateMatomoInstance(
 				request.getServiceInstanceId(),
 				request.getPlatformInstanceId(),
 				toParameters(request.getParameters(), request.getPlanId()));
-		if (pmi == null) {
+		if (uuid == null) {
 			throw new ServiceInstanceDoesNotExistException("Cannot find instance " + request.getServiceInstanceId());
 		}
 		return Mono.just(UpdateServiceInstanceResponse.builder()
 					.async(true)
-					.dashboardUrl(miServ.getInstanceUrl(pmi))
+					.dashboardUrl(miServ.getInstanceUrl(uuid))
 					.operation("Update Matomo Service Instance \"" + instn + "\"")
 					.build());
 	}

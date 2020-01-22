@@ -26,13 +26,19 @@ import org.slf4j.LoggerFactory;
 public class ApplicationInformation {
 	private final static Logger LOGGER = LoggerFactory.getLogger(ApplicationInformation.class);
 	private final String baseUrl;
+	private final int timeoutFrozenInProgress; // in seconds
 
-	public ApplicationInformation(String baseUrl) {
-		LOGGER.debug("CONFIG - set app info / base URL=" + baseUrl);
+	public ApplicationInformation(String baseUrl, int timeout) {
+		LOGGER.debug("CONFIG - set app info / base URL={}, timeoutInProgress={}", baseUrl, timeout);
 		this.baseUrl = baseUrl;
+		this.timeoutFrozenInProgress = timeout;
 	}
 
 	public String getBaseUrl() {
 		return baseUrl;
+	}
+
+	public int getTimeoutFrozenInProgress() {
+		return timeoutFrozenInProgress;
 	}
 }

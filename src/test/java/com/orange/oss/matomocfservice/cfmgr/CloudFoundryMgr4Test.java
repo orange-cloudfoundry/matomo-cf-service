@@ -15,10 +15,14 @@
  */
 package com.orange.oss.matomocfservice.cfmgr;
 
+import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,25 +64,52 @@ public class CloudFoundryMgr4Test extends CloudFoundryMgrAbs {
 	@Override
 	public Mono<Void> deployMatomoCfApp(String instid, String uuid, String planid, Parameters mip, int memsize, int nbinst) {
 		LOGGER.debug("CFMGR-TEST::deployMatomoCfApp: instId={}", instid);
-		return Mono.empty();
+		if (respMask.delayDeployCfApp() > 0) {
+			LOGGER.debug("CFMGR-TEST::deployMatomoCfApp: create a Mono for delay");
+			return Mono.create(sink -> {
+				Mono.delay(Duration.ofSeconds(respMask.delayDeployCfApp()))
+				.doOnError(t -> {
+					LOGGER.debug("CFMGR-TEST::deployMatomoCfApp: pb with delay");
+					sink.error(t);
+					})
+				.doOnSuccess(l -> {
+					LOGGER.debug("CFMGR-TEST::deployMatomoCfApp: delay expired={}", respMask.delayDeployCfApp());
+					respMask.setDelayDeployCfApp(0);
+					sink.success();
+					})
+				.doOnSubscribe(v -> {
+					LOGGER.debug("CFMGR-TEST::deployMatomoCfApp: start delay={}", respMask.delayDeployCfApp());
+				})
+				.subscribe();
+			});
+		}
+		if (respMask.failedDeployCfAppAtOccur()) {
+			LOGGER.debug("CFMGR-TEST::deployMatomoCfApp: create a Mono for error");
+			return Mono.error(new TimeoutException("Timeout after some time"));
+		}
+		LOGGER.debug("CFMGR-TEST::deployMatomoCfApp: create a Mono for NOP");
+		return Mono.create(sink -> {sink.success();});
 	}
 
 	@Override
 	public Mono<Void> scaleMatomoCfApp(String instid, int instances, int memsize) {
 		LOGGER.debug("CFMGR-TEST::scaleMatomoCfApp: instId={}, instances={}, memsize={}", instid, instances, memsize);
-		return Mono.empty();
+		return Mono.create(sink -> {sink.success();});
 	}
 
 	@Override
 	public Mono<Void> createDedicatedDb(String instid, String planid) {
 		LOGGER.debug("CFMGR-TEST::createDedicatedDb: instId={}, planid={}", instid, planid);
-		return Mono.empty();
+		if (respMask.failedCreateDedicatedDB()) {
+			return Mono.error(new TimeoutException("Timeout after some time"));
+		}
+		return Mono.create(sink -> {sink.success();});
 	}
 
 	@Override
 	public Mono<Void> deleteDedicatedDb(String instid, String planid) {
 		LOGGER.debug("CFMGR-TEST::deleteDedicatedDb: instId={}, planid={}", instid, planid);
-		return Mono.empty();
+		return Mono.create(sink -> {sink.success();});
 	}
 
 	@Override
@@ -103,12 +134,15 @@ public class CloudFoundryMgr4Test extends CloudFoundryMgrAbs {
 	@Override
 	public Mono<Void> deleteMatomoCfApp(String instid, String planid) {
 		LOGGER.debug("CFMGR-TEST::deleteMatomoCfApp: instId={}", instid);
-		return Mono.empty();
+		return Mono.create(sink -> {sink.success();});
 	}
 
 	@Override
 	public Mono<AppConfHolder> getInstanceConfigFile(String instid, String version, boolean clustermode) {
 		LOGGER.debug("CFMGR-TEST::getInstanceConfigFile: instid={}, version={}, clusterMode={}", instid, version, clustermode);
+		if (respMask.failedGetConfFile()) {
+			return Mono.error(new IOException("Pb in file transfer"));
+		}
 		AppConfHolder appidh = new AppConfHolder();
 		appidh.appId = "fake id";
 		appidh.fileContent = "fake content".getBytes();
@@ -118,7 +152,7 @@ public class CloudFoundryMgr4Test extends CloudFoundryMgrAbs {
 	@Override
 	public boolean initializeMatomoInstance(String appcode, String nuri, String pwd, String planid) {
 		LOGGER.debug("CFMGR-TEST::initializeMatomoInstance");
-		return respMask.initializeMatomoInstanceOK();
+		return !respMask.failedInitializeMatomoInstance();
 	}
 
 	@Override

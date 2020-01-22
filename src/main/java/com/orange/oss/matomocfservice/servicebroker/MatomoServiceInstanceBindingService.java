@@ -84,7 +84,7 @@ public class MatomoServiceInstanceBindingService implements ServiceInstanceBindi
 	public Mono<GetLastServiceBindingOperationResponse> getLastOperation(
 			GetLastServiceBindingOperationRequest request) {
 		LOGGER.debug("BROKER::getLastOperation");
-		OperationAndState opandstate = bindingServ.getLastOperationAndState(request.getPlatformInstanceId(), request.getServiceInstanceId());
+		OperationAndState opandstate = bindingServ.getLastOperationAndState(request.getServiceInstanceId(), request.getPlatformInstanceId());
 		return Mono.just(GetLastServiceBindingOperationResponse.builder()
 				.deleteOperation(opandstate.getOperation().equals(OpCode.DELETE_SERVICE_INSTANCE_APP_BINDING))
 				.operationState(opandstate.getState())

@@ -38,6 +38,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 
+import com.orange.oss.matomocfservice.web.domain.Parameters;
+
 /**
  * @author P. Déchamboux
  *
@@ -105,6 +107,7 @@ public class MatomoReleases {
 					}
 				}
 			}
+			Parameters.setDefaultVersion(defaultRel);
 		} catch (IOException e) {
 			LOGGER.error("CFMGR::MatomoReleases: initialize: problem while manipulating files within service container -> " + e.getMessage());
 			e.printStackTrace();

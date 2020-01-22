@@ -52,21 +52,41 @@ If none of `releases.txt` and `default-release.txt` is found at repository root,
 
 Be careful that clean upgrade (especially for production mode) is only supported between releases of the service, due to the support of Liquibase for database update management. There is no guarantee of a clean upgrade from one version to another between releases (i.e., particular commits between two releases). In that case, you should start from an empty database, especially if you want to test the latest version (last commit from the trunk).
 
-### Setup the service on a CloudFoundry platform
+### Build and test the service package
+
+In order to produce your configured service package, do the following:
 
 1. Clone this repository and position into the _matomo-cf-release_ directory that has been created.
 
 2. Define the releases of Matomo you want provide to your service users. Setup files `releases.txt` and `default-release.txt` accordingly.
 
-3. Build and package the service code to be deployed to CloudFoundry. Be patient, adapting Matomo versions may take a while (few minutes).
+3. Build and package the service code to be deployed to CloudFoundry.
    * Build with maven:
    ```sh
-   mvn clean install
+   mvn clean install -Dmaven.test.skip=true
    ```
+   or
+   ```sh
+   mvn clean package -Dmaven.test.skip=true
+   ```   
 
    * Result
 
-     It produces a jar file which contains the whole code for the service as well as the releases of Matomo to be proposed for service instanciation.
+     It produces a jar file which contains the whole code for the service as well as the releases of Matomo to be proposed for service instantiation.
+
+If you want to run unit tests for your configuration, there are three things you not to know or do:
+
+1. The tests expect that you have configured your service with only one Matomo release.
+
+2. The version of this Matomo release should be set in the _application.yml_ file for the tests (within _src/test/resources_). Set variable _test:currentRelease_ with the version number of that Matomo release (it is usually initialized with the lastest Matomo release tested).
+
+3. Run the tests
+
+   ```sh
+   mvn clean test
+   ```
+
+### Setup the service on a CloudFoundry platform
 
 4. Deploy the service to CloudFoundry.
    * Configure your manifest file (for example copy the existing template `manifest.yml` to `mymanifest.yml`). This file has the following form:

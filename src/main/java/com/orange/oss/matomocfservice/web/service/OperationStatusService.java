@@ -20,6 +20,8 @@ import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.Optional;
 
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityNotFoundException;
 
 import org.slf4j.Logger;
@@ -38,40 +40,47 @@ import com.orange.oss.matomocfservice.web.repository.PPlatformRepository;
  */
 public abstract class OperationStatusService {
 	private final static Logger LOGGER = LoggerFactory.getLogger(OperationStatusService.class);
-	private final long TIMEOUT_FROZENINPROGRESS = 1800; // in seconds
 	@Autowired
 	private PPlatformRepository pfRepo;
 	@Autowired
 	private POperationStatusRepository osRepo;
 	@Autowired
 	private PlatformService platformService;
+	@Autowired
+	private ApplicationInformation applicationInformation;
+	@Autowired
+	EntityManagerFactory entityManagerFactory;
 
-	public OperationAndState getLastOperationAndState(String platformId, String instanceId) {
-		PPlatform ppf = getPPlatform(platformId);
+	public OperationAndState getLastOperationAndState(String instanceId, String platformId) {
+		EntityManager em = beginTx();
 		Optional<POperationStatus> opms = osRepo.findById(instanceId);
 		if (! opms.isPresent()) {
 			LOGGER.error("SERV::getLastOperationAndState: unknow service instance.");
+			commitTx(em);
 			return null;
 		}
 		POperationStatus pos = opms.get();
-		if (pos.getPlatform() != ppf) {
+		if (!pos.getPlatform().getId().equals(platformId)) {
 			LOGGER.error("SERV::getLastOperationAndState: wrong platform.");
+			commitTx(em);
 			return null;
 		}
-		Duration d = Duration.between(pos.getUpdateTime(), ZonedDateTime.now());
-		if (d.getSeconds() > TIMEOUT_FROZENINPROGRESS) {
-			LOGGER.error("SERV::getLastOperationAndState: last operation is in progress for too long (more than {} minutes): considered failed.", TIMEOUT_FROZENINPROGRESS);
-			pos.setLastOperationState(OperationState.FAILED);
-			osRepo.save(pos);
-		}
 		if (pos.getLastOperationState() == OperationState.IN_PROGRESS) {
-			LOGGER.debug("SERV::getLastOperationAndState: Operation={} State={} for {}'{}''", pos.getLastOperation().toString(), pos.getLastOperationState().toString(), d.getSeconds() / 60, d.getSeconds() % 60);			
+			Duration d = Duration.between(pos.getUpdateTime(), ZonedDateTime.now());
+			if (d.getSeconds() > applicationInformation.getTimeoutFrozenInProgress()) {
+				LOGGER.error("SERV::getLastOperationAndState: last operation is in progress for too long (more than {} seconds): considered failed.", applicationInformation.getTimeoutFrozenInProgress());
+				pos.setLastOperationState(OperationState.FAILED);
+				osRepo.save(pos);
+			} else {
+				LOGGER.debug("SERV::getLastOperationAndState: Operation={} State={} for {}min {}sec", pos.getLastOperation().toString(), pos.getLastOperationState().toString(), d.getSeconds() / 60, d.getSeconds() % 60);			
+			}
 		} else {
 			LOGGER.debug("SERV::getLastOperationAndState: Operation={} State={}", pos.getLastOperation().toString(), pos.getLastOperationState().toString());
 		}
 		OperationAndState opandst2fill = new OperationAndState();
 		opandst2fill.setOperation(pos.getLastOperation());
 		opandst2fill.setState(pos.getLastOperationState());
+		commitTx(em);
 		return opandst2fill;
 	}
 
@@ -126,5 +135,18 @@ public abstract class OperationStatusService {
 		}
 		LOGGER.error("SERV::getPPlatform: wrong platform.");
 		throw new EntityNotFoundException("Platform with ID=" + id + " not known");
+	}
+
+	protected EntityManager beginTx() {
+		EntityManager em = entityManagerFactory.createEntityManager();
+		LOGGER.debug("Begin TX: {}", em);
+		em.getTransaction().begin();
+		return em;
+	}
+
+	protected void commitTx(EntityManager em) {
+		LOGGER.debug("Commit TX: {}", em);
+		em.getTransaction().commit();
+		em.close();
 	}
 }

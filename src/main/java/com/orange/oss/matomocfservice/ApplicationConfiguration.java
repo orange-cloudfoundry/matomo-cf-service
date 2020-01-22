@@ -19,6 +19,7 @@ package com.orange.oss.matomocfservice;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnCloudPlatform;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.cloud.CloudPlatform;
@@ -44,6 +45,8 @@ import com.orange.oss.matomocfservice.web.service.PlatformService;
 @Configuration
 public class ApplicationConfiguration {
 	private final static Logger LOGGER = LoggerFactory.getLogger(ApplicationConfiguration.class);
+	@Value("${matomo-service.inProgressTimeout:1800}")
+	private int timeoutFrozenInProgress;
 	@Autowired
 	MatomoInstanceService matomoInstanceService;
 	@Autowired
@@ -66,7 +69,7 @@ public class ApplicationConfiguration {
 				.host(uri)
 				.build()
 				.toUriString();
-		applicationInformation = new ApplicationInformation(baseUrl);
+		applicationInformation = new ApplicationInformation(baseUrl, timeoutFrozenInProgress);
 		return applicationInformation;
 	}
 
@@ -87,7 +90,7 @@ public class ApplicationConfiguration {
 				.port(8080)
 				.build()
 				.toUriString();
-		applicationInformation = new ApplicationInformation(baseUrl);
+		applicationInformation = new ApplicationInformation(baseUrl, timeoutFrozenInProgress);
 		return applicationInformation;
 	}
 

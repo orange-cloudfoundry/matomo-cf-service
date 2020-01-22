@@ -22,10 +22,15 @@ package com.orange.oss.matomocfservice.cfmgr;
 public class CfMgr4TResponseMask {
 	private boolean smtpReady = true;
 	private boolean globalSharedReady = true;
-	private boolean initializeMatomoInstance = true;
+	private boolean failedInitializeMatomoInstance = false;
 	private boolean updateMatomoInstance = true;
 	private String dbService = "p-mysql";
 	private String accessToken = "fakeToken";
+	private boolean failedCreateDedicatedDB = false;
+	private int delayDeployCfApp = 0;
+	private int failedDeployCfAppAtOccur = 0;
+	private int deployCfAppOccur = 0;
+	private boolean failedGetConfFile = false;
 
 	public CfMgr4TResponseMask() {
 	}
@@ -46,12 +51,12 @@ public class CfMgr4TResponseMask {
 		return globalSharedReady;
 	}
 
-	public CfMgr4TResponseMask initializeMatomoInstance(boolean v) {
-		initializeMatomoInstance = v;
+	public CfMgr4TResponseMask setFailedInitialize() {
+		failedInitializeMatomoInstance = true;
 		return this;
 	}
-	public boolean initializeMatomoInstanceOK() {
-		return initializeMatomoInstance;
+	public boolean failedInitializeMatomoInstance() {
+		return failedInitializeMatomoInstance;
 	}
 
 	public CfMgr4TResponseMask updateMatomoInstance(boolean v) {
@@ -76,5 +81,44 @@ public class CfMgr4TResponseMask {
 	}
 	public String getAccessToken() {
 		return accessToken;
+	}
+
+	public CfMgr4TResponseMask setFailedCreateDedicatedDB() {
+		failedCreateDedicatedDB = true;
+		return this;
+	}
+	public boolean failedCreateDedicatedDB() {
+		return failedCreateDedicatedDB;
+	}
+
+	public CfMgr4TResponseMask setFailedDeployCfAppAtOccur(int v) {
+		failedDeployCfAppAtOccur = v;
+		return this;
+	}
+	public boolean failedDeployCfAppAtOccur() {
+		if (failedDeployCfAppAtOccur == 0) {
+			return false;
+		}
+		deployCfAppOccur++;
+		if (deployCfAppOccur == failedDeployCfAppAtOccur) {
+			return true;
+		}
+		return false;
+	}
+
+	public CfMgr4TResponseMask setDelayDeployCfApp(int v) {
+		delayDeployCfApp = v;
+		return this;
+	}
+	public int delayDeployCfApp() {
+		return delayDeployCfApp;
+	}
+
+	public CfMgr4TResponseMask setFailedGetConfFile() {
+		failedGetConfFile = true;
+		return this;
+	}
+	public boolean failedGetConfFile() {
+		return failedGetConfFile;
 	}
 }

@@ -1,9 +1,12 @@
 debug: false
 
+test:
+  currentRelease: 3.13.1
+  lowerReleaseNotAvailable: 3.6.1
+
 logging:
   level:
     root: error
-#    org.springframework: DEBUG
     com.orange.oss.matomocfservice: DEBUG
     org.cloudfoundry.operations: DEBUG
 #    org.springframework.cloud.servicebroker: DEBUG
@@ -26,7 +29,6 @@ spring:
       ddl-auto: none
   liquibase:
     change-log: classpath:/db/changelog/changelog-master.xml
-#    drop-first: true
 
 cf:
   apiHost: none
@@ -36,6 +38,7 @@ cf:
   space: none
 matomo-service:
   matomo-debug: false
+  inProgressTimeout: 3
   contact:
     name: none
     url: none
@@ -55,7 +58,3 @@ matomo-service:
     creds: p-mysql:10MB:name:hostname:port:username:password
   dedicated-db:
     creds: p-mysql:10MB:name:hostname:port:username:password
-
-test:
-  currentRelease: 3.13.0
-  lowerReleaseNotAvailable: 3.6.1

@@ -23,13 +23,19 @@ import java.util.Objects;
  * 
  */
 public class Parameters {
-	private String version = "3.13.0";
+	private static String defaultVersion;
+	private String version;
 	private String timeZone = "Europe/Paris";
 	private Boolean autoVersionUpgrade = true;
 	private Integer cfInstances = 1;
 	private Integer memorySize = 256;
 
+	static public void setDefaultVersion(String vers) {
+		defaultVersion = vers;
+	}
+
 	public Parameters() {
+		version = defaultVersion;
 	}
 
 	public Parameters version(String version) {
