@@ -88,8 +88,7 @@ If you want to run unit tests for your configuration, there are three things you
 
 ### Setup the service on a CloudFoundry platform
 
-4. Deploy the service to CloudFoundry.
-   * Configure your manifest file (for example copy the existing template `manifest.yml` to `mymanifest.yml`). This file has the following form:
+For deploying the service to a CloudFoundry platform, you need to configure your manifest file (for example copy the existing template `manifest.yml` to `mymanifest.yml` and adapt it as follows). This file has the following form:
 
 ```
 applications:
@@ -126,7 +125,7 @@ applications:
   timeout: 180
 ```
 
-   Change the file to fit your context by replacing all $...$ strings accordingly:
+Change the file to fit your context by replacing all $...$ strings accordingly:
 
    | $...$ String | Role | Example |
    |--------------|------|---------|
@@ -150,14 +149,14 @@ applications:
    | $MATOMO_SHARED_MYSQL_CREDS$ | This is a column-separated string which mainly consists of the names of the service and plan as well as the names of the credential fields in VCAP_SERVICES for the MySQL/MariaDB service to be bound to in order to store data for Matomo instances within a shared DB exclusively associated with Matomo service |  p-mysql:1GB:name:hostname :port:username:password |
    | $DEDICARED_MYSQL_CREDS$ | This is a column-separated string which mainly consists of the names of the credential fields in VCAP_SERVICES for the MySQL/MariaDB service to be bound to in order to store data for Matomo instances within a dedicated DB | ded-mysql:10GB:name:hostname :port:username:password |
 
-   You can also adjust other parameters from that file, for instance, the maximum number of instances the Matomo service can create.
+You can also adjust other parameters from that file, for instance, the maximum number of instances the Matomo service can create.
 
-   * Deploy the Matomo service:
+Finally, deploy the Matomo service:
    ```
    cf push -f mymanifest.yml
    ```
 
-5. You're done!!
+You're done!!
 
 ### Register the broker
 
