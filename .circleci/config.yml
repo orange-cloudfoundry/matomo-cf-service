@@ -29,18 +29,20 @@ jobs:
             - v1-dependencies-{{ checksum "pom.xml" }}
             # fallback to using the latest cache if no exact match is found
             - v1-dependencies-
-
       - run: mvn dependency:go-offline
-
       - save_cache:
           paths:
             - ~/.m2
           key: v1-dependencies-{{ checksum "pom.xml" }}
 
       # run tests!
-      - run: mvn package
-      
+      - run: mvn test
       - store_test_results:
           path: target/surefire-reports
+      - store_artifacts:
+          path: target
+      
+      # package
+      - run: mvn package -Dmaven.test.skip=true
       - store_artifacts:
           path: target/matomo-cf-service-0.7.0.jar
