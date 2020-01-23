@@ -40,9 +40,7 @@ jobs:
       - store_test_results:
           path: target/surefire-reports
       - store_artifacts:
-          paths:
-            - target/jacoco.exec
-            - target/jacoco-ut
+          path: target/jacoco.ut
       
       # package
       - run: mvn package -Dmaven.test.skip=true
