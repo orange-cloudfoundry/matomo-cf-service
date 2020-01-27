@@ -27,10 +27,14 @@ public class CfMgr4TResponseMask {
 	private String dbService = "p-mysql";
 	private String accessToken = "fakeToken";
 	private boolean failedCreateDedicatedDB = false;
+	private boolean failedDeleteDedicatedDB = false;
 	private int delayDeployCfApp = 0;
 	private int failedDeployCfAppAtOccur = 0;
 	private int deployCfAppOccur = 0;
 	private boolean failedGetConfFile = false;
+	private boolean failedGetAppEnv = false;
+	private boolean failedGetApiAccessToken = false;
+	private boolean failedDeleteMatomoCfApp = false;
 
 	public CfMgr4TResponseMask() {
 	}
@@ -91,6 +95,14 @@ public class CfMgr4TResponseMask {
 		return failedCreateDedicatedDB;
 	}
 
+	public CfMgr4TResponseMask setFailedDeleteDedicatedDB() {
+		failedDeleteDedicatedDB = true;
+		return this;
+	}
+	public boolean failedDeleteDedicatedDB() {
+		return failedDeleteDedicatedDB;
+	}
+
 	public CfMgr4TResponseMask setFailedDeployCfAppAtOccur(int v) {
 		failedDeployCfAppAtOccur = v;
 		return this;
@@ -120,5 +132,29 @@ public class CfMgr4TResponseMask {
 	}
 	public boolean failedGetConfFile() {
 		return failedGetConfFile;
+	}
+
+	public CfMgr4TResponseMask setFailedGetAppEnv() {
+		failedGetAppEnv = true;
+		return this;
+	}
+	public boolean failedGetAppEnv() {
+		return failedGetAppEnv;
+	}
+
+	public CfMgr4TResponseMask setFailedGetApiAccessToken() {
+		failedGetApiAccessToken = true;
+		return this;
+	}
+	public boolean failedGetApiAccessToken() {
+		return failedGetApiAccessToken;
+	}
+
+	public CfMgr4TResponseMask setFailedDeleteMatomoCfApp() {
+		failedDeleteMatomoCfApp = true;
+		return this;
+	}
+	public boolean failedDeleteMatomoCfApp() {
+		return failedDeleteMatomoCfApp;
 	}
 }

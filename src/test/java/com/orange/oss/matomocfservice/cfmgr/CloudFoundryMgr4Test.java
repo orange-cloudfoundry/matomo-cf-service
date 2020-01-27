@@ -109,12 +109,18 @@ public class CloudFoundryMgr4Test extends CloudFoundryMgrAbs {
 	@Override
 	public Mono<Void> deleteDedicatedDb(String instid, String planid) {
 		LOGGER.debug("CFMGR-TEST::deleteDedicatedDb: instId={}, planid={}", instid, planid);
+		if (respMask.failedDeleteDedicatedDB()) {
+			return Mono.error(new TimeoutException("Timeout after some time"));
+		}
 		return Mono.create(sink -> {sink.success();});
 	}
 
 	@Override
 	public Mono<Map<String, Object>> getApplicationEnv(String instid) {
 		LOGGER.debug("CFMGR-TEST::getApplicationEnv: instId={}", instid);
+		if (respMask.failedGetAppEnv()) {
+			return Mono.error(new TimeoutException("Timeout after some time"));
+		}
 		Map<String, Object> creds = new HashMap<String, Object>();
 		creds.put("name", "fakeDbName");
 		creds.put("hostname", "fakeHostName");
@@ -134,6 +140,9 @@ public class CloudFoundryMgr4Test extends CloudFoundryMgrAbs {
 	@Override
 	public Mono<Void> deleteMatomoCfApp(String instid, String planid) {
 		LOGGER.debug("CFMGR-TEST::deleteMatomoCfApp: instId={}", instid);
+		if (respMask.failedDeleteMatomoCfApp()) {
+			return Mono.error(new TimeoutException("Timeout after some time"));
+		}
 		return Mono.create(sink -> {sink.success();});
 	}
 
@@ -164,6 +173,9 @@ public class CloudFoundryMgr4Test extends CloudFoundryMgrAbs {
 	@Override
 	public String getApiAccessToken(String dbcred, String instid, String planid) {
 		LOGGER.debug("CFMGR-TEST::getApiAccessToken");
+		if (respMask.failedGetApiAccessToken()) {
+			return null;
+		}
 		return respMask.getAccessToken();
 	}
 

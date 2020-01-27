@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
 
 import org.hibernate.Session;
 import org.slf4j.Logger;
@@ -94,7 +93,7 @@ public class MatomoInstanceService extends OperationStatusService {
 		LOGGER.debug("SERV::getMatomoInstance: instanceId={}, platformId={}", instanceId, platformId);
 		Optional<PMatomoInstance> opmi = miRepo.findById(instanceId);
 		if (! opmi.isPresent()) {
-			LOGGER.error("Matomo Instance with ID=" + instanceId + " not known in Platform with ID=" + platformId);
+			LOGGER.debug("Matomo Instance with ID=" + instanceId + " not known in Platform with ID=" + platformId);
 			return null;
 		}
 		PMatomoInstance pmi = opmi.get();
@@ -131,9 +130,15 @@ public class MatomoInstanceService extends OperationStatusService {
 			return null;
 		}
 		EntityManager em = beginTx();
-		PPlatform ppf = getPPlatform(pfid);
-		PMatomoInstance pmi = new PMatomoInstance(uuid, instanceIdMgr.allocateInstanceId(), instname, pfkind,
-				apiinfolocation, planid, ppf, parameters);
+		PMatomoInstance pmi;
+		try {
+			PPlatform ppf = getPPlatform(pfid);
+			pmi = new PMatomoInstance(uuid, instanceIdMgr.allocateInstanceId(), instname, pfkind,
+					apiinfolocation, planid, ppf, parameters);
+		} catch (Exception e) {
+			commitTx(em);
+			throw e;
+		}
 		savePMatomoInstance(pmi, OperationState.IN_PROGRESS);
 		if (!cfMgr.isSmtpReady()
 				|| (planid.equals(ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID) && !cfMgr.isGlobalSharedReady())) {
@@ -213,43 +218,46 @@ public class MatomoInstanceService extends OperationStatusService {
 	public String deleteMatomoInstance(String uuid, String platformId) {
 		LOGGER.debug("SERV::deleteMatomoInstance: instanceId={}, platformId={}", uuid, platformId);
 		EntityManager em = beginTx();
-		Optional<PMatomoInstance> opmi = miRepo.findById(uuid);
-		if (!opmi.isPresent()) {
-			LOGGER.warn("SERV::deleteMatomoInstance: KO -> does not exist.");
+		PMatomoInstance pmi = null;
+		try {
+			Optional<PMatomoInstance> opmi = miRepo.findById(uuid);
+			if (!opmi.isPresent()) {
+				LOGGER.warn("SERV::deleteMatomoInstance: KO -> does not exist.");
+				return null;
+			}
+			pmi = opmi.get();
+			if (!pmi.getPlatform().getId().equals(platformId)) {
+				LOGGER.warn("SERV::deleteMatomoInstance: KO -> wrong platform.");
+				return null;
+			}
+			if ((pmi.getLastOperation() == POperationStatus.OpCode.DELETE_SERVICE_INSTANCE) &&
+					(pmi.getLastOperationState() == OperationState.FAILED)) {
+				LOGGER.error("SERV::deleteMatomoInstance: deletion already failed -> force delete.");
+				instanceIdMgr.freeInstanceId(pmi.getIdUrl());
+				pmi.setConfigFileContent(null);
+				savePMatomoInstance(pmi, OperationState.SUCCEEDED);
+				return "Error: deletion already failed on platform with ID=" + platformId + " for Matomo service instance with ID=" + uuid + ": force deletion!";
+			}
+			if (pmi.getLastOperationState() == OperationState.IN_PROGRESS) {
+				LOGGER.debug("SERV::deleteMatomoInstance: KO -> operation in progress.");
+				return "Error: cannot delete Matomo service instance with ID=" + uuid + ": operation already in progress.";
+			}
+			pmi.setLastOperation(POperationStatus.OpCode.DELETE_SERVICE_INSTANCE);
+			savePMatomoInstance(pmi, OperationState.IN_PROGRESS);
+			if (pmi.getInstalledVersion().equals(NOTINSTALLED)) {
+				savePMatomoInstance(pmi, OperationState.SUCCEEDED);
+				instanceIdMgr.freeInstanceId(pmi.getIdUrl());
+				pmi.setConfigFileContent(null);
+				return "Nothing to delete for instance with ID=" + pmi.getUuid();
+			}
+			// delete data associated with the instance under deletion
+			cfMgr.deleteAssociatedDbSchema(pmi);
+		} catch (Exception e) {
+			LOGGER.error("Problem in first step of deletion", e);
+			throw e;
+		} finally {
 			commitTx(em);
-			return null;
 		}
-		PMatomoInstance pmi = opmi.get();
-		if ((pmi.getLastOperation() == POperationStatus.OpCode.DELETE_SERVICE_INSTANCE) &&
-				(pmi.getLastOperationState() == OperationState.FAILED)) {
-			LOGGER.error("SERV::deleteMatomoInstance: deletion already failed -> force delete.");
-			instanceIdMgr.freeInstanceId(pmi.getIdUrl());
-			pmi.setConfigFileContent(null);
-			savePMatomoInstance(pmi, OperationState.SUCCEEDED);
-			commitTx(em);
-			return "Error: deletion already failed on platform with ID=" + platformId + " for Matomo service instance with ID=" + uuid + ": force deletion!";
-		}
-		pmi.setLastOperation(POperationStatus.OpCode.DELETE_SERVICE_INSTANCE);
-		if (!pmi.getPlatform().getId().equals(platformId)) {
-			LOGGER.error("SERV::deleteMatomoInstance: KO -> wrong platform.");
-			savePMatomoInstance(pmi, OperationState.FAILED);
-			commitTx(em);
-			return "Error: wrong platform with ID=" + platformId + " for Matomo service instance with ID=" + uuid + ".";
-		}
-		if (pmi.getLastOperationState() == OperationState.IN_PROGRESS) {
-			LOGGER.debug("SERV::deleteMatomoInstance: KO -> operation in progress.");
-			commitTx(em);
-			return "Error: cannot delete Matomo service instance with ID=" + pmi.getUuid() + ": operation already in progress.";
-		}
-		savePMatomoInstance(pmi, OperationState.IN_PROGRESS);
-		if (pmi.getInstalledVersion().equals(NOTINSTALLED)) {
-			savePMatomoInstance(pmi, OperationState.SUCCEEDED);
-			commitTx(em);
-			return "Nothing to delete for instance with ID=" + pmi.getUuid();
-		}
-		// delete data associated with the instance under deletion
-		cfMgr.deleteAssociatedDbSchema(pmi);
-		commitTx(em);
 		cfMgr.deleteMatomoCfApp(pmi.getIdUrlStr(), pmi.getPlanId())
 		.doOnError(t -> {
 			EntityManager nem = beginTx();
@@ -296,7 +304,7 @@ public class MatomoInstanceService extends OperationStatusService {
 			commitTx(nem);
 		})
 		.subscribe();
-		return "Delete launched for instance with ID=" + pmi.getUuid();
+		return "Delete launched for instance with ID=" + uuid;
 	}
 
 	public String updateMatomoInstance(String uuid, String pfid, Parameters parameters) {
@@ -494,7 +502,8 @@ public class MatomoInstanceService extends OperationStatusService {
 		} else if (os == OperationState.IN_PROGRESS) {
 			pmi.setLastOperationState(os);
 			miRepo.save(pmi);
-		} else if (pmi.getLastOperationState() == OperationState.IN_PROGRESS) {
+		} else if ((pmi.getLastOperationState() == OperationState.IN_PROGRESS)
+				|| (pmi.getLastOperationState() == OperationState.FAILED)) {
 			pmi.setLastOperationState(os);
 			miRepo.save(pmi);
 		}

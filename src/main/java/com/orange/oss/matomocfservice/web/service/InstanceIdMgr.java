@@ -129,4 +129,10 @@ public class InstanceIdMgr {
 		opiim.get().decNbAllocated();
 		piimRepo.save(opiim.get());		
 	}
+
+	@Transactional
+	public int getNbAllocatedInstanceId() {
+		Optional<PInstanceIdMgr> opiim = piimRepo.findById(PInstanceIdMgr.UNIQUEID);
+		return opiim.get().getNbAllocated();
+	}
 }
