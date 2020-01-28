@@ -296,8 +296,7 @@ public class MatomoReleases {
 				}
 			});
 		} catch (IOException e) {
-			LOGGER.error("SERV::MatomoReleases: deleteLinkedTree: problem while manipulating files within service container.", e);
-			throw new RuntimeException("IO pb in SERV::deleteLinkedTree", e);
+			LOGGER.error("SERV::MatomoReleases: deleteLinkedTree: problem while manipulating files within service container: ignore.", e);
 		}
 		new File(vpath).delete();
 	}
