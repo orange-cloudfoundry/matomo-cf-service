@@ -19,6 +19,8 @@ import java.util.jar.Manifest;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import com.orange.oss.matomocfservice.servicebroker.ServiceCatalogConfiguration;
@@ -29,10 +31,13 @@ import com.orange.oss.matomocfservice.servicebroker.ServiceCatalogConfiguration;
  */
 @SpringBootTest
 public class DeployServiceTest {
+	private final static Logger LOGGER = LoggerFactory.getLogger(TestDashBoard.class);
 
 	@Test
 	void startServiceInTestModeOK() {
+		LOGGER.debug("startServiceInTestModeOK");
 		Manifest manifest = ServiceCatalogConfiguration.getManifest();
+		LOGGER.debug("Manifest: {}", manifest);
 //		Assertions.assertNotNull(manifest);
 //		Assertions.assertNotNull(manifest.getMainAttributes().getValue("Implementation-Title"));
 //		Assertions.assertNotNull(manifest.getMainAttributes().getValue("Implementation-Version"));

@@ -18,6 +18,8 @@ package com.orange.oss.matomocfservice.web.service;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -29,6 +31,7 @@ import com.orange.oss.matomocfservice.cfmgr.CloudFoundryMgrProperties;
  */
 @SpringBootTest
 public class TestIntanceIdMgr {
+	private final static Logger LOGGER = LoggerFactory.getLogger(TestIntanceIdMgr.class);
 	@Autowired
 	CloudFoundryMgrProperties cfMgrProp;
 	@Autowired
