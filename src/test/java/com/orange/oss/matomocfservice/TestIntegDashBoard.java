@@ -31,8 +31,8 @@ import static io.restassured.RestAssured.get;
  */
 @SpringBootTest(webEnvironment = 
 SpringBootTest.WebEnvironment.RANDOM_PORT)
-public class TestDashBoard {
-	private final static Logger LOGGER = LoggerFactory.getLogger(TestDashBoard.class);
+public class TestIntegDashBoard {
+	private final static Logger LOGGER = LoggerFactory.getLogger(TestIntegDashBoard.class);
 	@LocalServerPort
 	private int port = -1;
 	private final String BASEPATH = "/";

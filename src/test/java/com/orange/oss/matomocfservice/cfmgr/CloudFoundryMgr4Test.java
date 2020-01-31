@@ -51,13 +51,13 @@ public class CloudFoundryMgr4Test extends CloudFoundryMgrAbs {
 
 	@Override
 	public boolean isSmtpReady() {
-		LOGGER.debug("CFMGR-TEST::CloudFoundryMgr-isSmtpReady");
+		LOGGER.debug("CFMGR-TEST::CloudFoundryMgr-isSmtpReady: {}", respMask.isSmtpReady());
 		return respMask.isSmtpReady();
 	}
 
 	@Override
 	public boolean isGlobalSharedReady() {
-		LOGGER.debug("CFMGR-TEST::CloudFoundryMgr-isGlobalSharedReady");
+		LOGGER.debug("CFMGR-TEST::CloudFoundryMgr-isGlobalSharedReady: {}", respMask.isGlobalSharedReady());
 		return respMask.isGlobalSharedReady();
 	}
 

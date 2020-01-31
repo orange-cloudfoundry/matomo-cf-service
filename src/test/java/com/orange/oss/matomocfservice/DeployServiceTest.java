@@ -31,7 +31,7 @@ import com.orange.oss.matomocfservice.servicebroker.ServiceCatalogConfiguration;
  */
 @SpringBootTest
 public class DeployServiceTest {
-	private final static Logger LOGGER = LoggerFactory.getLogger(TestDashBoard.class);
+	private final static Logger LOGGER = LoggerFactory.getLogger(DeployServiceTest.class);
 
 	@Test
 	void startServiceInTestModeOK() {

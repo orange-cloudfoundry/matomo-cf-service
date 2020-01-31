@@ -50,7 +50,7 @@ public class ServiceCatalogConfiguration {
 		LOGGER.debug("CONFIG - retrieve OSB catalog information.");
 		String env_vcapApp = System.getenv("VCAP_APPLICATION");
 		String serviceName = "matomo-service";
-		String serviceUri = "none";
+		String serviceUri = "localhost"; // set "localhost" as default URI
 		if (env_vcapApp != null) {
 			JSONObject jres = new JSONObject(env_vcapApp);
 			serviceName = jres.getString("name");

@@ -45,8 +45,6 @@ public abstract class OperationStatusService {
 	@Autowired
 	private POperationStatusRepository osRepo;
 	@Autowired
-	private PlatformService platformService;
-	@Autowired
 	private ApplicationInformation applicationInformation;
 	@Autowired
 	EntityManagerFactory entityManagerFactory;
@@ -128,13 +126,12 @@ public abstract class OperationStatusService {
 
 	protected PPlatform getPPlatform(String platformId) {
 		//LOGGER.debug("SERV::getPPlatform: platformId={}", platformId);
-		String id = platformId == null ? platformService.getUnknownPlatformId() : platformId;
-		Optional<PPlatform> oppf = pfRepo.findById(id);
+		Optional<PPlatform> oppf = pfRepo.findById(platformId);
 		if (oppf.isPresent()) {
 			return oppf.get();
 		}
 		LOGGER.error("SERV::getPPlatform: wrong platform.");
-		throw new EntityNotFoundException("Platform with ID=" + id + " not known");
+		throw new EntityNotFoundException("Platform with ID=" + platformId + " not known");
 	}
 
 	protected EntityManager beginTx() {

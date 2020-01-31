@@ -119,33 +119,35 @@ public class MatomoInstanceService extends OperationStatusService {
 	public String createMatomoInstance(String uuid, String instname, PlatformKind pfkind, String apiinfolocation,
 			String planid, String pfid, Parameters parameters) {
 		Assert.notNull(uuid, "instance uuid mustn't be null");
-		Assert.notNull(instname, "instance name mustn't be null");
 		Assert.notNull(pfkind, "platform kind mustn't be null");
-		Assert.notNull(apiinfolocation, "api location mustn't be null");
 		Assert.notNull(planid, "planid mustn't be null");
 		Assert.notNull(parameters, "parameters mustn't be null");
-		LOGGER.debug("SERV::createMatomoInstance: instanceId={}, platformId={}, instName={}", uuid, pfid, instname);
+		if (instname == null) {
+			instname = "none";
+		}
+		if (apiinfolocation == null) {
+			apiinfolocation = "";
+		}
+		LOGGER.debug("SERV::createMatomoInstance: instanceId={}, platformId={}, instName={}, apiInfoLoc={}", uuid, pfid, instname, apiinfolocation);
+		if (!cfMgr.isSmtpReady()
+				|| (planid.equals(ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID) && !cfMgr.isGlobalSharedReady())) {
+			LOGGER.error("Cannot create any kind of instance: service unavailable (retry later on)");
+			return "Cannot create any kind of instance: service unavailable (retry later on)";
+		}
 		EntityManager em = beginTx();
 		PMatomoInstance pmi;
 		try {
 			if (getMatomoInstance(uuid, pfid) != null) {
 				LOGGER.error("Matomo Instance with ID=" + uuid + " already exists in Platform with ID=" + pfid);
-				return null;
+				return "Matomo Instance with ID=" + uuid + " already exists in Platform with ID=" + pfid;
 			}
 			PPlatform ppf = getPPlatform(pfid);
 			pmi = new PMatomoInstance(uuid, instanceIdMgr.allocateInstanceId(), instname, pfkind,
 					apiinfolocation, planid, ppf, parameters);
 			savePMatomoInstance(pmi, OperationState.IN_PROGRESS);
-			if (!cfMgr.isSmtpReady()
-					|| (planid.equals(ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID) && !cfMgr.isGlobalSharedReady())) {
-				LOGGER.warn("Cannot create any kind of instance: service unavailable (retry later on)");
-				pmi.setInstalledVersion(NOTINSTALLED);
-				savePMatomoInstance(pmi, OperationState.FAILED);
-				return uuid;
-			}
 			matomoReleases.createLinkedTree(parameters.getVersion(), pmi.getIdUrlStr());
 		} catch (Exception e) {
-			throw e;
+			return "Error while initializing creation: " + e.getMessage();
 		} finally {
 			commitTx(em);
 		}
@@ -211,7 +213,7 @@ public class MatomoInstanceService extends OperationStatusService {
 				}
 			}).subscribe();
 		}).subscribe();
-		return uuid;
+		return null;
 	}
 
 	public String deleteMatomoInstance(String uuid, String platformId) {
@@ -313,23 +315,23 @@ public class MatomoInstanceService extends OperationStatusService {
 			Optional<PMatomoInstance> opmi = miRepo.findById(uuid);
 			if (!opmi.isPresent()) {
 				LOGGER.error("SERV::updateMatomoInstance: KO -> does not exist.");
-				return null;
+				return "KO -> instance does not exist.";
 			}
 			pmi = opmi.get();
 			if (!pmi.getPlatform().getId().equals(pfid)) {
 				LOGGER.error("SERV::updateMatomoInstance: KO -> wrong platform.");
-				return null;
+				return "KO -> wrong platform.";
 			}
 			if (pmi.getLastOperationState() == OperationState.IN_PROGRESS) {
 				LOGGER.debug("SERV::updateMatomoInstance: KO -> operation in progress.");
-				return uuid;
+				return null;
 			}
 			pmi.setLastOperation(POperationStatus.OpCode.UPDATE_SERVICE_INSTANCE);
 			savePMatomoInstance(pmi, OperationState.IN_PROGRESS);
 			if (pmi.getInstalledVersion().equals(NOTINSTALLED)) {
 				LOGGER.warn("Nothing to update (not installed) for instance with ID=" + pmi.getUuid());
 				savePMatomoInstance(pmi, OperationState.SUCCEEDED).getUuid();
-				return uuid;
+				return null;
 			}
 			if (pmi.getAutomaticVersionUpgrade() != parameters.isAutoVersionUpgrade()) {
 				pmi.setAutomaticVersionUpgrade(parameters.isAutoVersionUpgrade());
@@ -360,7 +362,7 @@ public class MatomoInstanceService extends OperationStatusService {
 				savePMatomoInstance(pmi, null);			
 			}
 		} catch (Exception e) {
-			throw e;
+			return "";
 		} finally {
 			commitTx(em);
 		}
@@ -393,7 +395,7 @@ public class MatomoInstanceService extends OperationStatusService {
 			savePMatomoInstance(pmi, OperationState.SUCCEEDED);
 			commitTx(em);
 		}
-		return uuid;
+		return null;
 	}
 
 	// PRIVATE METHODS --------------------------------------------------------------------------------

@@ -133,8 +133,8 @@ public class TestMatomoInstanceService {
 		try {
 			String instid = UUID.randomUUID().toString();
 			cfMgr4T.setResponseMask(new CfMgr4TResponseMask());
-			String uuid = miService.createMatomoInstance(instid, "m2", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
-			Assertions.assertNotNull(uuid);
+			String emsg = miService.createMatomoInstance(instid, "m2", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
+			Assertions.assertNull(emsg);
 			PMatomoInstance pmi = miService.getMatomoInstance(instid, ID_NO_PF);
 			Assertions.assertNull(pmi);
 		} catch (Exception e) {
@@ -154,9 +154,9 @@ public class TestMatomoInstanceService {
 		try {
 			String instid = UUID.randomUUID().toString();
 			cfMgr4T.setResponseMask(new CfMgr4TResponseMask());
-			String uuid = miService.createMatomoInstance(instid, "m3", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
-			Assertions.assertNotNull(uuid);
-			Assertions.assertEquals("https://" + instid + "." + properties.getDomain(), miService.getInstanceUrl(uuid));
+			String emsg = miService.createMatomoInstance(instid, "m3", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
+			Assertions.assertNull(emsg);
+			Assertions.assertEquals("https://" + instid + "." + properties.getDomain(), miService.getInstanceUrl(instid));
 			miService.deleteMatomoInstance(instid, unknownPfId);
 		} catch (Exception e) {
 			Assertions.fail(e);
@@ -169,11 +169,11 @@ public class TestMatomoInstanceService {
 		try {
 			String instid = UUID.randomUUID().toString();
 			cfMgr4T.setResponseMask(new CfMgr4TResponseMask());
-			String uuid = miService.createMatomoInstance(instid, "m4", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
-			Assertions.assertNotNull(uuid);
+			String emsg = miService.createMatomoInstance(instid, "m4", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
+			Assertions.assertNull(emsg);
 			PMatomoInstance pmi = miService.getMatomoInstance(instid, unknownPfId);
 			Assertions.assertNotNull(pmi);
-			Assertions.assertEquals(uuid, pmi.getUuid());
+			Assertions.assertEquals(instid, pmi.getUuid());
 			miService.deleteMatomoInstance(instid, unknownPfId);
 		} catch (Exception e) {
 			Assertions.fail(e);
@@ -212,9 +212,7 @@ public class TestMatomoInstanceService {
 	@Test
 	void testCreateInstanceUnexistentPlatform() {
 		LOGGER.debug("testCreateInstanceUnexistentPlatform");
-		Assertions.assertThrows(EntityNotFoundException.class, () -> {
-			miService.createMatomoInstance("", "", PlatformKind.CLOUDFOUNDRY, "", "", ID_NO_PF, new Parameters());
-		});
+		Assertions.assertNotNull(miService.createMatomoInstance("", "", PlatformKind.CLOUDFOUNDRY, "", "", ID_NO_PF, new Parameters()));
 	}
 
 	@Test
@@ -223,12 +221,12 @@ public class TestMatomoInstanceService {
 		try {
 			String instid = UUID.randomUUID().toString();
 			cfMgr4T.setResponseMask(new CfMgr4TResponseMask().smtpReady(false));
-			String uuid = miService.createMatomoInstance(instid, "m5", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
-			Assertions.assertNotNull(uuid);
+			String emsg = miService.createMatomoInstance(instid, "m5", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
+			Assertions.assertNotNull(emsg);
 			OperationAndState oas = miService.getLastOperationAndState(instid, unknownPfId);
-			Assertions.assertEquals(OperationState.FAILED, oas.getState());
-			miService.deleteMatomoInstance(instid, unknownPfId);
+			Assertions.assertNull(oas);
 		} catch (Exception e) {
+			e.printStackTrace();
 			Assertions.fail(e);
 		}
 	}
@@ -239,12 +237,10 @@ public class TestMatomoInstanceService {
 		try {
 			String instid = UUID.randomUUID().toString();
 			cfMgr4T.setResponseMask(new CfMgr4TResponseMask().globalSharedReady(false));
-			String uuid = miService.createMatomoInstance(instid, "m6", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
-			Assertions.assertNotNull(uuid);
+			String emsg = miService.createMatomoInstance(instid, "m6", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
+			Assertions.assertNotNull(emsg);
 			OperationAndState oas = miService.getLastOperationAndState(instid, unknownPfId);
-			Assertions.assertEquals(OperationState.FAILED, oas.getState());
-			String msg = miService.deleteMatomoInstance(instid, unknownPfId);
-			LOGGER.debug("delete msg: {}", msg);
+			Assertions.assertNull(oas);
 		} catch (Exception e) {
 			Assertions.fail(e);
 		}
@@ -256,8 +252,8 @@ public class TestMatomoInstanceService {
 		try {
 			String instid = UUID.randomUUID().toString();
 			cfMgr4T.setResponseMask(new CfMgr4TResponseMask());
-			String uuid = miService.createMatomoInstance(instid, "m7", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
-			Assertions.assertNotNull(uuid);
+			String emsg = miService.createMatomoInstance(instid, "m7", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
+			Assertions.assertNull(emsg);
 			OperationAndState oas = miService.getLastOperationAndState(instid, unknownPfId);
 			Assertions.assertEquals(POperationStatus.OpCode.CREATE_SERVICE_INSTANCE, oas.getOperation());
 			Assertions.assertEquals(OperationState.SUCCEEDED, oas.getState());
@@ -273,12 +269,12 @@ public class TestMatomoInstanceService {
 		try {
 			String instid = UUID.randomUUID().toString();
 			cfMgr4T.setResponseMask(new CfMgr4TResponseMask());
-			String uuid = miService.createMatomoInstance(instid, "m8", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
-			Assertions.assertNotNull(uuid);
+			String emsg = miService.createMatomoInstance(instid, "m8", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
+			Assertions.assertNull(emsg);
 			OperationAndState oas = miService.getLastOperationAndState(instid, unknownPfId);
 			Assertions.assertEquals(OperationState.SUCCEEDED, oas.getState());
-			uuid = miService.createMatomoInstance(instid, "m7", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID, unknownPfId, new Parameters());
-			Assertions.assertNull(uuid);
+			emsg = miService.createMatomoInstance(instid, "m7", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID, unknownPfId, new Parameters());
+			Assertions.assertNotNull(emsg);
 			miService.deleteMatomoInstance(instid, unknownPfId);
 		} catch (Exception e) {
 			Assertions.fail(e);
@@ -291,8 +287,8 @@ public class TestMatomoInstanceService {
 		try {
 			String instid = UUID.randomUUID().toString();
 			cfMgr4T.setResponseMask(new CfMgr4TResponseMask().setFailedDeployCfAppAtOccur(1));
-			String uuid = miService.createMatomoInstance(instid, "m9", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
-			Assertions.assertNotNull(uuid);
+			String emsg = miService.createMatomoInstance(instid, "m9", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
+			Assertions.assertNull(emsg);
 			OperationAndState oas = miService.getLastOperationAndState(instid, unknownPfId);
 			Assertions.assertEquals(OperationState.FAILED, oas.getState());
 			miService.deleteMatomoInstance(instid, unknownPfId);
@@ -307,8 +303,8 @@ public class TestMatomoInstanceService {
 		try {
 			String instid = UUID.randomUUID().toString();
 			cfMgr4T.setResponseMask(new CfMgr4TResponseMask().setFailedInitialize());
-			String uuid = miService.createMatomoInstance(instid, "m10", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
-			Assertions.assertNotNull(uuid);
+			String emsg = miService.createMatomoInstance(instid, "m10", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
+			Assertions.assertNull(emsg);
 			OperationAndState oas = miService.getLastOperationAndState(instid, unknownPfId);
 			Assertions.assertEquals(OperationState.FAILED, oas.getState());
 			miService.deleteMatomoInstance(instid, unknownPfId);
@@ -323,8 +319,8 @@ public class TestMatomoInstanceService {
 		try {
 			String instid = UUID.randomUUID().toString();
 			cfMgr4T.setResponseMask(new CfMgr4TResponseMask().setFailedGetConfFile());
-			String uuid = miService.createMatomoInstance(instid, "m11", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
-			Assertions.assertNotNull(uuid);
+			String emsg = miService.createMatomoInstance(instid, "m11", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
+			Assertions.assertNull(emsg);
 			OperationAndState oas = miService.getLastOperationAndState(instid, unknownPfId);
 			Assertions.assertEquals(OperationState.FAILED, oas.getState());
 			miService.deleteMatomoInstance(instid, unknownPfId);
@@ -339,8 +335,8 @@ public class TestMatomoInstanceService {
 		try {
 			String instid = UUID.randomUUID().toString();
 			cfMgr4T.setResponseMask(new CfMgr4TResponseMask().setFailedDeployCfAppAtOccur(2));
-			String uuid = miService.createMatomoInstance(instid, "m12", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
-			Assertions.assertNotNull(uuid);
+			String emsg = miService.createMatomoInstance(instid, "m12", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
+			Assertions.assertNull(emsg);
 			OperationAndState oas = miService.getLastOperationAndState(instid, unknownPfId);
 			Assertions.assertEquals(OperationState.FAILED, oas.getState());
 			miService.deleteMatomoInstance(instid, unknownPfId);
@@ -355,8 +351,8 @@ public class TestMatomoInstanceService {
 		try {
 			String instid = UUID.randomUUID().toString();
 			cfMgr4T.setResponseMask(new CfMgr4TResponseMask().setFailedGetAppEnv());
-			String uuid = miService.createMatomoInstance(instid, "m13", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
-			Assertions.assertNotNull(uuid);
+			String emsg = miService.createMatomoInstance(instid, "m13", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
+			Assertions.assertNull(emsg);
 			OperationAndState oas = miService.getLastOperationAndState(instid, unknownPfId);
 			Assertions.assertEquals(OperationState.FAILED, oas.getState());
 			miService.deleteMatomoInstance(instid, unknownPfId);
@@ -371,8 +367,8 @@ public class TestMatomoInstanceService {
 		try {
 			String instid = UUID.randomUUID().toString();
 			cfMgr4T.setResponseMask(new CfMgr4TResponseMask().setFailedGetApiAccessToken());
-			String uuid = miService.createMatomoInstance(instid, "m14", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
-			Assertions.assertNotNull(uuid);
+			String emsg = miService.createMatomoInstance(instid, "m14", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
+			Assertions.assertNull(emsg);
 			OperationAndState oas = miService.getLastOperationAndState(instid, unknownPfId);
 			Assertions.assertEquals(OperationState.FAILED, oas.getState());
 			miService.deleteMatomoInstance(instid, unknownPfId);
@@ -387,8 +383,8 @@ public class TestMatomoInstanceService {
 		try {
 			String instid = UUID.randomUUID().toString();
 			cfMgr4T.setResponseMask(new CfMgr4TResponseMask());
-			String uuid = miService.createMatomoInstance(instid, "m15", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID, unknownPfId, new Parameters());
-			Assertions.assertNotNull(uuid);
+			String emsg = miService.createMatomoInstance(instid, "m15", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID, unknownPfId, new Parameters());
+			Assertions.assertNull(emsg);
 			OperationAndState oas = miService.getLastOperationAndState(instid, unknownPfId);
 			Assertions.assertEquals(OperationState.SUCCEEDED, oas.getState());
 			miService.deleteMatomoInstance(instid, unknownPfId);
@@ -401,14 +397,16 @@ public class TestMatomoInstanceService {
 	void testCreateInstanceMatomoSharedOKMaxNb() {
 		LOGGER.debug("testCreateInstanceMatomoSharedOKMaxNb");
 		String[] instids = new String[max_instid];
+		String emsg;
 		for (int i = 0; i < max_instid; i++) {
 			instids[i] = null;
 		}
 		try {
 			cfMgr4T.setResponseMask(new CfMgr4TResponseMask());
 			for (int i = 0; i < max_instid; i++) {
-				instids[i] = miService.createMatomoInstance(UUID.randomUUID().toString(), "mc-" + i, PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID, unknownPfId, new Parameters());
-				Assertions.assertNotNull(instids[i]);
+				instids[i] = UUID.randomUUID().toString();
+				emsg = miService.createMatomoInstance(instids[i], "mc-" + i, PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID, unknownPfId, new Parameters());
+				Assertions.assertNull(emsg);
 				OperationAndState oas = miService.getLastOperationAndState(instids[i], unknownPfId);
 				Assertions.assertEquals(OperationState.SUCCEEDED, oas.getState());
 			}
@@ -431,26 +429,27 @@ public class TestMatomoInstanceService {
 	void testCreateInstanceMatomoSharedKOMaxNb() {
 		LOGGER.debug("testCreateInstanceMatomoSharedKOMaxNb");
 		String[] instids = new String[max_instid];
+		String emsg;
 		for (int i = 0; i < max_instid; i++) {
 			instids[i] = null;
 		}
-		try {
-			cfMgr4T.setResponseMask(new CfMgr4TResponseMask());
-			for (int i = 0; i < max_instid; i++) {
-				instids[i] = UUID.randomUUID().toString();
-				String uuid = miService.createMatomoInstance(instids[i], "mf-" + i, PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID, unknownPfId, new Parameters());
-				Assertions.assertNotNull(uuid);
-				OperationAndState oas = miService.getLastOperationAndState(instids[i], unknownPfId);
-				Assertions.assertEquals(OperationState.SUCCEEDED, oas.getState());
-			}
-			miService.createMatomoInstance(UUID.randomUUID().toString(), "mout", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID, unknownPfId, new Parameters());
-			Assertions.fail("Could not be able to allocate more!!");
-		} catch (Exception e) {
-			LOGGER.debug("Out of instance!!", e);
-			for (int i = 0; i < max_instid; i++) {
-				if (instids[i] != null) {
-					miService.deleteMatomoInstance(instids[i], unknownPfId);
-				}
+		cfMgr4T.setResponseMask(new CfMgr4TResponseMask());
+		for (int i = 0; i < max_instid; i++) {
+			instids[i] = UUID.randomUUID().toString();
+			emsg = miService.createMatomoInstance(instids[i], "mf-" + i, PlatformKind.CLOUDFOUNDRY,
+					"https://apicf.foo.com", ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID, unknownPfId,
+					new Parameters());
+			Assertions.assertNull(emsg);
+			OperationAndState oas = miService.getLastOperationAndState(instids[i], unknownPfId);
+			Assertions.assertEquals(OperationState.SUCCEEDED, oas.getState());
+		}
+		emsg = miService.createMatomoInstance(UUID.randomUUID().toString(), "mout", PlatformKind.CLOUDFOUNDRY,
+				"https://apicf.foo.com", ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID, unknownPfId,
+				new Parameters());
+		Assertions.assertNotNull(emsg);
+		for (int i = 0; i < max_instid; i++) {
+			if (instids[i] != null) {
+				miService.deleteMatomoInstance(instids[i], unknownPfId);
 			}
 		}
 	}
@@ -461,8 +460,8 @@ public class TestMatomoInstanceService {
 		try {
 			String instid = UUID.randomUUID().toString();
 			cfMgr4T.setResponseMask(new CfMgr4TResponseMask().setFailedCreateDedicatedDB());
-			String uuid = miService.createMatomoInstance(instid, "m16", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID, unknownPfId, new Parameters());
-			Assertions.assertNotNull(uuid);
+			String emsg = miService.createMatomoInstance(instid, "m16", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID, unknownPfId, new Parameters());
+			Assertions.assertNull(emsg);
 			OperationAndState oas = miService.getLastOperationAndState(instid, unknownPfId);
 			Assertions.assertEquals(OperationState.FAILED, oas.getState());
 			miService.deleteMatomoInstance(instid, unknownPfId);
@@ -477,8 +476,8 @@ public class TestMatomoInstanceService {
 		try {
 			String instid = UUID.randomUUID().toString();
 			cfMgr4T.setResponseMask(new CfMgr4TResponseMask());
-			String uuid = miService.createMatomoInstance(instid, "m17", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANDEDICATEDDB_UUID, unknownPfId, new Parameters());
-			Assertions.assertNotNull(uuid);
+			String emsg = miService.createMatomoInstance(instid, "m17", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANDEDICATEDDB_UUID, unknownPfId, new Parameters());
+			Assertions.assertNull(emsg);
 			OperationAndState oas = miService.getLastOperationAndState(instid, unknownPfId);
 			Assertions.assertEquals(OperationState.SUCCEEDED, oas.getState());
 			miService.deleteMatomoInstance(instid, unknownPfId);
@@ -493,8 +492,8 @@ public class TestMatomoInstanceService {
 		try {
 			String instid = UUID.randomUUID().toString();
 			cfMgr4T.setResponseMask(new CfMgr4TResponseMask().setFailedCreateDedicatedDB());
-			String uuid = miService.createMatomoInstance(instid, "m18", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANDEDICATEDDB_UUID, unknownPfId, new Parameters());
-			Assertions.assertNotNull(uuid);
+			String emsg = miService.createMatomoInstance(instid, "m18", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANDEDICATEDDB_UUID, unknownPfId, new Parameters());
+			Assertions.assertNull(emsg);
 			OperationAndState oas = miService.getLastOperationAndState(instid, unknownPfId);
 			Assertions.assertEquals(OperationState.FAILED, oas.getState());
 			miService.deleteMatomoInstance(instid, unknownPfId);
@@ -509,8 +508,8 @@ public class TestMatomoInstanceService {
 		try {
 			String instid = UUID.randomUUID().toString();
 			cfMgr4T.setResponseMask(new CfMgr4TResponseMask());
-			String uuid = miService.createMatomoInstance(instid, "m19", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
-			Assertions.assertNotNull(uuid);
+			String emsg = miService.createMatomoInstance(instid, "m19", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
+			Assertions.assertNull(emsg);
 			OperationAndState oas = miService.getLastOperationAndState(instid, unknownPfId);
 			Assertions.assertEquals(OperationState.SUCCEEDED, oas.getState());
 			String msg = miService.deleteMatomoInstance(instid, unknownPfId);
@@ -538,8 +537,8 @@ public class TestMatomoInstanceService {
 		String instid = UUID.randomUUID().toString();
 		try {
 			cfMgr4T.setResponseMask(new CfMgr4TResponseMask());
-			String uuid = miService.createMatomoInstance(instid, "m20", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
-			Assertions.assertNotNull(uuid);
+			String emsg = miService.createMatomoInstance(instid, "m20", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
+			Assertions.assertNull(emsg);
 			OperationAndState oas = miService.getLastOperationAndState(instid, unknownPfId);
 			Assertions.assertEquals(OperationState.SUCCEEDED, oas.getState());
 			String msg = miService.deleteMatomoInstance(instid, ID_NO_PF);
@@ -556,8 +555,8 @@ public class TestMatomoInstanceService {
 		try {
 			String instid = UUID.randomUUID().toString();
 			cfMgr4T.setResponseMask(new CfMgr4TResponseMask().setFailedDeleteMatomoCfApp());
-			String uuid = miService.createMatomoInstance(instid, "m21", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
-			Assertions.assertNotNull(uuid);
+			String emsg = miService.createMatomoInstance(instid, "m21", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID, unknownPfId, new Parameters());
+			Assertions.assertNull(emsg);
 			OperationAndState oas = miService.getLastOperationAndState(instid, unknownPfId);
 			Assertions.assertEquals(OperationState.SUCCEEDED, oas.getState());
 			String msg = miService.deleteMatomoInstance(instid, unknownPfId);
@@ -579,8 +578,8 @@ public class TestMatomoInstanceService {
 		try {
 			String instid = UUID.randomUUID().toString();
 			cfMgr4T.setResponseMask(new CfMgr4TResponseMask().setFailedDeleteDedicatedDB());
-			String uuid = miService.createMatomoInstance(instid, "m22", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID, unknownPfId, new Parameters());
-			Assertions.assertNotNull(uuid);
+			String emsg = miService.createMatomoInstance(instid, "m22", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID, unknownPfId, new Parameters());
+			Assertions.assertNull(emsg);
 			OperationAndState oas = miService.getLastOperationAndState(instid, unknownPfId);
 			Assertions.assertEquals(OperationState.SUCCEEDED, oas.getState());
 			String msg = miService.deleteMatomoInstance(instid, unknownPfId);
@@ -603,15 +602,15 @@ public class TestMatomoInstanceService {
 			String TZ1 = "Europe/Dublin", TZ2 = "America/Toronto";
 			String instid = UUID.randomUUID().toString();
 			cfMgr4T.setResponseMask(new CfMgr4TResponseMask());
-			String uuid = miService.createMatomoInstance(instid, "m23", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID, unknownPfId, new Parameters().timeZone(TZ1));
-			Assertions.assertNotNull(uuid);
+			String emsg = miService.createMatomoInstance(instid, "m23", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID, unknownPfId, new Parameters().timeZone(TZ1));
+			Assertions.assertNull(emsg);
 			OperationAndState oas = miService.getLastOperationAndState(instid, unknownPfId);
 			Assertions.assertEquals(OperationState.SUCCEEDED, oas.getState());
-			uuid = miService.updateMatomoInstance(instid, unknownPfId, new Parameters().timeZone(TZ2));
+			emsg = miService.updateMatomoInstance(instid, unknownPfId, new Parameters().timeZone(TZ2));
 			oas = miService.getLastOperationAndState(instid, unknownPfId);
 			miService.deleteMatomoInstance(instid, unknownPfId);
 			Assertions.assertEquals(OperationState.SUCCEEDED, oas.getState());
-			Assertions.assertNotNull(uuid);
+			Assertions.assertNull(emsg);
 		} catch (Exception e) {
 			Assertions.fail(e);
 		}
@@ -624,15 +623,15 @@ public class TestMatomoInstanceService {
 			String TZ1 = "Europe/Dublin", TZ2 = "Europe/Dublin";
 			String instid = UUID.randomUUID().toString();
 			cfMgr4T.setResponseMask(new CfMgr4TResponseMask());
-			String uuid = miService.createMatomoInstance(instid, "m24", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID, unknownPfId, new Parameters().timeZone(TZ1));
-			Assertions.assertNotNull(uuid);
+			String emsg = miService.createMatomoInstance(instid, "m24", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID, unknownPfId, new Parameters().timeZone(TZ1));
+			Assertions.assertNull(emsg);
 			OperationAndState oas = miService.getLastOperationAndState(instid, unknownPfId);
 			Assertions.assertEquals(OperationState.SUCCEEDED, oas.getState());
-			uuid = miService.updateMatomoInstance(instid, unknownPfId, new Parameters().timeZone(TZ2));
+			emsg = miService.updateMatomoInstance(instid, unknownPfId, new Parameters().timeZone(TZ2));
 			oas = miService.getLastOperationAndState(instid, unknownPfId);
 			miService.deleteMatomoInstance(instid, unknownPfId);
 			Assertions.assertEquals(OperationState.SUCCEEDED, oas.getState());
-			Assertions.assertNotNull(uuid);
+			Assertions.assertNull(emsg);
 		} catch (Exception e) {
 			Assertions.fail(e);
 		}
@@ -644,15 +643,15 @@ public class TestMatomoInstanceService {
 		try {
 			String instid = UUID.randomUUID().toString();
 			cfMgr4T.setResponseMask(new CfMgr4TResponseMask());
-			String uuid = miService.createMatomoInstance(instid, "m25", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID, unknownPfId, new Parameters().cfInstances(2));
-			Assertions.assertNotNull(uuid);
+			String emsg = miService.createMatomoInstance(instid, "m25", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID, unknownPfId, new Parameters().cfInstances(2));
+			Assertions.assertNull(emsg);
 			OperationAndState oas = miService.getLastOperationAndState(instid, unknownPfId);
 			Assertions.assertEquals(OperationState.SUCCEEDED, oas.getState());
-			uuid = miService.updateMatomoInstance(instid, unknownPfId, new Parameters().cfInstances(3));
+			emsg = miService.updateMatomoInstance(instid, unknownPfId, new Parameters().cfInstances(3));
 			oas = miService.getLastOperationAndState(instid, unknownPfId);
 			miService.deleteMatomoInstance(instid, unknownPfId);
 			Assertions.assertEquals(OperationState.SUCCEEDED, oas.getState());
-			Assertions.assertNotNull(uuid);
+			Assertions.assertNull(emsg);
 		} catch (Exception e) {
 			Assertions.fail(e);
 		}
@@ -664,15 +663,15 @@ public class TestMatomoInstanceService {
 		try {
 			String instid = UUID.randomUUID().toString();
 			cfMgr4T.setResponseMask(new CfMgr4TResponseMask());
-			String uuid = miService.createMatomoInstance(instid, "m26", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID, unknownPfId, new Parameters().cfInstances(2));
-			Assertions.assertNotNull(uuid);
+			String emsg = miService.createMatomoInstance(instid, "m26", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID, unknownPfId, new Parameters().cfInstances(2));
+			Assertions.assertNull(emsg);
 			OperationAndState oas = miService.getLastOperationAndState(instid, unknownPfId);
 			Assertions.assertEquals(OperationState.SUCCEEDED, oas.getState());
-			uuid = miService.updateMatomoInstance(instid, unknownPfId, new Parameters().cfInstances(2));
+			emsg = miService.updateMatomoInstance(instid, unknownPfId, new Parameters().cfInstances(2));
 			oas = miService.getLastOperationAndState(instid, unknownPfId);
 			miService.deleteMatomoInstance(instid, unknownPfId);
 			Assertions.assertEquals(OperationState.SUCCEEDED, oas.getState());
-			Assertions.assertNotNull(uuid);
+			Assertions.assertNull(emsg);
 		} catch (Exception e) {
 			Assertions.fail(e);
 		}
@@ -684,15 +683,15 @@ public class TestMatomoInstanceService {
 		try {
 			String instid = UUID.randomUUID().toString();
 			cfMgr4T.setResponseMask(new CfMgr4TResponseMask());
-			String uuid = miService.createMatomoInstance(instid, "m27", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID, unknownPfId, new Parameters().memorySize(512));
-			Assertions.assertNotNull(uuid);
+			String emsg = miService.createMatomoInstance(instid, "m27", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID, unknownPfId, new Parameters().memorySize(512));
+			Assertions.assertNull(emsg);
 			OperationAndState oas = miService.getLastOperationAndState(instid, unknownPfId);
 			Assertions.assertEquals(OperationState.SUCCEEDED, oas.getState());
-			uuid = miService.updateMatomoInstance(instid, unknownPfId, new Parameters().memorySize(1024));
+			emsg = miService.updateMatomoInstance(instid, unknownPfId, new Parameters().memorySize(1024));
 			oas = miService.getLastOperationAndState(instid, unknownPfId);
 			miService.deleteMatomoInstance(instid, unknownPfId);
 			Assertions.assertEquals(OperationState.SUCCEEDED, oas.getState());
-			Assertions.assertNotNull(uuid);
+			Assertions.assertNull(emsg);
 		} catch (Exception e) {
 			Assertions.fail(e);
 		}
@@ -704,15 +703,15 @@ public class TestMatomoInstanceService {
 		try {
 			String instid = UUID.randomUUID().toString();
 			cfMgr4T.setResponseMask(new CfMgr4TResponseMask());
-			String uuid = miService.createMatomoInstance(instid, "m28", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID, unknownPfId, new Parameters().memorySize(512));
-			Assertions.assertNotNull(uuid);
+			String emsg = miService.createMatomoInstance(instid, "m28", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID, unknownPfId, new Parameters().memorySize(512));
+			Assertions.assertNull(emsg);
 			OperationAndState oas = miService.getLastOperationAndState(instid, unknownPfId);
 			Assertions.assertEquals(OperationState.SUCCEEDED, oas.getState());
-			uuid = miService.updateMatomoInstance(instid, unknownPfId, new Parameters().memorySize(512));
+			emsg = miService.updateMatomoInstance(instid, unknownPfId, new Parameters().memorySize(512));
 			oas = miService.getLastOperationAndState(instid, unknownPfId);
 			miService.deleteMatomoInstance(instid, unknownPfId);
 			Assertions.assertEquals(OperationState.SUCCEEDED, oas.getState());
-			Assertions.assertNotNull(uuid);
+			Assertions.assertNull(emsg);
 		} catch (Exception e) {
 			Assertions.fail(e);
 		}
@@ -724,15 +723,15 @@ public class TestMatomoInstanceService {
 		try {
 			String instid = UUID.randomUUID().toString();
 			cfMgr4T.setResponseMask(new CfMgr4TResponseMask());
-			String uuid = miService.createMatomoInstance(instid, "m29", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID, unknownPfId, new Parameters().autoVersionUpgrade(false));
-			Assertions.assertNotNull(uuid);
+			String emsg = miService.createMatomoInstance(instid, "m29", PlatformKind.CLOUDFOUNDRY, "https://apicf.foo.com", ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID, unknownPfId, new Parameters().autoVersionUpgrade(false));
+			Assertions.assertNull(emsg);
 			OperationAndState oas = miService.getLastOperationAndState(instid, unknownPfId);
 			Assertions.assertEquals(OperationState.SUCCEEDED, oas.getState());
-			uuid = miService.updateMatomoInstance(instid, unknownPfId, new Parameters().autoVersionUpgrade(true));
+			emsg = miService.updateMatomoInstance(instid, unknownPfId, new Parameters().autoVersionUpgrade(true));
 			oas = miService.getLastOperationAndState(instid, unknownPfId);
 			miService.deleteMatomoInstance(instid, unknownPfId);
 			Assertions.assertEquals(OperationState.SUCCEEDED, oas.getState());
-			Assertions.assertNotNull(uuid);
+			Assertions.assertNull(emsg);
 		} catch (Exception e) {
 			Assertions.fail(e);
 		}

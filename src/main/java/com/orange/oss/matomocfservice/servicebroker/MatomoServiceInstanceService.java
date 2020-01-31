@@ -32,6 +32,7 @@ import org.springframework.cloud.servicebroker.model.instance.GetLastServiceOper
 import org.springframework.cloud.servicebroker.model.instance.GetLastServiceOperationResponse;
 import org.springframework.cloud.servicebroker.model.instance.GetServiceInstanceRequest;
 import org.springframework.cloud.servicebroker.model.instance.GetServiceInstanceResponse;
+import org.springframework.cloud.servicebroker.model.instance.OperationState;
 import org.springframework.cloud.servicebroker.model.instance.UpdateServiceInstanceRequest;
 import org.springframework.cloud.servicebroker.model.instance.UpdateServiceInstanceResponse;
 import org.springframework.cloud.servicebroker.service.ServiceInstanceService;
@@ -42,6 +43,7 @@ import com.orange.oss.matomocfservice.web.domain.POperationStatus;
 import com.orange.oss.matomocfservice.web.domain.Parameters;
 import com.orange.oss.matomocfservice.web.service.MatomoInstanceService;
 import com.orange.oss.matomocfservice.web.service.MatomoReleases;
+import com.orange.oss.matomocfservice.web.service.PlatformService;
 import com.orange.oss.matomocfservice.web.service.OperationStatusService.OperationAndState;
 
 import reactor.core.publisher.Mono;
@@ -67,6 +69,12 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 	private MatomoReleases matomoReleases;
 	@Autowired
 	private MatomoInstanceService miServ;
+	@Autowired
+	private PlatformService platformService;
+
+	private String getPlatformId(String platformId) {
+		return platformId == null ? platformService.getUnknownPlatformId() : platformId;
+	}
 
 	@Override
 	public Mono<CreateServiceInstanceResponse> createServiceInstance(CreateServiceInstanceRequest request) {
@@ -84,20 +92,24 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 			pfkind = PMatomoInstance.PlatformKind.OTHER;
 			instname = "";
 		}
-		String uuid = miServ.createMatomoInstance(
+		String errmsg = miServ.createMatomoInstance(
 				request.getServiceInstanceId(),
 				instname,
 				pfkind,
 				request.getApiInfoLocation(),
 				request.getPlanId(),
-				request.getPlatformInstanceId(),
+				getPlatformId(request.getPlatformInstanceId()),
 				toParameters(request.getParameters(), request.getPlanId()));
-		if (uuid == null) {
-			throw new ServiceInstanceExistsException(request.getServiceInstanceId(), request.getServiceDefinitionId());
+		if (errmsg != null) {
+			return Mono.just(CreateServiceInstanceResponse.builder()
+					.async(true)
+					.instanceExisted(errmsg.startsWith("Mat"))
+					.operation(errmsg)
+					.build());
 		}
 		return Mono.just(CreateServiceInstanceResponse.builder()
 				.async(true)
-				.dashboardUrl(miServ.getInstanceUrl(uuid))
+				.dashboardUrl(miServ.getInstanceUrl(request.getServiceInstanceId()))
 				.instanceExisted(false)
 				.operation("Create Matomo Service Instance \"" + instname + "\"")
 				.build());
@@ -106,9 +118,12 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 	@Override
 	public Mono<GetLastServiceOperationResponse> getLastOperation(GetLastServiceOperationRequest request) {
 		LOGGER.debug("BROKER::getLastOperation: platformId={}, instanceId={}", request.getPlatformInstanceId(), request.getServiceInstanceId());
-		OperationAndState opandstate = miServ.getLastOperationAndState(request.getServiceInstanceId(), request.getPlatformInstanceId());
+		OperationAndState opandstate = miServ.getLastOperationAndState(request.getServiceInstanceId(), getPlatformId(request.getPlatformInstanceId()));
 		if (opandstate == null) {
-			throw new ServiceInstanceDoesNotExistException("Cannot find instance " + request.getServiceInstanceId());
+			return Mono.just(GetLastServiceOperationResponse.builder()
+					.operationState(OperationState.FAILED)
+					.description("Cannot find service instance: unknown!!")
+					.build());
 		}
 		return Mono.just(GetLastServiceOperationResponse.builder()
 				.deleteOperation(opandstate.getOperation().equals(POperationStatus.OpCode.DELETE_SERVICE_INSTANCE))
@@ -120,9 +135,13 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 	@Override
 	public Mono<GetServiceInstanceResponse> getServiceInstance(GetServiceInstanceRequest request) {
 		LOGGER.debug("BROKER::getServiceInstance: platformId={}, instanceId={}", request.getPlatformInstanceId(), request.getServiceInstanceId());
-		PMatomoInstance pmi = miServ.getMatomoInstance(request.getServiceInstanceId(), request.getPlatformInstanceId());
+		PMatomoInstance pmi = miServ.getMatomoInstance(request.getServiceInstanceId(), getPlatformId(request.getPlatformInstanceId()));
 		if (pmi == null) {
-			throw new ServiceInstanceDoesNotExistException("Cannot find instance " + request.getServiceInstanceId());
+			return Mono.just(GetServiceInstanceResponse.builder()
+					.serviceDefinitionId("")
+					.planId("")
+					.dashboardUrl("")
+					.build());
 		}
 		return Mono.just(GetServiceInstanceResponse.builder()
 				.serviceDefinitionId(pmi.getServiceDefinitionId())
@@ -135,7 +154,7 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 	@Override
 	public Mono<DeleteServiceInstanceResponse> deleteServiceInstance(DeleteServiceInstanceRequest request) {
 		LOGGER.debug("BROKER::deleteServiceInstance: platformId={}, instanceId={}", request.getPlatformInstanceId(), request.getServiceInstanceId());
-		if (miServ.deleteMatomoInstance(request.getServiceInstanceId(), request.getPlatformInstanceId()) == null) {
+		if (miServ.deleteMatomoInstance(request.getServiceInstanceId(), getPlatformId(request.getPlatformInstanceId())) == null) {
 			throw new ServiceInstanceDoesNotExistException("Cannot find instance " + request.getServiceInstanceId());
 		}
 		return Mono.just(DeleteServiceInstanceResponse.builder()
@@ -156,18 +175,21 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 			LOGGER.warn("BROKER::   unknown kind of platform -> " + request.getContext().getPlatform());
 			instn = "";
 		}
-		String uuid = miServ.updateMatomoInstance(
+		String emsg = miServ.updateMatomoInstance(
 				request.getServiceInstanceId(),
-				request.getPlatformInstanceId(),
+				getPlatformId(request.getPlatformInstanceId()),
 				toParameters(request.getParameters(), request.getPlanId()));
-		if (uuid == null) {
-			throw new ServiceInstanceDoesNotExistException("Cannot find instance " + request.getServiceInstanceId());
+		if (emsg != null) {
+			return Mono.just(UpdateServiceInstanceResponse.builder()
+					.async(false)
+					.operation(emsg)
+					.build());
 		}
 		return Mono.just(UpdateServiceInstanceResponse.builder()
-					.async(true)
-					.dashboardUrl(miServ.getInstanceUrl(uuid))
-					.operation("Update Matomo Service Instance \"" + instn + "\"")
-					.build());
+				.async(true)
+				.dashboardUrl(miServ.getInstanceUrl(request.getServiceInstanceId()))
+				.operation("Update Matomo Service Instance \"" + request.getServiceInstanceId() + "\"")
+				.build());
 	}
 
 	private Parameters toParameters(Map<String, Object> map, String planid) {
@@ -199,7 +221,7 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 				LOGGER.warn("SERV::getVersion: version {} is not supported -> switch to default one.", instversion);
 				throw new RuntimeException("Version <" + instversion + "> is not supported by this Matomo CF Service!!");
 		}
-		LOGGER.debug("SERV::getVersion: return {}", instversion);
+		LOGGER.debug("SERV::getVersion: {}", instversion);
 		return instversion;
 	}
 
@@ -219,7 +241,7 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 				throw new IllegalArgumentException("Version upgrade policy <" + policy + "> is a wrong value!!");
 			}
 		}
-		LOGGER.debug("SERV::getAutomaticVersionUpgrade: return {}", bpol);
+		LOGGER.debug("SERV::getAutomaticVersionUpgrade: {}", bpol);
 		return bpol;
 	}
 
@@ -242,7 +264,7 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 				}
 			}
 		}
-		LOGGER.debug("SERV::getInstances: return {}", instances);
+		LOGGER.debug("SERV::getInstances: {}", instances);
 		return instances;
 	}
 
@@ -267,7 +289,7 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 				memsize = MEMSIZE_MAX;
 			}
 		}
-		LOGGER.debug("SERV::getMemorySize: return {}MB", memsize);
+		LOGGER.debug("SERV::getMemorySize: {}MB", memsize);
 		return memsize;
 	}
 
@@ -276,7 +298,7 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 		if (tz == null) {
 			tz = "Europe/Paris";
 		}
-		LOGGER.debug("SERV::getTimeZone: return {}", tz);
+		LOGGER.debug("SERV::getTimeZone: {}", tz);
 		return tz;
 	}
 }
