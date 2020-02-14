@@ -74,7 +74,7 @@ In order to produce your configured service package, do the following:
 
      It produces a jar file which contains the whole code for the service as well as the releases of Matomo to be proposed for service instantiation.
 
-If you want to run unit tests for your configuration, there are three things you not to know or do:
+If you want to run unit tests for your configuration, there are three things you need to know or to do:
 
 1. The tests expect that you have configured your service with only one Matomo release.
 

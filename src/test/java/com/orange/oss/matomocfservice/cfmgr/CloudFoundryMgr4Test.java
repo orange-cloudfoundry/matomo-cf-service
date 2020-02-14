@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
@@ -94,6 +93,9 @@ public class CloudFoundryMgr4Test extends CloudFoundryMgrAbs {
 	@Override
 	public Mono<Void> scaleMatomoCfApp(String instid, int instances, int memsize) {
 		LOGGER.debug("CFMGR-TEST::scaleMatomoCfApp: instId={}, instances={}, memsize={}", instid, instances, memsize);
+		if (respMask.failedScaleMatomoCfApp()) {
+			return Mono.error(new TimeoutException("Timeout after some time"));
+		}
 		return Mono.create(sink -> {sink.success();});
 	}
 

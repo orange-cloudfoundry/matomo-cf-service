@@ -96,7 +96,7 @@ public class ApplicationConfiguration {
 
 	@EventListener(ApplicationReadyEvent.class)
 	public void initializeAfterStartup() {
-		LOGGER.debug("CONFIG - run initialization code after application startup has completed");
+		LOGGER.debug("CONFIG::ApplicationConfiguration - run initialization code after application startup has completed");
 		matomoReleases.initialize();
 		cfMgr.initialize();
 		instanceIdMgr.initialize();

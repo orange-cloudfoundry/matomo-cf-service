@@ -16,15 +16,8 @@
 
 package com.orange.oss.matomocfservice.web.security;
 
-import java.io.IOException;
-
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.www.BasicAuthenticationEntryPoint;
 
 /**
@@ -34,13 +27,30 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationEn
 public class McfsAuthenticationEntryPoint extends BasicAuthenticationEntryPoint {
 	private final static Logger LOGGER = LoggerFactory.getLogger(McfsAuthenticationEntryPoint.class);
 
-	@Override
-	public void commence(HttpServletRequest request,
-			HttpServletResponse response,
-			AuthenticationException authException) throws IOException, ServletException {
-		LOGGER.debug("SECU:: authent entry point");
-		response.sendRedirect(request.getContextPath() + "/login");
-	}
+//	@Override
+//	public void commence(HttpServletRequest request,
+//			HttpServletResponse response,
+//			AuthenticationException authException) throws IOException, ServletException {
+//		LOGGER.debug("SECU:: authent entry point: {}", request.toString());
+//		LOGGER.debug("AuthType: {}", request.getAuthType());
+//		LOGGER.debug("ContextPath: {}", request.getContextPath());
+//		LOGGER.debug("CharacterEncoding: {}", request.getCharacterEncoding());
+//		LOGGER.debug("LocalAddr: {}", request.getLocalAddr());
+//		LOGGER.debug("LocalName: {}", request.getLocalName());
+//		LOGGER.debug("LocalPort: {}", request.getLocalPort());
+//		LOGGER.debug("Method: {}", request.getMethod());
+//		Enumeration<String> headerNames = request.getHeaderNames();
+//		while(headerNames.hasMoreElements()) {
+//			String headerName = headerNames.nextElement();
+//			LOGGER.debug("   Header Name - {}, Value - {}", headerName, request.getHeader(headerName));
+//		}
+//		Enumeration<String> params = request.getParameterNames(); 
+//		while(params.hasMoreElements()){
+//			String paramName = params.nextElement();
+//			LOGGER.debug("   Parameter Name - {}, Value - {}", paramName, request.getParameter(paramName));
+//		}
+//		response.sendRedirect(request.getContextPath() + "/login");
+//	}
 
 	@Override
 	public void afterPropertiesSet() throws Exception {

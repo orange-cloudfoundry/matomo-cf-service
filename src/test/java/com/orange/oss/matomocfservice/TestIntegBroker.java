@@ -18,12 +18,9 @@ package com.orange.oss.matomocfservice;
 import static io.restassured.RestAssured.given;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.UUID;
 
-import org.json.JSONException;
 import org.json.JSONObject;
-import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,7 +29,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.web.server.LocalServerPort;
-import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import com.orange.oss.matomocfservice.cfmgr.CfMgr4TResponseMask;
@@ -89,22 +85,33 @@ public class TestIntegBroker {
 	    }
 	}
 
-	private String createBody(String planid, String param_version) {
+	private String createBody(String instname, String planid, String param_version, int nbinst) {
 		StringBuffer sb = new StringBuffer("{\"service_id\": \"");
 		sb.append(catalog.id);
 		sb.append("\", \"plan_id\": \"");
 		sb.append(planid);
 		sb.append("\", \"context\": {\"platform\": \"cloudfoundry\"");
 		sb.append(", \"api_info_location\": \"https://api.cloudfoundry.mycompany\"");
+		sb.append(", \"instance_name\": \"");
+		sb.append(instname);
+		sb.append("\"");
 		sb.append(", \"organization_guid\": \"myorg\"");
 		sb.append(", \"space_guid\": \"myspace\"");
 		// other context fields below
 		//sb.append(", \"\": \"\"");
 		sb.append("}, \"parameters\": {");
 		// parameters below
+		String comma = "";
 		if (param_version == null) {
-			sb.append("\"version\": \"");
+			sb.append("\"matomoVersion\": \"");
 			sb.append(param_version);
+			sb.append("\"");
+			comma = ", ";
+		}
+		if (nbinst == -1) {
+			sb.append(comma);
+			sb.append("\"matomoInstances\": \"");
+			sb.append(nbinst);
 			sb.append("\"");
 		}
 		//sb.append("\"\": \"\"");
@@ -214,7 +221,7 @@ public class TestIntegBroker {
 		Response resp =
 				given()
 				.header("Content-Type", "application/json")
-				.body(createBody(catalog.plans[GLOBAL_SHARED_DB].id, null)).
+				.body(createBody("M01", catalog.plans[GLOBAL_SHARED_DB].id, null, -1)).
 				when()
 				.put(createServiceInstUri(instid, null, null)).
 				then()
@@ -233,8 +240,7 @@ public class TestIntegBroker {
 				.response();
 		Assertions.assertEquals("succeeded", resp.getBody().jsonPath().getString("state"));
 		resp = given()
-				.header("Content-Type", "application/json")
-				.body(createBody(catalog.plans[GLOBAL_SHARED_DB].id, null)).
+				.header("Content-Type", "application/json").
 				when()
 				.delete(createServiceInstUri(instid, catalog.id, catalog.plans[GLOBAL_SHARED_DB].id)).
 				then()
@@ -262,7 +268,7 @@ public class TestIntegBroker {
 		Response resp =
 				given()
 				.header("Content-Type", "application/json")
-				.body(createBody(catalog.plans[GLOBAL_SHARED_DB].id, null)).
+				.body(createBody("M02", catalog.plans[GLOBAL_SHARED_DB].id, null, -1)).
 				when()
 				.put(createServiceInstUri(instid, null, null)).
 				then()
@@ -281,8 +287,7 @@ public class TestIntegBroker {
 				.response();
 		Assertions.assertEquals("succeeded", resp.getBody().jsonPath().getString("state"));
 		resp = given()
-				.header("Content-Type", "application/json")
-				.body(createBody(catalog.plans[GLOBAL_SHARED_DB].id, null)).
+				.header("Content-Type", "application/json").
 				when()
 				.get(createServiceInstUri(instid, null, null)).
 				then()
@@ -293,8 +298,7 @@ public class TestIntegBroker {
 		Assertions.assertEquals(catalog.id, resp.getBody().jsonPath().getString("service_id"));
 		Assertions.assertEquals(catalog.plans[GLOBAL_SHARED_DB].id, resp.getBody().jsonPath().getString("plan_id"));
 		resp = given()
-				.header("Content-Type", "application/json")
-				.body(createBody(catalog.plans[GLOBAL_SHARED_DB].id, null)).
+				.header("Content-Type", "application/json").
 				when()
 				.delete(createServiceInstUri(instid, catalog.id, catalog.plans[GLOBAL_SHARED_DB].id)).
 				then()
@@ -315,14 +319,33 @@ public class TestIntegBroker {
 	}
 
 	@Test
+	void testGetInstanceGlobSharedKONotExist() {
+		LOGGER.debug("testGetInstanceGlobSharedKONotExist");
+		String instid = UUID.randomUUID().toString();
+		cfMgr4T.setResponseMask(new CfMgr4TResponseMask());
+		Response resp = given()
+				.header("Content-Type", "application/json")
+				.body(createBody("M04", catalog.plans[GLOBAL_SHARED_DB].id, null, -1)).
+				when()
+				.get(createServiceInstUri(instid, null, null)).
+				then()
+				.statusCode(200)
+				.contentType(ContentType.JSON)
+				.extract()
+				.response();
+		Assertions.assertEquals("", resp.getBody().jsonPath().getString("service_id"));
+		Assertions.assertEquals("", resp.getBody().jsonPath().getString("plan_id"));
+	}
+
+	@Test
 	void testUpdateInstanceGlobShared() {
-		LOGGER.debug("testGetInstanceGlobShared");
+		LOGGER.debug("testUpdateInstanceGlobShared");
 		String instid = UUID.randomUUID().toString();
 		cfMgr4T.setResponseMask(new CfMgr4TResponseMask());
 		Response resp =
 				given()
 				.header("Content-Type", "application/json")
-				.body(createBody(catalog.plans[GLOBAL_SHARED_DB].id, null)).
+				.body(createBody("M05", catalog.plans[GLOBAL_SHARED_DB].id, null, -1)).
 				when()
 				.put(createServiceInstUri(instid, null, null)).
 				then()
@@ -342,7 +365,7 @@ public class TestIntegBroker {
 		Assertions.assertEquals("succeeded", resp.getBody().jsonPath().getString("state"));
 		resp = given()
 				.header("Content-Type", "application/json")
-				.body(createBody(catalog.plans[GLOBAL_SHARED_DB].id, "3.45.0")).
+				.body(createBody("M06", catalog.plans[GLOBAL_SHARED_DB].id, "3.45.0", -1)).
 				when()
 				.patch(createServiceInstUri(instid, null, null)).
 				then()
@@ -352,8 +375,7 @@ public class TestIntegBroker {
 				.response();
 		LOGGER.debug("Resp: {}", resp.prettyPrint());
 		resp = given()
-				.header("Content-Type", "application/json")
-				.body(createBody(catalog.plans[GLOBAL_SHARED_DB].id, null)).
+				.header("Content-Type", "application/json").
 				when()
 				.delete(createServiceInstUri(instid, catalog.id, catalog.plans[GLOBAL_SHARED_DB].id)).
 				then()
@@ -374,14 +396,14 @@ public class TestIntegBroker {
 	}
 
 	@Test
-	void testCreateInstanceGlobSharedKO() {
-		LOGGER.debug("testCreateInstanceGlobSharedKO");
+	void testCreateInstanceGlobSharedKOGSDBNotReady() {
+		LOGGER.debug("testCreateInstanceGlobSharedKOGSDBNotReady");
 		String instid = UUID.randomUUID().toString();
 		cfMgr4T.setResponseMask(new CfMgr4TResponseMask().globalSharedReady(false));
 		Response resp =
 				given()
 				.header("Content-Type", "application/json")
-				.body(createBody(catalog.plans[GLOBAL_SHARED_DB].id, null)).
+				.body(createBody("M07", catalog.plans[GLOBAL_SHARED_DB].id, null, -1)).
 				when()
 				.put(createServiceInstUri(instid, null, null)).
 				then()
@@ -400,12 +422,49 @@ public class TestIntegBroker {
 				.response();
 		Assertions.assertEquals("failed", resp.getBody().jsonPath().getString("state"));
 		given()
-				.header("Content-Type", "application/json")
-				.body(createBody(catalog.plans[GLOBAL_SHARED_DB].id, null)).
+				.header("Content-Type", "application/json").
 				when()
 				.delete(createServiceInstUri(instid, catalog.id, catalog.plans[GLOBAL_SHARED_DB].id)).
 				then()
 				.statusCode(410);
+	}
+
+	@Test
+	void testCreateInstanceGlobSharedKODupInstname() {
+		LOGGER.debug("testCreateInstanceGlobSharedKODupInstname");
+		String instid = UUID.randomUUID().toString();
+		cfMgr4T.setResponseMask(new CfMgr4TResponseMask());
+		Response resp =
+				given()
+				.header("Content-Type", "application/json")
+				.body(createBody("M08", catalog.plans[GLOBAL_SHARED_DB].id, null, -1)).
+				when()
+				.put(createServiceInstUri(instid, null, null)).
+				then()
+				.statusCode(202)
+				.contentType(ContentType.JSON)
+				.extract()
+				.response();
+		resp = given()
+				.header("Content-Type", "application/json")
+				.body(createBody("M08", catalog.plans[GLOBAL_SHARED_DB].id, null, -1)).
+				when()
+				.put(createServiceInstUri(UUID.randomUUID().toString(), null, null)).
+				then()
+				.statusCode(202)
+				.contentType(ContentType.JSON)
+				.extract()
+				.response();
+		Assertions.assertTrue(resp.getBody().jsonPath().getString("operation").startsWith("Matomo Instance with name="));
+		resp = given()
+				.header("Content-Type", "application/json").
+				when()
+				.delete(createServiceInstUri(instid, catalog.id, catalog.plans[GLOBAL_SHARED_DB].id)).
+				then()
+				.statusCode(202)
+				.contentType(ContentType.JSON)
+				.extract()
+				.response();
 	}
 
 	@Test
@@ -416,7 +475,7 @@ public class TestIntegBroker {
 		Response resp =
 				given()
 				.header("Content-Type", "application/json")
-				.body(createBody(catalog.plans[MATOMO_SHARED_DB].id, null)).
+				.body(createBody("M09", catalog.plans[MATOMO_SHARED_DB].id, null, -1)).
 				when()
 				.put(createServiceInstUri(instid, null, null)).
 				then()
@@ -435,8 +494,7 @@ public class TestIntegBroker {
 				.response();
 		Assertions.assertEquals("succeeded", resp.getBody().jsonPath().getString("state"));
 		resp = given()
-				.header("Content-Type", "application/json")
-				.body(createBody(catalog.plans[GLOBAL_SHARED_DB].id, null)).
+				.header("Content-Type", "application/json").
 				when()
 				.delete(createServiceInstUri(instid, catalog.id, catalog.plans[GLOBAL_SHARED_DB].id)).
 				then()
@@ -464,7 +522,7 @@ public class TestIntegBroker {
 		Response resp =
 				given()
 				.header("Content-Type", "application/json")
-				.body(createBody(catalog.plans[DEDICTED_DB].id, null)).
+				.body(createBody("M10", catalog.plans[DEDICTED_DB].id, null, -1)).
 				when()
 				.put(createServiceInstUri(instid, null, null)).
 				then()
@@ -483,8 +541,7 @@ public class TestIntegBroker {
 				.response();
 		Assertions.assertEquals("succeeded", resp.getBody().jsonPath().getString("state"));
 		resp = given()
-				.header("Content-Type", "application/json")
-				.body(createBody(catalog.plans[GLOBAL_SHARED_DB].id, null)).
+				.header("Content-Type", "application/json").
 				when()
 				.delete(createServiceInstUri(instid, catalog.id, catalog.plans[GLOBAL_SHARED_DB].id)).
 				then()

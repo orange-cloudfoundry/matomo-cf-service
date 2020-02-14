@@ -31,6 +31,7 @@ public class CfMgr4TResponseMask {
 	private int delayDeployCfApp = 0;
 	private int failedDeployCfAppAtOccur = 0;
 	private int deployCfAppOccur = 0;
+	private boolean failedScaleMatomoCfApp = false;
 	private boolean failedGetConfFile = false;
 	private boolean failedGetAppEnv = false;
 	private boolean failedGetApiAccessToken = false;
@@ -124,6 +125,14 @@ public class CfMgr4TResponseMask {
 	}
 	public int delayDeployCfApp() {
 		return delayDeployCfApp;
+	}
+
+	public CfMgr4TResponseMask setFailedScaleMatomoCfApp() {
+		failedScaleMatomoCfApp = true;
+		return this;
+	}
+	public boolean failedScaleMatomoCfApp() {
+		return failedGetConfFile;
 	}
 
 	public CfMgr4TResponseMask setFailedGetConfFile() {

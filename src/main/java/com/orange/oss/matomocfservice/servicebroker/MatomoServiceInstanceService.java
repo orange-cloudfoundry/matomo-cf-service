@@ -23,7 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.servicebroker.exception.ServiceInstanceDoesNotExistException;
-import org.springframework.cloud.servicebroker.exception.ServiceInstanceExistsException;
 import org.springframework.cloud.servicebroker.model.instance.CreateServiceInstanceRequest;
 import org.springframework.cloud.servicebroker.model.instance.CreateServiceInstanceResponse;
 import org.springframework.cloud.servicebroker.model.instance.DeleteServiceInstanceRequest;
@@ -80,6 +79,7 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 	public Mono<CreateServiceInstanceResponse> createServiceInstance(CreateServiceInstanceRequest request) {
 		LOGGER.debug("BROKER::createServiceInstance: platformId={}, serviceId={}", request.getPlatformInstanceId(), request.getServiceInstanceId());
 		LOGGER.debug("BROKER::   platform={}, serviceDefId={}", request.getContext().getPlatform(), request.getServiceDefinitionId());
+		LOGGER.debug("REQUEST={}", request);
 		PMatomoInstance.PlatformKind pfkind;
 		String instname;
 		switch (request.getContext().getPlatform()) {
@@ -92,6 +92,7 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 			pfkind = PMatomoInstance.PlatformKind.OTHER;
 			instname = "";
 		}
+		LOGGER.debug("BROKER::   instanceName={}", instname);
 		String errmsg = miServ.createMatomoInstance(
 				request.getServiceInstanceId(),
 				instname,
@@ -166,15 +167,6 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 	@Override
 	public Mono<UpdateServiceInstanceResponse> updateServiceInstance(UpdateServiceInstanceRequest request) {
 		LOGGER.debug("BROKER::updateServiceInstance: platformId={}, instanceId={}", request.getPlatformInstanceId(), request.getServiceInstanceId());
-		String instn;
-		switch (request.getContext().getPlatform()) {
-		case "cloudfoundry":
-			instn = (String)request.getContext().getProperty("instance_name");
-			break;
-		default:
-			LOGGER.warn("BROKER::   unknown kind of platform -> " + request.getContext().getPlatform());
-			instn = "";
-		}
 		String emsg = miServ.updateMatomoInstance(
 				request.getServiceInstanceId(),
 				getPlatformId(request.getPlatformInstanceId()),
@@ -219,7 +211,7 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 			instversion = matomoReleases.getLatestReleaseName();
 		} else if (! matomoReleases.isVersionAvailable(instversion)) {
 				LOGGER.warn("SERV::getVersion: version {} is not supported -> switch to default one.", instversion);
-				throw new RuntimeException("Version <" + instversion + "> is not supported by this Matomo CF Service!!");
+				instversion = matomoReleases.getDefaultReleaseName();
 		}
 		LOGGER.debug("SERV::getVersion: {}", instversion);
 		return instversion;
@@ -254,13 +246,16 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 			if (planid.equals(ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID)) {
 				instances =  CLUSTERSIZE_DEFAULT;
 			} else {
-				instances = (Integer) parameters.get(PARAM_INSTANCES);
-				if (instances == null) {
+				String sinstances = (String) parameters.get(PARAM_INSTANCES);
+				if (sinstances == null) {
 					instances =  CLUSTERSIZE_DEFAULT;
-				} else if (instances < CLUSTERSIZE_DEFAULT) {
-					instances =  CLUSTERSIZE_DEFAULT;
-				} else if (instances > MAX_INSTANCES) {
-					instances =  MAX_INSTANCES;
+				} else {
+					instances = Integer.decode(sinstances);
+					if (instances < CLUSTERSIZE_DEFAULT) {
+						instances =  CLUSTERSIZE_DEFAULT;
+					} else if (instances > MAX_INSTANCES) {
+						instances =  MAX_INSTANCES;
+					}
 				}
 			}
 		}

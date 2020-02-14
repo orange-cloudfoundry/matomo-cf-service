@@ -25,7 +25,8 @@ import org.springframework.context.annotation.Configuration;
  *
  */
 @Configuration
-public class BrokerApiVersionConfiguration {
+public class BrokerConfiguration {
+	
 	@Bean
 	public BrokerApiVersion brokerApiVersion() {
 		return new BrokerApiVersion();

@@ -26,8 +26,6 @@ import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 
-import com.orange.oss.matomocfservice.web.security.SecurityConfig.McfsLogoutSuccessHandler;
-
 /**
  * @author P. Déchamboux
  *
@@ -48,11 +46,11 @@ public class McfsSecurityConfigurerAdapter extends WebSecurityConfigurerAdapter 
 //			.anyRequest().hasRole(SecurityConfig.ROLE_ADMIN)
 		.and().httpBasic()
 			.realmName(SecurityConfig.REALM_NAME).authenticationEntryPoint(new McfsAuthenticationEntryPoint())
-        .and().formLogin()
-            .successHandler(new McfsAuthenticationSuccessHandler(adminSessionTimeout))
-        .and().logout().permitAll()
-            .logoutSuccessHandler(new McfsLogoutSuccessHandler())
-            .invalidateHttpSession(true)
+//        .and().formLogin()
+//            .successHandler(new McfsAuthenticationSuccessHandler(adminSessionTimeout))
+//        .and().logout().permitAll()
+//            .logoutSuccessHandler(new McfsLogoutSuccessHandler())
+//            .invalidateHttpSession(true)
 		.and().csrf().disable();
 		http.sessionManagement().maximumSessions(SecurityConfig.MAX_SESSIONS).expiredUrl("/login?expired=true");
 	}
