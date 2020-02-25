@@ -23,11 +23,13 @@ import java.util.Optional;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityNotFoundException;
+import javax.transaction.Transactional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.servicebroker.model.instance.OperationState;
+import org.springframework.stereotype.Service;
 
 import com.orange.oss.matomocfservice.web.domain.POperationStatus;
 import com.orange.oss.matomocfservice.web.domain.PPlatform;
@@ -38,6 +40,7 @@ import com.orange.oss.matomocfservice.web.repository.PPlatformRepository;
  * @author P. Déchamboux
  *
  */
+@Service
 public abstract class OperationStatusService {
 	private final static Logger LOGGER = LoggerFactory.getLogger(OperationStatusService.class);
 	@Autowired
@@ -49,37 +52,82 @@ public abstract class OperationStatusService {
 	@Autowired
 	EntityManagerFactory entityManagerFactory;
 
-	public OperationAndState getLastOperationAndState(String instanceId, String platformId) {
-		EntityManager em = beginTx();
-		Optional<POperationStatus> opms = osRepo.findById(instanceId);
-		if (! opms.isPresent()) {
-			LOGGER.error("SERV::getLastOperationAndState: unknow service instance.");
-			commitTx(em);
+	@Transactional
+	public OperationAndState getLastOperationAndState(String id, String platformId) {
+		Optional<POperationStatus> opms = osRepo.findById(id);
+		if (!opms.isPresent()) {
+			LOGGER.error("SERV::getLastOperationAndState: unknow service instance or binding.");
 			return null;
 		}
 		POperationStatus pos = opms.get();
 		if (!pos.getPlatform().getId().equals(platformId)) {
 			LOGGER.error("SERV::getLastOperationAndState: wrong platform.");
-			commitTx(em);
 			return null;
 		}
 		if (pos.getLastOperationState() == OperationState.IN_PROGRESS) {
 			Duration d = Duration.between(pos.getUpdateTime(), ZonedDateTime.now());
 			if (d.getSeconds() > applicationInformation.getTimeoutFrozenInProgress()) {
-				LOGGER.error("SERV::getLastOperationAndState: last operation is in progress for too long (more than {} seconds): considered failed.", applicationInformation.getTimeoutFrozenInProgress());
+				LOGGER.error("SERV::getLastOperationAndState: last operation is in progress for too long (more than {} seconds): considered failed.",
+						applicationInformation.getTimeoutFrozenInProgress());
 				pos.setLastOperationState(OperationState.FAILED);
 				osRepo.save(pos);
 			} else {
-				LOGGER.debug("SERV::getLastOperationAndState: Operation={} State={} for {}min {}sec", pos.getLastOperation().toString(), pos.getLastOperationState().toString(), d.getSeconds() / 60, d.getSeconds() % 60);			
+				LOGGER.debug("SERV::getLastOperationAndState: Operation={} State={} for {}min {}sec",
+						pos.getLastOperation().toString(), pos.getLastOperationState().toString(), d.getSeconds() / 60,
+						d.getSeconds() % 60);
 			}
 		} else {
-			LOGGER.debug("SERV::getLastOperationAndState: Operation={} State={}", pos.getLastOperation().toString(), pos.getLastOperationState().toString());
+			LOGGER.debug("SERV::getLastOperationAndState: Operation={} State={}", pos.getLastOperation().toString(),
+					pos.getLastOperationState().toString());
 		}
 		OperationAndState opandst2fill = new OperationAndState();
 		opandst2fill.setOperation(pos.getLastOperation());
 		opandst2fill.setState(pos.getLastOperationState());
-		commitTx(em);
 		return opandst2fill;
+	}
+
+	@Transactional
+	public boolean lockForAtomicOperation(String id, String platformId) {
+		LOGGER.debug("SERV::lockForAtomicOperation");
+		Optional<POperationStatus> opms = osRepo.findById(id);
+		if (! opms.isPresent()) {
+			LOGGER.error("SERV::getLastOperationAndState: unknow service instance or binding.");
+			return false;
+		}
+		POperationStatus pos = opms.get();
+		if (!pos.getPlatform().getId().equals(platformId)) {
+			LOGGER.error("SERV::getLastOperationAndState: wrong platform.");
+			return false;
+		}
+		if (pos.isLocked()) {
+			LOGGER.error("SERV::getLastOperationAndState: already locked.");
+			return false;
+		}
+		pos.setLocked(true);
+		osRepo.save(pos);
+		return true;
+	}
+
+	@Transactional
+	public boolean unlockForAtomicOperation(String id, String platformId) {
+		LOGGER.debug("SERV::unlockForAtomicOperation");
+		Optional<POperationStatus> opms = osRepo.findById(id);
+		if (! opms.isPresent()) {
+			LOGGER.error("SERV::getLastOperationAndState: unknow service instance or binding.");
+			return false;
+		}
+		POperationStatus pos = opms.get();
+		if (!pos.getPlatform().getId().equals(platformId)) {
+			LOGGER.error("SERV::getLastOperationAndState: wrong platform.");
+			return false;
+		}
+		if (!pos.isLocked()) {
+			LOGGER.error("SERV::getLastOperationAndState: not locked.");
+			return false;
+		}
+		pos.setLocked(false);
+		osRepo.save(pos);
+		return true;
 	}
 
 	public static class OperationAndState {

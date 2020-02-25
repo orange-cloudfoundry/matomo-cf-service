@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import javax.persistence.EntityNotFoundException;
+import javax.transaction.Transactional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +46,7 @@ public class PlatformService {
 	PPlatformRepository pfRepo;
 	private String unknownPlatformId;
 
+	@Transactional
 	public void initialize() {
 		LOGGER.debug("SERV::PlatformService-initialize");
 		PPlatform unknownPlatform = pfRepo.findByName(UNKNOWNPLATFORM_NAME);

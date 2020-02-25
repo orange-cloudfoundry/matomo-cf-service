@@ -18,6 +18,8 @@ package com.orange.oss.matomocfservice.cfmgr;
 
 import java.util.Map;
 
+import org.cloudfoundry.operations.applications.ApplicationDetail;
+
 import com.orange.oss.matomocfservice.web.domain.PMatomoInstance;
 import com.orange.oss.matomocfservice.web.domain.Parameters;
 
@@ -41,7 +43,7 @@ public interface CloudFoundryMgr {
 	public Mono<Void> createDedicatedDb(String instid, String planid);
 	public Mono<Void> deleteDedicatedDb(String instid, String planid);
 	public Mono<Map<String, Object>> getApplicationEnv(String instid);
-	public Mono<Void> deleteMatomoCfApp(String instid, String planid);
+	public Mono<ApplicationDetail> deleteMatomoCfApp(String instid, String planid);
 	public Mono<AppConfHolder> getInstanceConfigFile(String instid, String version, boolean clustermode);
 	public boolean initializeMatomoInstance(String appcode, String nuri, String pwd, String planid);
 	public boolean upgradeMatomoInstance(String appcode, String nuri);

@@ -36,6 +36,7 @@ import java.util.Map;
 
 import org.cloudfoundry.client.v2.info.GetInfoRequest;
 import org.cloudfoundry.operations.CloudFoundryOperations;
+import org.cloudfoundry.operations.applications.ApplicationDetail;
 import org.cloudfoundry.operations.applications.ApplicationManifest;
 import org.cloudfoundry.operations.applications.DeleteApplicationRequest;
 import org.cloudfoundry.operations.applications.GetApplicationEnvironmentsRequest;
@@ -243,44 +244,54 @@ public class CloudFoundryMgrImpl extends CloudFoundryMgrAbs {
 	}
 
 	/**
-	 * Launch the deletion of the CF app for a dev flavor instance of Matomo service.
+	 * Launch the deletion of the CF app for an instance of Matomo service.
 	 * @param instid	The name of the Matomo instance as it is exposed to the Web
 	 * @param planid	The service plan of the Matomo instance
-	 * @return	The Mono to signal the end of the async process (produce nothng indeed)
+	 * @return	The Mono to signal the end of the async process (produce nothing indeed)
 	 */
-	public Mono<Void> deleteMatomoCfApp(String instid, String planid) {
+	public Mono<ApplicationDetail> deleteMatomoCfApp(String instid, String planid) {
+		final String NOID = "none";
 		LOGGER.debug("CFMGR::deleteMatomoCfApp: instId={}", instid);
-		return cfops.services().unbind(UnbindServiceInstanceRequest.builder()
-				.serviceInstanceName(properties.getDbCreds(planid).getInstanceServiceName(getAppName(instid)))
-				.applicationName(getAppName(instid))
-				.build())
-				.doOnError(t -> {
-					LOGGER.error("CFMGR::deleteMatomoCfApp: problem to unbind from DB.", t);
-					cfops.applications().delete(DeleteApplicationRequest.builder()
-							.deleteRoutes(true)
-							.name(getAppName(instid))
-							.build())
-					.doOnError(tt -> {
-						LOGGER.error("CFMGR::deleteMatomoCfApp: problem to delete app (no unbind).", tt);
-					})
-					.doOnSuccess(vv -> {
-						LOGGER.debug("CFMGR::deleteMatomoCfApp: app unbound and deleted.");
-					})
-					.subscribe();
-				})
-				.doOnSuccess(v -> {
-					cfops.applications().delete(DeleteApplicationRequest.builder()
-							.deleteRoutes(true)
-							.name(getAppName(instid))
-							.build())
-					.doOnError(tt -> {
-						LOGGER.error("CFMGR::deleteMatomoCfApp: problem to delete app (after unbind).", tt);
-					})
-					.doOnSuccess(vv -> {
-						LOGGER.debug("CFMGR::deleteMatomoCfApp: app unbound and deleted.");
-					})
-					.subscribe();
-				});
+		return cfops.applications().get(GetApplicationRequest.builder().name(getAppName(instid)).build())
+		.onErrorResume(t -> {
+			LOGGER.debug("CFMGR::deleteMatomoCfApp: app does not exist, nothing to delete!!");
+			return Mono.just(ApplicationDetail.builder()
+					.name(getAppName(instid))
+					.id(NOID)
+					.stack("cflinuxfs3")
+					.diskQuota(1024)
+					.instances(1)
+					.memoryLimit(1024)
+					.requestedState("none")
+					.runningInstances(1)
+					.build());
+		}).doOnSuccess(ad -> {
+			if (ad.getId().equals(NOID)) { // resume from not exist: OK but do nothing
+				return;
+			}
+			LOGGER.debug("CFMGR::deleteMatomoCfApp: app exist");
+			cfops.services().unbind(UnbindServiceInstanceRequest.builder()
+					.serviceInstanceName(properties.getDbCreds(planid).getInstanceServiceName(getAppName(instid)))
+					.applicationName(getAppName(instid)).build())
+			.doOnError(t -> {
+				LOGGER.error("CFMGR::deleteMatomoCfApp: problem to unbind from DB.", t);
+				cfops.applications().delete(
+						DeleteApplicationRequest.builder().deleteRoutes(true).name(getAppName(instid)).build())
+				.doOnError(tt -> {
+					LOGGER.error("CFMGR::deleteMatomoCfApp: problem to delete app (no unbind).", tt);
+				}).doOnSuccess(vv -> {
+					LOGGER.debug("CFMGR::deleteMatomoCfApp: app unbound and deleted.");
+				}).subscribe();
+			}).doOnSuccess(v -> {
+				cfops.applications().delete(
+						DeleteApplicationRequest.builder().deleteRoutes(true).name(getAppName(instid)).build())
+				.doOnError(tt -> {
+					LOGGER.error("CFMGR::deleteMatomoCfApp: problem to delete app (after unbind).", tt);
+				}).doOnSuccess(vv -> {
+					LOGGER.debug("CFMGR::deleteMatomoCfApp: app unbound and deleted.");
+				}).subscribe();
+			}).subscribe();
+		});
 	}
 
 	public Mono<AppConfHolder> getInstanceConfigFile(String instid, String version, boolean clustermode) {

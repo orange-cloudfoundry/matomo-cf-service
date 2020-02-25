@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
+import org.cloudfoundry.operations.applications.ApplicationDetail;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -140,7 +141,7 @@ public class CloudFoundryMgr4Test extends CloudFoundryMgrAbs {
 	}
 
 	@Override
-	public Mono<Void> deleteMatomoCfApp(String instid, String planid) {
+	public Mono<ApplicationDetail> deleteMatomoCfApp(String instid, String planid) {
 		LOGGER.debug("CFMGR-TEST::deleteMatomoCfApp: instId={}", instid);
 		if (respMask.failedDeleteMatomoCfApp()) {
 			return Mono.error(new TimeoutException("Timeout after some time"));

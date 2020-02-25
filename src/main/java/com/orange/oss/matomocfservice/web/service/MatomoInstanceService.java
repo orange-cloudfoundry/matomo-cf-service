@@ -17,6 +17,7 @@
 package com.orange.oss.matomocfservice.web.service;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -66,23 +67,45 @@ public class MatomoInstanceService extends OperationStatusService {
 	 */
 	public void initialize() {
 		LOGGER.debug("SERV::MatomoInstanceService:initialize - latestVersion={}", matomoReleases.getLatestReleaseName());
-		for (PMatomoInstance pmi : miRepo.findAll()) {
-			if (!pmi.getAutomaticVersionUpgrade()) {
-				continue;
-			}
-			if (pmi.getConfigFileContent() != null) {
-				LOGGER.debug("SERV::initialize: reactivate instance {}, version={}", pmi.getIdUrlStr(), pmi.getInstalledVersion());
-				if (matomoReleases.isHigherVersion(matomoReleases.getLatestReleaseName(), pmi.getInstalledVersion())) {
-					// need to upgrade to latest version
-					LOGGER.debug("Upgrade Matomo instance from {} to {}.", pmi.getInstalledVersion(), matomoReleases.getLatestReleaseName());
-					updateMatomoInstanceActual(pmi, new Parameters()
-							.autoVersionUpgrade(pmi.getAutomaticVersionUpgrade())
-							.cfInstances(pmi.getInstances())
-							.memorySize(pmi.getMemorySize())
-							.timeZone(null)
-							.version(matomoReleases.getLatestReleaseName()));
+		List<String[]> inst2process = new ArrayList<String[]>();
+		EntityManager em = beginTx();
+		try {
+			for (PMatomoInstance pmi : miRepo.findAll()) {
+				if (!pmi.getAutomaticVersionUpgrade()) {
+					continue;
+				}
+				if (pmi.getConfigFileContent() != null) {
+					LOGGER.debug("SERV::initialize: reactivate instance {}, version={}", pmi.getIdUrlStr(), pmi.getInstalledVersion());
+					if (matomoReleases.isHigherVersion(matomoReleases.getLatestReleaseName(), pmi.getInstalledVersion())) {
+						// need to upgrade to latest version
+						String[] inst = new String[2];
+						inst[0] = pmi.getUuid();
+						inst[1] = pmi.getPlatform().getId();
+						inst2process.add(inst);
+					}
 				}
 			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally {
+			commitTx(em);
+		}
+		for (String[] inst : inst2process) {
+			lockForAtomicOperation(inst[0], inst[1]);
+			PMatomoInstance pmi = getMatomoInstance(inst[0], inst[1]);
+			if (!matomoReleases.isHigherVersion(matomoReleases.getLatestReleaseName(), pmi.getInstalledVersion())) {
+				unlockForAtomicOperation(inst[0], inst[1]);
+				continue;
+			}
+			LOGGER.debug("Upgrade Matomo instance from {} to {}.", pmi.getInstalledVersion(), matomoReleases.getLatestReleaseName());
+			updateMatomoInstanceActual(pmi, new Parameters()
+					.autoVersionUpgrade(pmi.getAutomaticVersionUpgrade())
+					.cfInstances(pmi.getInstances())
+					.memorySize(pmi.getMemorySize())
+					.timeZone(null)
+					.version(matomoReleases.getLatestReleaseName()));
+			unlockForAtomicOperation(inst[0], inst[1]);
 		}
 	}
 
@@ -262,7 +285,7 @@ public class MatomoInstanceService extends OperationStatusService {
 			EntityManager nem = beginTx();
 			PMatomoInstance npmi = miRepo.getOne(uuid);
 			nem.unwrap(Session.class).update(npmi);
-			LOGGER.debug("Async delete app instance \"" + npmi.getUuid() + "\" failed -> " + t.getMessage());
+			LOGGER.debug("Async delete app instance \"{}\" failed -> {}", npmi.getUuid(), t.getMessage());
 			savePMatomoInstance(npmi, OperationState.FAILED);
 			commitTx(nem);
 		})
@@ -397,6 +420,8 @@ public class MatomoInstanceService extends OperationStatusService {
 	private void updateMatomoInstanceActual(PMatomoInstance pmi, Parameters mip) {
 		String uuid = pmi.getUuid();
 		LOGGER.debug("SERV::updateMatomoInstanceActual: matomoInstance={}, newVersion={}", pmi.getUuid(), mip.getVersion());
+		pmi.setLastOperation(POperationStatus.OpCode.DELETE_SERVICE_INSTANCE);
+		savePMatomoInstance(pmi, OperationState.IN_PROGRESS);
 		Mono.create(sink -> {
 			matomoReleases.createLinkedTree(mip.getVersion(), pmi.getIdUrlStr());
 			matomoReleases.setConfigIni(mip.getVersion(), pmi.getIdUrlStr(), pmi.getConfigFileContent());

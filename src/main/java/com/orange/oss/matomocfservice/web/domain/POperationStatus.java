@@ -54,7 +54,9 @@ public abstract class POperationStatus {
 
 	@Column(length = LENGTH_OPSTATE)
 	private String lastOperationState;
-	
+
+	private boolean locked;
+
 	@ManyToOne
 	@JoinColumn(name = "platform_id", referencedColumnName = "id", nullable = false)
 	PPlatform platform;
@@ -71,6 +73,7 @@ public abstract class POperationStatus {
 		this.updateTime = this.createTime;		
 		this.lastOperation = opcode.toString();
 		this.lastOperationState = opstate.toString();
+		this.locked = false;
 		this.platform = ppf;
 	}
 
@@ -124,6 +127,13 @@ public abstract class POperationStatus {
 			return OperationState.IN_PROGRESS;
 		}
 		return OperationState.FAILED;
+	}
+
+	public void setLocked(boolean locked) {
+		this.locked = locked;
+	}
+	public boolean isLocked() {
+		return this.locked;
 	}
 
 	public PPlatform getPlatform() {
