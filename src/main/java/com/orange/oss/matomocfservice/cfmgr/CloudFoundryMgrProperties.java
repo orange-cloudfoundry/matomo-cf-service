@@ -16,14 +16,21 @@
 
 package com.orange.oss.matomocfservice.cfmgr;
 
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
 import javax.annotation.PostConstruct;
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
 
 import org.cloudfoundry.operations.applications.ApplicationManifest.Builder;
+import org.hibernate.Session;
+import org.hibernate.jdbc.Work;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
@@ -59,48 +66,55 @@ public class CloudFoundryMgrProperties {
 	@Value("${matomo-service.dedicated-db.creds}")
 	private String dedicatedDbCredsStr;
 	private DbCreds dedicatedDbCreds = null;
+	@Autowired
+	EntityManagerFactory entityManagerFactory;
+	private int maxDbConnections = 1;
+
+	public int getMaxDbConnections() {
+		return this.maxDbConnections;
+	}
 
 	public boolean getMatomoDebug() {
-		return matomoDebug;
+		return this.matomoDebug;
 	}
 
 	public String getDomain() {
-		return serviceDomain;
+		return this.serviceDomain;
 	}
 
 	public String getPhpBuildpack() {
-		return servicePhpBuildpack;
+		return this.servicePhpBuildpack;
 	}
 
 	public int getMaxServiceInstances() {
-		return maxServiceInstances;
+		return this.maxServiceInstances;
 	}
 
 	public SmtpCreds getSmtpCreds() {
-		if (smtpCreds == null) {
-			smtpCreds = new SmtpCreds(smtpCredsStr);
+		if (this.smtpCreds == null) {
+			this.smtpCreds = new SmtpCreds(this.smtpCredsStr);
 		}
-		return smtpCreds;
+		return this.smtpCreds;
 	}
 
 	public DbCreds getDbCreds(String planid) {
 		if (planid.equals(ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID)) {
-			if (sharedDbCreds == null) {
-				sharedDbCreds = new DbCreds(sharedDbCredsStr, GLOBSHAREDDBINSTNAME);
+			if (this.sharedDbCreds == null) {
+				this.sharedDbCreds = new DbCreds(this.sharedDbCredsStr, GLOBSHAREDDBINSTNAME);
 			}
-			return sharedDbCreds;
+			return this.sharedDbCreds;
 		}
 		if (planid.equals(ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID)) {
-			if (sharedDedicatedDbCreds == null) {
-				sharedDedicatedDbCreds = new DbCreds(sharedDedicatedDbCredsStr, null);
+			if (this.sharedDedicatedDbCreds == null) {
+				this.sharedDedicatedDbCreds = new DbCreds(this.sharedDedicatedDbCredsStr, null);
 			}
-			return sharedDedicatedDbCreds;
+			return this.sharedDedicatedDbCreds;
 		}
 		if (planid.equals(ServiceCatalogConfiguration.PLANDEDICATEDDB_UUID)) {
-			if (dedicatedDbCreds == null) {
-				dedicatedDbCreds = new DbCreds(dedicatedDbCredsStr, null);
+			if (this.dedicatedDbCreds == null) {
+				this.dedicatedDbCreds = new DbCreds(this.dedicatedDbCredsStr, null);
 			}
-			return dedicatedDbCreds;
+			return this.dedicatedDbCreds;
 		}
 		LOGGER.error("SERV::createMatomoInstance: unknown plan=" + planid);
 		throw new IllegalArgumentException("Unkown plan");
@@ -244,6 +258,35 @@ public class CloudFoundryMgrProperties {
     @PostConstruct
     public void afterInitialize() {
     	LOGGER.debug("CONFIG::properties: " + this.toString());
-    	
+    	EntityManager em = null;
+    	try {
+			em = entityManagerFactory.createEntityManager();
+			em.getTransaction().begin();
+			Work4Conn work4conn = new Work4Conn();
+			Session session = em.unwrap(Session.class);
+			session.doWork(work4conn);
+			this.maxDbConnections = work4conn.getMaxDbConn();
+			em.getTransaction().commit();
+			LOGGER.debug("CONFIG:: maxDbConnections={}", this.maxDbConnections);
+		} catch (Exception e) {
+			LOGGER.error("CONFIG::cannot retrieve maxDbConnections from JDBC Driver");
+		} finally {
+			if (em != null) {
+				em.close();
+			}
+		}
+    }
+
+    private static class Work4Conn implements Work {
+    	int maxDbConn;
+
+    	int getMaxDbConn() {
+    		return this.maxDbConn;
+    	}
+
+		@Override
+		public void execute(Connection connection) throws SQLException {
+			this.maxDbConn = connection.getMetaData().getMaxConnections();
+		}
     }
 }

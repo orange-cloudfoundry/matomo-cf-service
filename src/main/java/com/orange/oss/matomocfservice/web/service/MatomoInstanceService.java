@@ -37,11 +37,13 @@ import com.orange.oss.matomocfservice.servicebroker.ServiceCatalogConfiguration;
 import com.orange.oss.matomocfservice.web.domain.PMatomoInstance;
 import com.orange.oss.matomocfservice.web.domain.PMatomoInstance.PlatformKind;
 import com.orange.oss.matomocfservice.web.domain.POperationStatus;
+import com.orange.oss.matomocfservice.web.domain.POperationStatus.OpCode;
 import com.orange.oss.matomocfservice.web.domain.PPlatform;
 import com.orange.oss.matomocfservice.web.domain.Parameters;
 import com.orange.oss.matomocfservice.web.repository.PMatomoInstanceRepository;
 
 import io.jsonwebtoken.lang.Assert;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -61,52 +63,75 @@ public class MatomoInstanceService extends OperationStatusService {
 	private CloudFoundryMgrProperties properties;
 	@Autowired
 	private MatomoReleases matomoReleases;
+	private final InstIds NOPEINSTIDS = new InstIds(null, null);
+
+	private class InstIds implements Runnable {
+		String id;
+		String pfid;
+
+		InstIds(String id, String pfid) {
+			this.id = id;
+			this.pfid = pfid;
+		}
+
+		public void run() {
+			if (id == null) {
+				return;
+			}
+			unlockForAtomicOperation(this.id, this.pfid);
+		}
+	}
+
+	private void observeInstanceForUpgrade(InstIds instids) {
+		LOGGER.debug("SERV::MatomoInstanceService: observeInstance({}, {})", instids.id, instids.pfid);
+		lockForAtomicOperation(instids.id, instids.pfid);
+		PMatomoInstance pmi = getMatomoInstance(instids.id, instids.pfid);
+		if (!matomoReleases.isHigherVersion(matomoReleases.getLatestReleaseName(), pmi.getInstalledVersion())) {
+			unlockForAtomicOperation(instids.id, instids.pfid);
+			return;
+		}
+		LOGGER.debug("Upgrade Matomo instance from {} to {}.", pmi.getInstalledVersion(), matomoReleases.getLatestReleaseName());
+		updateMatomoInstanceActual(pmi, instids, new Parameters()
+				.autoVersionUpgrade(pmi.getAutomaticVersionUpgrade())
+				.cfInstances(pmi.getInstances())
+				.memorySize(pmi.getMemorySize())
+				.timeZone(null)
+				.version(matomoReleases.getLatestReleaseName()))
+		.subscribe();
+	}
 
 	/**
 	 * Initialize Matomo service instance manager.
 	 */
 	public void initialize() {
 		LOGGER.debug("SERV::MatomoInstanceService:initialize - latestVersion={}", matomoReleases.getLatestReleaseName());
-		List<String[]> inst2process = new ArrayList<String[]>();
+		List<InstIds> inst2process = new ArrayList<InstIds>();
 		EntityManager em = beginTx();
 		try {
 			for (PMatomoInstance pmi : miRepo.findAll()) {
 				if (!pmi.getAutomaticVersionUpgrade()) {
 					continue;
 				}
-				if (pmi.getConfigFileContent() != null) {
+				if ((pmi.getConfigFileContent() != null) && (pmi.getLastOperationState() == OperationState.SUCCEEDED)) {
 					LOGGER.debug("SERV::initialize: reactivate instance {}, version={}", pmi.getIdUrlStr(), pmi.getInstalledVersion());
 					if (matomoReleases.isHigherVersion(matomoReleases.getLatestReleaseName(), pmi.getInstalledVersion())) {
 						// need to upgrade to latest version
-						String[] inst = new String[2];
-						inst[0] = pmi.getUuid();
-						inst[1] = pmi.getPlatform().getId();
-						inst2process.add(inst);
+						inst2process.add(new InstIds(pmi.getUuid(), pmi.getPlatform().getId()));
 					}
 				}
 			}
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOGGER.error("Problem while looking at the Matomo instances to be automatically upgraded at service startup", e);
 		} finally {
 			commitTx(em);
 		}
-		for (String[] inst : inst2process) {
-			lockForAtomicOperation(inst[0], inst[1]);
-			PMatomoInstance pmi = getMatomoInstance(inst[0], inst[1]);
-			if (!matomoReleases.isHigherVersion(matomoReleases.getLatestReleaseName(), pmi.getInstalledVersion())) {
-				unlockForAtomicOperation(inst[0], inst[1]);
-				continue;
-			}
-			LOGGER.debug("Upgrade Matomo instance from {} to {}.", pmi.getInstalledVersion(), matomoReleases.getLatestReleaseName());
-			updateMatomoInstanceActual(pmi, new Parameters()
-					.autoVersionUpgrade(pmi.getAutomaticVersionUpgrade())
-					.cfInstances(pmi.getInstances())
-					.memorySize(pmi.getMemorySize())
-					.timeZone(null)
-					.version(matomoReleases.getLatestReleaseName()));
-			unlockForAtomicOperation(inst[0], inst[1]);
-		}
+		// start upgrading service instance (automatic upgrade mode) to the most recent
+		// version in background, one at a time each five minutes
+		Flux.interval(Duration.ZERO, Duration.ofMinutes(5))
+		.map(tick ->  inst2process.get(tick.intValue()))
+		.doOnNext(this::observeInstanceForUpgrade)
+		.take(inst2process.size())
+		.subscribe();
 	}
 
 	public PMatomoInstance getMatomoInstance(String instanceId, String platformId) {
@@ -162,7 +187,8 @@ public class MatomoInstanceService extends OperationStatusService {
 					LOGGER.error("Matomo Instance with ID=" + uuid + " already exists in Platform with ID=" + pfid);
 					return "Matomo Instance with ID=" + uuid + " already exists in Platform with ID=" + pfid;
 				}
-				if (miRepo.findByName(instname).isPresent()) {
+				Optional<PMatomoInstance> opmi = miRepo.findByName(instname);
+				if (opmi.isPresent() && (opmi.get().getConfigFileContent() != null)) {
 					LOGGER.error(
 							"Matomo Instance with name=" + instname + " already exists in Platform with ID=" + pfid);
 					return "Matomo Instance with name=" + instname + " already exists in Platform with ID=" + pfid;
@@ -232,7 +258,7 @@ public class MatomoInstanceService extends OperationStatusService {
 									nnpmi.setConfigFileContent(ach.fileContent);
 									savePMatomoInstance(nnpmi, null);
 									commitTx(nnem);
-									settleMatomoInstance(nnpmi, parameters, true,
+									settleMatomoInstance(nnpmi, NOPEINSTIDS, parameters, true,
 											properties.getDbCreds(nnpmi.getPlanId())).subscribe();
 								}).subscribe();
 
@@ -385,10 +411,10 @@ public class MatomoInstanceService extends OperationStatusService {
 		}
 		if (matomoReleases.isHigherVersion(parameters.getVersion(), pmi.getInstalledVersion())) {
 			LOGGER.debug("Upgrade Matomo instance from version {} to {}.", pmi.getInstalledVersion(), parameters.getVersion());
-			updateMatomoInstanceActual(pmi, parameters);
+			updateMatomoInstanceActual(pmi, NOPEINSTIDS, parameters).subscribe();
 		} else if (parameters.getTimeZone() != null) {
 			LOGGER.debug("Change Matomo instance timezone from {} to {}.", pmi.getTimeZone(), parameters.getTimeZone());
-			updateMatomoInstanceActual(pmi, parameters);
+			updateMatomoInstanceActual(pmi, NOPEINSTIDS, parameters).subscribe();
 		} else if ((parameters.getCfInstances() != -1) || (parameters.getMemorySize() != -1)) {
 			// only scale app nodes and/or memory size
 			cfMgr.scaleMatomoCfApp(pmi.getIdUrlStr(), pmi.getInstances(), pmi.getMemorySize())
@@ -417,12 +443,14 @@ public class MatomoInstanceService extends OperationStatusService {
 
 	// PRIVATE METHODS --------------------------------------------------------------------------------
 	
-	private void updateMatomoInstanceActual(PMatomoInstance pmi, Parameters mip) {
+	private Mono<Object> updateMatomoInstanceActual(PMatomoInstance pmi, InstIds instids, Parameters mip) {
 		String uuid = pmi.getUuid();
 		LOGGER.debug("SERV::updateMatomoInstanceActual: matomoInstance={}, newVersion={}", pmi.getUuid(), mip.getVersion());
-		pmi.setLastOperation(POperationStatus.OpCode.DELETE_SERVICE_INSTANCE);
-		savePMatomoInstance(pmi, OperationState.IN_PROGRESS);
-		Mono.create(sink -> {
+		if (pmi.getLastOperation() != OpCode.UPDATE_SERVICE_INSTANCE) {
+			pmi.setLastOperation(POperationStatus.OpCode.UPDATE_SERVICE_INSTANCE);
+			savePMatomoInstance(pmi, OperationState.IN_PROGRESS);
+		}
+		return Mono.create(sink -> {
 			matomoReleases.createLinkedTree(mip.getVersion(), pmi.getIdUrlStr());
 			matomoReleases.setConfigIni(mip.getVersion(), pmi.getIdUrlStr(), pmi.getConfigFileContent());
 			cfMgr.deployMatomoCfApp(pmi.getIdUrlStr(), pmi.getUuid(), pmi.getPlanId(), mip, 256, 1)
@@ -438,6 +466,7 @@ public class MatomoInstanceService extends OperationStatusService {
 			matomoReleases.deleteLinkedTree(npmi.getIdUrlStr());
 			savePMatomoInstance(npmi, OperationState.FAILED);
 			commitTx(nem);
+			instids.run();
 		})
 		.doOnSuccess(v -> {
 			EntityManager nem = beginTx();
@@ -448,18 +477,18 @@ public class MatomoInstanceService extends OperationStatusService {
 				matomoReleases.deleteLinkedTree(npmi.getIdUrlStr());
 				savePMatomoInstance(npmi, OperationState.FAILED);
 				commitTx(nem);
+				instids.run();
 			} else {
 				npmi.setInstalledVersion(mip.getVersion());
 				savePMatomoInstance(npmi, null);
 				commitTx(nem);
-				settleMatomoInstance(npmi, mip, false, properties.getDbCreds(npmi.getPlanId())).subscribe();
+				settleMatomoInstance(npmi, instids, mip, false, properties.getDbCreds(npmi.getPlanId())).subscribe();
 			}
-		})
-		.subscribe();
+		});
 	}
 
 	@SuppressWarnings("unchecked")
-	private Mono<Void> settleMatomoInstance(PMatomoInstance pmi, Parameters mip, boolean retrievetoken, CloudFoundryMgrProperties.DbCreds dbCreds) {
+	private Mono<Void> settleMatomoInstance(PMatomoInstance pmi, InstIds instids, Parameters mip, boolean retrievetoken, CloudFoundryMgrProperties.DbCreds dbCreds) {
 		String uuid = pmi.getUuid();
 		return cfMgr.deployMatomoCfApp(pmi.getIdUrlStr(), pmi.getUuid(), pmi.getPlanId(), mip, pmi.getMemorySize(), pmi.getInstances())
 				.doOnError(t -> {
@@ -470,6 +499,7 @@ public class MatomoInstanceService extends OperationStatusService {
 					matomoReleases.deleteLinkedTree(npmi.getIdUrlStr());
 					savePMatomoInstance(npmi, OperationState.FAILED);
 					commitTx(nem);
+					instids.run();
 				})
 				.doOnSuccess(v -> {
 					EntityManager nem = beginTx();
@@ -506,11 +536,14 @@ public class MatomoInstanceService extends OperationStatusService {
 								LOGGER.debug("Async settle app instance (phase 2) \"" + nnpmi.getUuid() + "\" succeeded");
 							}
 							commitTx(nnem);
-						}).subscribe();
+						})
+						.doOnTerminate(instids)
+						.subscribe();
 					} else {
 						savePMatomoInstance(npmi, OperationState.SUCCEEDED);
 						LOGGER.debug("Async settle app instance (phase 2) \"" + npmi.getUuid() + "\" succeeded");
 						commitTx(nem);
+						instids.run();
 					}
 				});
 	}

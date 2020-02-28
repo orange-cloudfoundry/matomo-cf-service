@@ -170,7 +170,6 @@ public class PMatomoInstance extends POperationStatus {
 
 	public void setConfigFileContent(byte cfc[]) {
 		this.configFileContent = cfc;
-		super.touch();
 	}
 
 	public boolean getAutomaticVersionUpgrade() {
@@ -224,7 +223,6 @@ public class PMatomoInstance extends POperationStatus {
 
 	public void setDbCred(String dbc) {
 		this.dbCred = dbc;
-		super.touch();
 	}
 
 	public String getDbCred() {
@@ -233,7 +231,6 @@ public class PMatomoInstance extends POperationStatus {
 
 	public void setTokenAuth(String ta) {
 		this.tokenAuth = ta;
-		super.touch();
 	}
 
 	public String getTokenAuth() {
