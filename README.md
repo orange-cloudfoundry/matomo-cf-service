@@ -4,7 +4,7 @@
 
 This is a service broker (OSB compliant) that provides [Matomo](https://matomo.org/) service instance as dedicated [CloudFoundry](https://www.cloudfoundry.org/) (CF) applications. It requires CF for managing the service but can be used on any platform supporting the OSB API.
 
-The user guide of the service is available [here](src/main/doc/index.md).
+The user guide of the service is available [here](src/main/doc/index.md) and a Web site for this [README](https://orange-cloudfoundry.github.io/matomo-cf-service/) is available too.
 
 ## Tributes
 The scripting code to adapt Matomo configuration code to CloudFoundry is largely inspired from material available from previous experiments and especially from [Sanjay Joshi](https://www.ibm.com/blogs/cloud-archive/2014/07/getting-started-piwik-ibm-bluemix/) at IBM as well as from [Bespinian blog](https://blog.bespinian.io/posts/run-piwik-on-cloud-foundry/). Many thanks to them.
