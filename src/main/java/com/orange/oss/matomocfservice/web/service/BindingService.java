@@ -42,6 +42,8 @@ import com.orange.oss.matomocfservice.web.domain.PPlatform;
 import com.orange.oss.matomocfservice.web.repository.PBindingRepository;
 import com.orange.oss.matomocfservice.web.repository.PMatomoInstanceRepository;
 
+import io.jsonwebtoken.lang.Assert;
+
 /**
  * @author P. Déchamboux
  *
@@ -90,6 +92,11 @@ public class BindingService extends OperationStatusService {
 	}
 
 	public boolean createBinding(String bindid, String instid, String appid, Map<String, Object> parameters) {
+		Assert.notNull(bindid, "binding uuid mustn't be null");
+		Assert.notNull(instid, "instance uuid mustn't be null");
+		if (appid == null) {
+			appid = "";
+		}
 		LOGGER.debug("SERV::createBinding: bindId={}, instid={}, appid={}", bindid, instid, appid);
 		EntityManager em = beginTx();
 		Optional<PBinding> opb = pbindingRepo.findById(bindid);

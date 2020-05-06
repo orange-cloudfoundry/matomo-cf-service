@@ -38,6 +38,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class ServiceCatalogConfiguration {
 	private final static Logger LOGGER = LoggerFactory.getLogger(ServiceCatalogConfiguration.class);
+	public final static String PLANSHARED_NAME = "matomo-shared";
+	public final static String PLANSHARED_UUID = "b3e944b0-8f83-11ea-92bf-2f4ff84fde77";
 	public final static String PLANGLOBSHARDB_NAME = "global-shared-db";
 	public final static String PLANGLOBSHARDB_UUID = "2f95934e-23c5-4f73-bdd3-f3383febb59a";
 	public final static String PLANMATOMOSHARDB_NAME = "matomo-shared-db";
@@ -74,6 +76,12 @@ public class ServiceCatalogConfiguration {
 				.description("\"Matomo Service\" provided as a dedicated CF application with data stored in a DB dedicated to this instance")
 				.free(false)
 				.build();
+		Plan plan4 = Plan.builder()
+				.name(PLANSHARED_NAME)
+				.id(PLANSHARED_UUID.toString())
+				.description("\"Matomo Service\" provided within a shared Matomo instance")
+				.free(true)
+				.build();
 		Manifest manifest = getManifest();
 		String version = manifest == null ? "Unknown" : (String)manifest.getMainAttributes().getValue("Implementation-Version");
 		ServiceDefinition serviceDefinition = ServiceDefinition.builder()
@@ -82,7 +90,7 @@ public class ServiceCatalogConfiguration {
 				.description("CloudFoundry-based \"Matomo as a Service\" (experimental / no SLA)")
 				.bindable(true)
 				.tags("Matomo", "Web Analytics")
-				.plans(plan1, plan2, plan3)
+				.plans(plan1, plan2, plan3, plan4)
 				.metadata("displayName", "Matomo Service - Version " + version)
 				.metadata("longDescription", "CloudFoundry-based Matomo as a Service")
 				.metadata("providerDisplayName", "Orange")

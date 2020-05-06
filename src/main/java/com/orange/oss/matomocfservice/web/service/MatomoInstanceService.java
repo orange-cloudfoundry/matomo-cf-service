@@ -135,8 +135,8 @@ public class MatomoInstanceService extends OperationStatusService {
 	}
 
 	public PMatomoInstance getMatomoInstance(String instanceId, String platformId) {
-		Assert.notNull(platformId, "platform id mustn't be null");
 		Assert.notNull(instanceId, "instance id mustn't be null");
+		Assert.notNull(platformId, "platform id mustn't be null");
 		LOGGER.debug("SERV::getMatomoInstance: instanceId={}, platformId={}", instanceId, platformId);
 		Optional<PMatomoInstance> opmi = miRepo.findById(instanceId);
 		if (! opmi.isPresent()) {
@@ -186,12 +186,6 @@ public class MatomoInstanceService extends OperationStatusService {
 				if (getMatomoInstance(uuid, pfid) != null) {
 					LOGGER.error("Matomo Instance with ID=" + uuid + " already exists in Platform with ID=" + pfid);
 					return "Matomo Instance with ID=" + uuid + " already exists in Platform with ID=" + pfid;
-				}
-				Optional<PMatomoInstance> opmi = miRepo.findByName(instname);
-				if (opmi.isPresent() && (opmi.get().getConfigFileContent() != null)) {
-					LOGGER.error(
-							"Matomo Instance with name=" + instname + " already exists in Platform with ID=" + pfid);
-					return "Matomo Instance with name=" + instname + " already exists in Platform with ID=" + pfid;
 				}
 				PPlatform ppf = getPPlatform(pfid);
 				pmi = new PMatomoInstance(uuid, instanceIdMgr.allocateInstanceId(), instname, pfkind, apiinfolocation,
@@ -243,25 +237,24 @@ public class MatomoInstanceService extends OperationStatusService {
 					} else {
 						commitTx(nem);
 						cfMgr.getInstanceConfigFile(pmi.getIdUrlStr(), parameters.getVersion(), pmi.getClusterMode())
-								.doOnError(ttt -> {
-									EntityManager nnem = beginTx();
-									PMatomoInstance nnpmi = miRepo.getOne(uuid);
-									nnem.unwrap(Session.class).update(nnpmi);
-									LOGGER.debug("Cannot retrieve config file from Matomo instance.", ttt);
-									matomoReleases.deleteLinkedTree(nnpmi.getIdUrlStr());
-									savePMatomoInstance(nnpmi, OperationState.FAILED);
-									commitTx(nnem);
-								}).doOnSuccess(ach -> {
-									EntityManager nnem = beginTx();
-									PMatomoInstance nnpmi = miRepo.getOne(uuid);
-									nnem.unwrap(Session.class).update(nnpmi);
-									nnpmi.setConfigFileContent(ach.fileContent);
-									savePMatomoInstance(nnpmi, null);
-									commitTx(nnem);
-									settleMatomoInstance(nnpmi, NOPEINSTIDS, parameters, true,
-											properties.getDbCreds(nnpmi.getPlanId())).subscribe();
-								}).subscribe();
-
+						.doOnError(ttt -> {
+							EntityManager nnem = beginTx();
+							PMatomoInstance nnpmi = miRepo.getOne(uuid);
+							nnem.unwrap(Session.class).update(nnpmi);
+							LOGGER.debug("Cannot retrieve config file from Matomo instance.", ttt);
+							matomoReleases.deleteLinkedTree(nnpmi.getIdUrlStr());
+							savePMatomoInstance(nnpmi, OperationState.FAILED);
+							commitTx(nnem);
+						}).doOnSuccess(ach -> {
+							EntityManager nnem = beginTx();
+							PMatomoInstance nnpmi = miRepo.getOne(uuid);
+							nnem.unwrap(Session.class).update(nnpmi);
+							nnpmi.setConfigFileContent(ach.fileContent);
+							savePMatomoInstance(nnpmi, null);
+							commitTx(nnem);
+							settleMatomoInstance(nnpmi, NOPEINSTIDS, parameters, true,
+									properties.getDbCreds(nnpmi.getPlanId())).subscribe();
+						}).subscribe();
 					}
 				}
 			}).subscribe();

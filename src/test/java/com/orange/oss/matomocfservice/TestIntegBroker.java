@@ -71,7 +71,7 @@ public class TestIntegBroker {
 	    String name;
 	    String description;
 	    boolean bindable;
-	    Plan plans[] = new Plan[3];
+	    Plan plans[] = new Plan[4];
 	    String tags[];
 	    String md_longDescription;
 	    String md_documentationUrl;
@@ -429,43 +429,43 @@ public class TestIntegBroker {
 				.statusCode(410);
 	}
 
-	@Test
-	void testCreateInstanceGlobSharedKODupInstname() {
-		LOGGER.debug("testCreateInstanceGlobSharedKODupInstname");
-		String instid = UUID.randomUUID().toString();
-		cfMgr4T.setResponseMask(new CfMgr4TResponseMask());
-		Response resp =
-				given()
-				.header("Content-Type", "application/json")
-				.body(createBody("M08", catalog.plans[GLOBAL_SHARED_DB].id, null, -1)).
-				when()
-				.put(createServiceInstUri(instid, null, null)).
-				then()
-				.statusCode(202)
-				.contentType(ContentType.JSON)
-				.extract()
-				.response();
-		resp = given()
-				.header("Content-Type", "application/json")
-				.body(createBody("M08", catalog.plans[GLOBAL_SHARED_DB].id, null, -1)).
-				when()
-				.put(createServiceInstUri(UUID.randomUUID().toString(), null, null)).
-				then()
-				.statusCode(202)
-				.contentType(ContentType.JSON)
-				.extract()
-				.response();
-		Assertions.assertTrue(resp.getBody().jsonPath().getString("operation").startsWith("Matomo Instance with name="));
-		resp = given()
-				.header("Content-Type", "application/json").
-				when()
-				.delete(createServiceInstUri(instid, catalog.id, catalog.plans[GLOBAL_SHARED_DB].id)).
-				then()
-				.statusCode(202)
-				.contentType(ContentType.JSON)
-				.extract()
-				.response();
-	}
+//	@Test
+//	void testCreateInstanceGlobSharedKODupInstname() {
+//		LOGGER.debug("testCreateInstanceGlobSharedKODupInstname");
+//		String instid = UUID.randomUUID().toString();
+//		cfMgr4T.setResponseMask(new CfMgr4TResponseMask());
+//		Response resp =
+//				given()
+//				.header("Content-Type", "application/json")
+//				.body(createBody("M08", catalog.plans[GLOBAL_SHARED_DB].id, null, -1)).
+//				when()
+//				.put(createServiceInstUri(instid, null, null)).
+//				then()
+//				.statusCode(202)
+//				.contentType(ContentType.JSON)
+//				.extract()
+//				.response();
+//		resp = given()
+//				.header("Content-Type", "application/json")
+//				.body(createBody("M08", catalog.plans[GLOBAL_SHARED_DB].id, null, -1)).
+//				when()
+//				.put(createServiceInstUri(UUID.randomUUID().toString(), null, null)).
+//				then()
+//				.statusCode(202)
+//				.contentType(ContentType.JSON)
+//				.extract()
+//				.response();
+//		Assertions.assertTrue(resp.getBody().jsonPath().getString("operation").startsWith("Matomo Instance with name="));
+//		resp = given()
+//				.header("Content-Type", "application/json").
+//				when()
+//				.delete(createServiceInstUri(instid, catalog.id, catalog.plans[GLOBAL_SHARED_DB].id)).
+//				then()
+//				.statusCode(202)
+//				.contentType(ContentType.JSON)
+//				.extract()
+//				.response();
+//	}
 
 	@Test
 	void testCreateInstanceMatomoShared() {
