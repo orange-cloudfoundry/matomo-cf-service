@@ -55,9 +55,9 @@ public class BindingService extends OperationStatusService {
 	public final static String CRED_SITEID = "mcfs-siteId";
 	public final static String CRED_USERNAME = "mcfs-userName";
 	public final static String CRED_PASSWORD = "mcfs-password";
-	private final static String PARAM_SITENAME = "siteName";
-	private final static String PARAM_TRACKEDURL = "trackedUrl";
-	private final static String PARAM_ADMINEMAIL = "adminEmail";
+	public final static String PARAM_SITENAME = "siteName";
+	public final static String PARAM_TRACKEDURL = "trackedUrl";
+	public final static String PARAM_ADMINEMAIL = "adminEmail";
 	
 	@Autowired
 	private PBindingRepository pbindingRepo;
@@ -91,7 +91,7 @@ public class BindingService extends OperationStatusService {
 		return parameters;
 	}
 
-	public boolean createBinding(String bindid, String instid, String appid, Map<String, Object> parameters) {
+	public String createBinding(String bindid, String instid, String appid, Map<String, Object> parameters) {
 		Assert.notNull(bindid, "binding uuid mustn't be null");
 		Assert.notNull(instid, "instance uuid mustn't be null");
 		if (appid == null) {
@@ -99,89 +99,98 @@ public class BindingService extends OperationStatusService {
 		}
 		LOGGER.debug("SERV::createBinding: bindId={}, instid={}, appid={}", bindid, instid, appid);
 		EntityManager em = beginTx();
-		Optional<PBinding> opb = pbindingRepo.findById(bindid);
-		if (opb.isPresent()) {
-			commitTx(em);
-			return true;
-		}
-		Optional<PMatomoInstance> opmi = pmatomoInstanceRepo.findById(instid);
-		if (!opmi.isPresent()) {
-			commitTx(em);
-			throw new RuntimeException("Cannot bind: Matomo service instance does not exist!!");
-		}
 		PBinding pb = null;
-		LOGGER.debug("PARAMETERS: " + parameters.toString());
-		String sn = (String) parameters.get(PARAM_SITENAME);
-		if (sn == null) {
-			commitTx(em);
-			throw new RuntimeException("Cannot bind: site name parameter should be provided");
-		}
-		String tu = (String) parameters.get(PARAM_TRACKEDURL);
-		if (tu == null) {
-			commitTx(em);
-			throw new RuntimeException("Cannot bind: tracked URL parameter should be provided");
-		}
-		String am = (String) parameters.get(PARAM_ADMINEMAIL);
-		if (am == null) {
-			commitTx(em);
-			throw new RuntimeException("Cannot bind: admin email parameter should be provided");
-		}
 		try {
-			opb = pbindingRepo.findByTrackedUrl(tu);
+			Optional<PBinding> opb = pbindingRepo.findById(bindid);
 			if (opb.isPresent()) {
-				if (!opb.get().getSiteName().equals(sn)) {
-					LOGGER.warn("A binding already exists for this tracked URL with another site name: cannot change, keep existing one <{}>!!", opb.get().getSiteName());
-				}
-				if (!opb.get().getAdminEmail().equals(am)) {
-					LOGGER.warn("A binding already exists for this tracked URL with another admin email: cannot change, keep existing one <{}>!!", opb.get().getAdminEmail());
-				}
-				commitTx(em);
-				return true;
+				return "Matomo Instance Binding with ID=" + bindid + " already exists";
 			}
-			pb = new PBinding(bindid, opmi.get(), appid, sn, tu, am,
-					opmi.get().getPlatform(),
-					getMatomoUrl(opmi.get().getUuid()));
-			pbindingRepo.save(pb);
-			defineNewMatomoSite(opmi.get(), pb, (String) parameters.get(PARAM_SITENAME), (String) parameters.get(PARAM_TRACKEDURL), (String) parameters.get(PARAM_ADMINEMAIL));
-			pb.setLastOperation(POperationStatus.OpCode.CREATE_SERVICE_INSTANCE_APP_BINDING);
+			Optional<PMatomoInstance> opmi = pmatomoInstanceRepo.findById(instid);
+			if (!opmi.isPresent()) {
+				return "Cannot bind: Matomo service instance does not exist!!";
+			}
+			LOGGER.debug("PARAMETERS: " + parameters.toString());
+			String sn = (String) parameters.get(PARAM_SITENAME);
+			if (sn == null) {
+				return "Cannot bind: site name parameter should be provided";
+			}
+			String tu = (String) parameters.get(PARAM_TRACKEDURL);
+			if (tu == null) {
+				return "Cannot bind: tracked URL parameter should be provided";
+			}
+			String am = (String) parameters.get(PARAM_ADMINEMAIL);
+			if (am == null) {
+				return "Cannot bind: admin email parameter should be provided";
+			}
+			for (PBinding epb : pbindingRepo.findByTrackedUrlAndPmatomoInstanceOrderByCreateTimeDesc(tu, opmi.get())) {
+				if (epb.getSiteName().equals(sn)) {
+					if (epb.isDeleted()) {
+						LOGGER.debug("Reactivate an older binding with the same site name");
+						pb = new PBinding(bindid, opmi.get(), appid, sn, tu, am, opmi.get().getPlatform(),
+								getMatomoUrl(opmi.get().getUuid()), epb.getSiteId(), epb.getUserName(), epb.getPassword());
+						pbindingRepo.save(pb);
+						break;
+					} else {
+						return "Cannot bind: binding already exist with this site name";
+					}
+				}
+				if (epb.getAppId().contentEquals("")) {
+					continue;
+				}
+				if (epb.getAppId().equals(appid)) {
+					return "Cannot bind: application already bound to this instance";
+				}
+			}
+			if (pb == null) {
+				pb = new PBinding(bindid, opmi.get(), appid, sn, tu, am, opmi.get().getPlatform(),
+						getMatomoUrl(opmi.get().getUuid()));
+				pbindingRepo.save(pb);
+				defineNewMatomoSite(opmi.get(), pb, (String) parameters.get(PARAM_SITENAME),
+						(String) parameters.get(PARAM_TRACKEDURL), (String) parameters.get(PARAM_ADMINEMAIL));
+			}
 			pb.setLastOperationState(OperationState.SUCCEEDED);
 			pbindingRepo.save(pb);
 		} catch (RuntimeException e) {
 			if (pb != null) {
-				pb.setLastOperation(POperationStatus.OpCode.CREATE_SERVICE_INSTANCE_APP_BINDING);
 				pb.setLastOperationState(OperationState.FAILED);
 				pbindingRepo.save(pb);
 			}
+		} finally {
+			commitTx(em);
 		}
-		commitTx(em);
-		return false;
+		return null;
 	}
 
-	public String deleteBinding(String platformId, String instanceId) {
-		LOGGER.debug("SERV::deleteBinding: platformId={} instanceId={}", platformId, instanceId);
+	public String deleteBinding(String bindid, String instanceId) {
+		LOGGER.debug("SERV::deleteBinding: bindingId={} instanceId={}", bindid, instanceId);
 		EntityManager em = beginTx();
-		PPlatform ppf = getPPlatform(platformId);
-		Optional<PBinding> opb = pbindingRepo.findById(instanceId);
-		if (!opb.isPresent()) {
+		PBinding pb = null;
+		try {
+			Optional<PBinding> opb = pbindingRepo.findById(bindid);
+			if (!opb.isPresent()) {
+				return "Error: Matomo service instance binding does not exist.";
+			}
+			pb = opb.get();
+			if (pb.getLastOperationState() == OperationState.IN_PROGRESS) {
+				return "Error: cannot delete Matomo service instance binding with ID=" + pb.getUuid() + ": operation already in progress.";
+			}
+			pb.setLastOperation(POperationStatus.OpCode.DELETE_SERVICE_INSTANCE_APP_BINDING);
+			pb.setLastOperationState(OperationState.IN_PROGRESS);
+			pbindingRepo.save(pb);
+//			deleteMatomoSite(pb);
+			pb.markDeleted();
+			LOGGER.debug("SERV::deleteBinding: marked deleted!!");
+			pb.setLastOperationState(OperationState.SUCCEEDED);
+			pbindingRepo.save(pb);
+		} catch (Exception e) {
+			if (pb != null) {
+				pb.setLastOperationState(OperationState.FAILED);
+				pbindingRepo.save(pb);
+				return "Error: exception while deleting binding (" + e.getMessage() + ")";
+			}
+		} finally {
 			commitTx(em);
-			return "Error: Matomo service instance binding does not exist.";
 		}
-		PBinding pb = opb.get();
-		if (pb.getPlatform() != ppf) {
-			commitTx(em);
-			return "Error: wrong platform with ID=" + platformId + " for Matomo service instance binding with ID=" + instanceId + ".";
-		}
-		if (pb.getLastOperationState() == OperationState.IN_PROGRESS) {
-			commitTx(em);
-			return "Error: cannot delete Matomo service instance binding with ID=" + pb.getUuid() + ": operation already in progress.";
-		}
-		pb.setLastOperation(POperationStatus.OpCode.DELETE_SERVICE_INSTANCE_APP_BINDING);
-//		pb.setLastOperationState(OperationState.IN_PROGRESS);
-//		pbindingRepo.save(pb);
-//		deleteMatomoSite(pb);
-		pb.setLastOperationState(OperationState.SUCCEEDED);
-		pbindingRepo.save(pb);
-		commitTx(em);
 		return null;
 	}
 

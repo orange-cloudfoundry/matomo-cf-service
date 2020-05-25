@@ -31,11 +31,8 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.annotation.PreDestroy;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 
 import com.orange.oss.matomocfservice.web.domain.Parameters;
@@ -44,7 +41,6 @@ import com.orange.oss.matomocfservice.web.domain.Parameters;
  * @author P. Déchamboux
  *
  */
-@Service
 public class MatomoReleases {
 	private final static Logger LOGGER = LoggerFactory.getLogger(MatomoReleases.class);
 	private final static String VCAPCLASSESPATH = "/home/vcap/app/BOOT-INF";
@@ -53,23 +49,23 @@ public class MatomoReleases {
 	private final static String VERSIONSFILE = File.separator + "Versions";
 	private final static String DEFVERSIONFILE = File.separator + "DefaultVersion";
 	private final static String LATESTVERSIONFILE = File.separator + "LatestVersion";
-	private Path tempDir = null;
-	private String defaultRel = null;
-	private String latestRel = null;
-	private String releasePath = null;
-	private List<MatomoReleaseSpec> releases = null;
+	private static Path tempDir = null;
+	private static String defaultRel = null;
+	private static String latestRel = null;
+	private static String releasePath = null;
+	private static List<MatomoReleaseSpec> releases = null;
 
-	public void initialize() {
+	static {
 		LOGGER.debug("SERV::MatomoReleases: initialize");
 		try {
-			this.defaultRel = null;
-			this.tempDir = Files.createTempDirectory("matomo");
+			defaultRel = null;
+			tempDir = Files.createTempDirectory("matomo");
 			String versions;
-			LOGGER.debug("SERV::MatomoReleases: initialize - tempDir={}", this.tempDir.toString());
+			LOGGER.debug("SERV::MatomoReleases: initialize - tempDir={}", tempDir.toString());
 			if (!new File("/home/vcap").exists()) {
 				releasePath = System.getProperty("user.dir") + "/target" + MATOMORELDIR;
-				this.defaultRel = new String(Files.readAllBytes(Paths.get(releasePath + DEFVERSIONFILE))).trim();
-				this.latestRel = new String(Files.readAllBytes(Paths.get(releasePath + LATESTVERSIONFILE))).trim();
+				defaultRel = new String(Files.readAllBytes(Paths.get(releasePath + DEFVERSIONFILE))).trim();
+				latestRel = new String(Files.readAllBytes(Paths.get(releasePath + LATESTVERSIONFILE))).trim();
 				versions = new String(Files.readAllBytes(Paths.get(releasePath + VERSIONSFILE)));
 			} else {
 				File fsshd = new File("/home/vcap/.ssh");
@@ -86,24 +82,24 @@ public class MatomoReleases {
 					fkh.setWritable(true, true);
 				}
 				releasePath = RELEASEPATH;
-				this.defaultRel = new String(Files.readAllBytes(Paths.get(releasePath + DEFVERSIONFILE))).trim();
-				this.latestRel = new String(Files.readAllBytes(Paths.get(releasePath + LATESTVERSIONFILE))).trim();
+				defaultRel = new String(Files.readAllBytes(Paths.get(releasePath + DEFVERSIONFILE))).trim();
+				latestRel = new String(Files.readAllBytes(Paths.get(releasePath + LATESTVERSIONFILE))).trim();
 				versions = new String(Files.readAllBytes(Paths.get(releasePath + VERSIONSFILE)));
 			}
-			this.releases = new ArrayList<MatomoReleaseSpec>();
-			LOGGER.debug("SERV:: defaultVersion=\"{}\", latest=\"{}\"", this.defaultRel, this.latestRel);
-			if (this.defaultRel.equals(this.latestRel)) {
-				this.releases.add(new MatomoReleaseSpec(defaultRel).defaultRel().latestRel());
+			releases = new ArrayList<MatomoReleaseSpec>();
+			LOGGER.debug("SERV:: defaultVersion=\"{}\", latest=\"{}\"", defaultRel, latestRel);
+			if (defaultRel.equals(latestRel)) {
+				releases.add(new MatomoReleaseSpec(defaultRel).defaultRel().latestRel());
 			} else {
-				this.releases.add(new MatomoReleaseSpec(defaultRel).defaultRel());
+				releases.add(new MatomoReleaseSpec(defaultRel).defaultRel());
 			}
 			LOGGER.debug("SERV:: versions=" + versions);
 			for (String vers : versions.split(";")) {
 				if (! vers.equals(defaultRel)) {
-					if (vers.equals(this.latestRel)) {
-						this.releases.add(new MatomoReleaseSpec(vers).latestRel());
+					if (vers.equals(latestRel)) {
+						releases.add(new MatomoReleaseSpec(vers).latestRel());
 					} else {
-						this.releases.add(new MatomoReleaseSpec(vers));
+						releases.add(new MatomoReleaseSpec(vers));
 					}
 				}
 			}
@@ -115,50 +111,50 @@ public class MatomoReleases {
 		}
 	}
 
-	@PreDestroy
-	public void onExit() {
-		LOGGER.debug("SERV::terminate");
-		try {
-			Files.walkFileTree(tempDir, new SimpleFileVisitor<Path>() {
-				@Override
-				public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
-					new File(file.toString()).delete();
-					return FileVisitResult.CONTINUE;
-				}
-				@Override
-				public FileVisitResult postVisitDirectory(final Path dir, final IOException exc) throws IOException {
-					new File(dir.toString()).delete();
-					return FileVisitResult.CONTINUE;
-				}
-			});
-		} catch (IOException e) {
-			LOGGER.error("SERV::terminate: deleting temp dir: problem while manipulating files within service container.", e);
-			throw new RuntimeException("IO pb in SERV::terminate", e);
-		}
-		new File(tempDir.toString()).delete();
-		this.tempDir = null;
-		this.defaultRel = null;
-		this.latestRel = null;
-		this.releasePath = null;
-		this.releases = null;
+//	@PreDestroy
+//	public void onExit() {
+//		LOGGER.debug("SERV::terminate");
+//		try {
+//			Files.walkFileTree(tempDir, new SimpleFileVisitor<Path>() {
+//				@Override
+//				public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
+//					new File(file.toString()).delete();
+//					return FileVisitResult.CONTINUE;
+//				}
+//				@Override
+//				public FileVisitResult postVisitDirectory(final Path dir, final IOException exc) throws IOException {
+//					new File(dir.toString()).delete();
+//					return FileVisitResult.CONTINUE;
+//				}
+//			});
+//		} catch (IOException e) {
+//			LOGGER.error("SERV::terminate: deleting temp dir: problem while manipulating files within service container.", e);
+//			throw new RuntimeException("IO pb in SERV::terminate", e);
+//		}
+//		new File(tempDir.toString()).delete();
+//		tempDir = null;
+//		defaultRel = null;
+//		latestRel = null;
+//		releasePath = null;
+//		releases = null;
+//	}
+
+	public static String getDefaultReleaseName() {
+		return defaultRel;
 	}
 
-	public String getDefaultReleaseName() {
-		return this.defaultRel;
+	public static String getLatestReleaseName() {
+		return latestRel;
 	}
 
-	public String getLatestReleaseName() {
-		return this.latestRel;
+	public static List<MatomoReleaseSpec> getReleaseList() {
+		return releases;
 	}
 
-	public List<MatomoReleaseSpec> getReleaseList() {
-		return this.releases;
-	}
-
-	public boolean isVersionAvailable(String instversion) {
+	public static boolean isVersionAvailable(String instversion) {
 		Assert.notNull(instversion, "a version should be defined");
 		LOGGER.debug("SERV::isVersionAvailable: version={}", instversion);
-		for (MatomoReleaseSpec relsp : this.releases) {
+		for (MatomoReleaseSpec relsp : releases) {
 			LOGGER.debug("SERV::isVersionAvailable: available version={}", relsp.getName());
 			if (relsp.getName().equals(instversion)) {
 				return true;
@@ -167,7 +163,7 @@ public class MatomoReleases {
 		return false;
 	}
 
-	public boolean isHigherVersion(String lowVers, String curVers) {
+	public static boolean isHigherVersion(String lowVers, String curVers) {
 		Assert.notNull(lowVers, "a low version should be defined");
 		Assert.notNull(curVers, "tested version should be defined");
 		String[] l_mmc = lowVers.split("\\.");
@@ -194,10 +190,10 @@ public class MatomoReleases {
 		return false;
 	}
 
-	public String getVersionPath(String version, String instId) {
+	public static String getVersionPath(String version, String instId) {
 		Assert.notNull(instId, "instance id should be defined");		
 		if (version == null) {
-			File [] files = new File(this.tempDir.toString()).listFiles(new FilenameFilter() {
+			File [] files = new File(tempDir.toString()).listFiles(new FilenameFilter() {
 				@Override
 				public boolean accept(File dir, String name) {
 					return name.startsWith(instId);
@@ -211,10 +207,10 @@ public class MatomoReleases {
 			}
 			return files[0].getAbsolutePath();
 		}
-		return this.tempDir.toString() + File.separator + instId + "-" + version;
+		return tempDir.toString() + File.separator + instId + "-" + version;
 	}
 
-	public void setConfigIni(String version, String instId, byte filecontent[]) {
+	public static void setConfigIni(String version, String instId, byte filecontent[]) {
 		Assert.notNull(version, "version should be defined");		
 		Assert.notNull(instId, "instance id should be defined");		
 		LOGGER.debug("SERV::setConfigIni: version={}, instId={}", version, instId);
@@ -227,7 +223,7 @@ public class MatomoReleases {
 		}
 	}
 
-	public void createLinkedTree(String version, String instId) {
+	public static void createLinkedTree(String version, String instId) {
 		Assert.notNull(version, "version should be defined");		
 		Assert.notNull(instId, "instance id should be defined");		
 		LOGGER.debug("SERV::createLinkedTree: version={}, instId={}", version, instId);
@@ -269,7 +265,7 @@ public class MatomoReleases {
 		}
 	}
 
-	public void deleteLinkedTree(String instId) {
+	public static void deleteLinkedTree(String instId) {
 		Assert.notNull(instId, "instance id should be defined");		
 		LOGGER.debug("SERV::deleteLinkedTree: instId={}", instId);
 		String vpath = getVersionPath(null, instId);
@@ -299,37 +295,5 @@ public class MatomoReleases {
 			LOGGER.error("SERV::MatomoReleases: deleteLinkedTree: problem while manipulating files within service container: ignore.", e);
 		}
 		new File(vpath).delete();
-	}
-
-	public class MatomoReleaseSpec {
-		public String name;
-		public boolean isDefault = false;
-		public boolean isLatest = false;
-
-		MatomoReleaseSpec(String n) {
-			name = n;
-		}
-
-		public String getName() {
-			return name;
-		}
-
-		public boolean  isDefault() {
-			return isDefault;
-		}
-
-		public boolean  isLatest() {
-			return isLatest;
-		}
-
-		MatomoReleaseSpec defaultRel() {
-			isDefault = true;
-			return this;
-		}
-
-		MatomoReleaseSpec latestRel() {
-			isLatest = true;
-			return this;
-		}
 	}
 }

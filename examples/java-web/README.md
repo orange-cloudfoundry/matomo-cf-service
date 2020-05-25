@@ -11,7 +11,7 @@ For adapting to your context, you can either customize the four variables define
 
 * APPNAME: this is the name of the CF app that will be deployed for this example.
 
-* MATOMOSERVINST: this is the name of the instance of the Matomo service that will be ccreated to track this example application.
+* MATOMOSERVINST: this is the name of the instance of the Matomo service that will be created to track this example application.
 
 * BUILDPACK: this the name of the [Java](https://docs.cloudfoundry.org/buildpacks/java/) buildpack as instanciated within your own CloudFoundry platform.
 

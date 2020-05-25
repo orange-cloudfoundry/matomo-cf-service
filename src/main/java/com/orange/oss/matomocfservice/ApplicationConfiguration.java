@@ -52,8 +52,6 @@ public class ApplicationConfiguration {
 	@Autowired
 	PlatformService platformService;
 	@Autowired
-	MatomoReleases matomoReleases;
-	@Autowired
 	CloudFoundryMgr cfMgr;
 	@Autowired
 	InstanceIdMgr instanceIdMgr;
@@ -97,7 +95,6 @@ public class ApplicationConfiguration {
 	@EventListener(ApplicationReadyEvent.class)
 	public void initializeAfterStartup() {
 		LOGGER.debug("CONFIG::ApplicationConfiguration - run initialization code after application startup has completed");
-		matomoReleases.initialize();
 		cfMgr.initialize();
 		instanceIdMgr.initialize();
 		platformService.initialize();

@@ -33,8 +33,6 @@ import org.springframework.boot.test.context.SpringBootTest;
  */
 @SpringBootTest
 public class TestMatomoReleases {
-	@Autowired
-	MatomoReleases matomoReleases;
 	@Value("${test.currentRelease}")
 	private String currentRelease;
 	@Value("${test.lowerReleaseNotAvailable}")
@@ -46,20 +44,20 @@ public class TestMatomoReleases {
 
 	@Test
 	void testDefaultRelease() {
-		Assertions.assertEquals(currentRelease, matomoReleases.getDefaultReleaseName());
+		Assertions.assertEquals(currentRelease, MatomoReleases.getDefaultReleaseName());
 	}
 
 	@Test
 	void testLatestRelease() {
-		Assertions.assertEquals(currentRelease, matomoReleases.getLatestReleaseName());
+		Assertions.assertEquals(currentRelease, MatomoReleases.getLatestReleaseName());
 	}
 
 	@Test
 	void testReleaseList() {
-		List<MatomoReleases.MatomoReleaseSpec> rellist = matomoReleases.getReleaseList(); 
+		List<MatomoReleaseSpec> rellist = MatomoReleases.getReleaseList(); 
 		Assertions.assertNotNull(rellist);
 		Assertions.assertEquals(1, rellist.size(), "Size of release list should be 1");
-		MatomoReleases.MatomoReleaseSpec rel1 = rellist.get(0);
+		MatomoReleaseSpec rel1 = rellist.get(0);
 		Assertions.assertEquals(currentRelease, rel1.getName());
 		Assertions.assertTrue(rel1.isDefault());
 		Assertions.assertTrue(rel1.isLatest());
@@ -67,33 +65,33 @@ public class TestMatomoReleases {
 
 	@Test
 	void testReleaseAvailable() {
-		Assertions.assertTrue(matomoReleases.isVersionAvailable(currentRelease), "Current release should be available");
-		Assertions.assertFalse(matomoReleases.isVersionAvailable(lowerReleaseNotAvailable), "Lower release should not exist");
+		Assertions.assertTrue(MatomoReleases.isVersionAvailable(currentRelease), "Current release should be available");
+		Assertions.assertFalse(MatomoReleases.isVersionAvailable(lowerReleaseNotAvailable), "Lower release should not exist");
 	}
 
 	@Test
 	void testHigherVersion() {
-		Assertions.assertTrue(matomoReleases.isHigherVersion(lowerReleaseNotAvailable, currentRelease));
-		Assertions.assertFalse(matomoReleases.isHigherVersion(currentRelease, lowerReleaseNotAvailable));
+		Assertions.assertTrue(MatomoReleases.isHigherVersion(lowerReleaseNotAvailable, currentRelease));
+		Assertions.assertFalse(MatomoReleases.isHigherVersion(currentRelease, lowerReleaseNotAvailable));
 	}
 
 	@Test
 	void testReleasePath() {
 		String matchstr = "(.*)matomo(.*)" + INSTID1 + "-" + currentRelease;
-		Assertions.assertTrue(matomoReleases.getVersionPath(currentRelease, INSTID1).matches(matchstr), "Path should match with regex \"" + matchstr + "\"");
+		Assertions.assertTrue(MatomoReleases.getVersionPath(currentRelease, INSTID1).matches(matchstr), "Path should match with regex \"" + matchstr + "\"");
 	}
 
 	@Test
 	void testCreateLinkedTreeUnavailableVersion() {
 		Assertions.assertThrows(RuntimeException.class, () -> {
-			matomoReleases.createLinkedTree(lowerReleaseNotAvailable, INSTID1);
+			MatomoReleases.createLinkedTree(lowerReleaseNotAvailable, INSTID1);
 		});
 	}
 
 	@Test
 	void testCreateLinkedTreeCurrentVersion() {
-		matomoReleases.createLinkedTree(currentRelease, INSTID1);
-		String relinstp = matomoReleases.getVersionPath(currentRelease, INSTID1);
+		MatomoReleases.createLinkedTree(currentRelease, INSTID1);
+		String relinstp = MatomoReleases.getVersionPath(currentRelease, INSTID1);
 		File rootdir = new File(relinstp);
 		Assertions.assertTrue(rootdir.exists());
 		Assertions.assertTrue(new File(rootdir.getPath(), "matomo.js").exists());
@@ -101,22 +99,22 @@ public class TestMatomoReleases {
 
 	@Test
 	void testDeleteLinkedTreeCurrentVersion() {
-		matomoReleases.createLinkedTree(currentRelease, INSTID2);
-		String relinstp = matomoReleases.getVersionPath(currentRelease, INSTID2);
+		MatomoReleases.createLinkedTree(currentRelease, INSTID2);
+		String relinstp = MatomoReleases.getVersionPath(currentRelease, INSTID2);
 		File rootdir = new File(relinstp);
 		Assertions.assertTrue(rootdir.exists());
 		Assertions.assertTrue(new File(rootdir.getPath(), "matomo.js").exists());
-		matomoReleases.deleteLinkedTree(INSTID2);
+		MatomoReleases.deleteLinkedTree(INSTID2);
 		Assertions.assertFalse(rootdir.exists());
 	}
 
 	@Test
 	void testConfigIniSetting() {
-		matomoReleases.createLinkedTree(currentRelease, INSTID3);
-		String relinstp = matomoReleases.getVersionPath(currentRelease, INSTID3);
+		MatomoReleases.createLinkedTree(currentRelease, INSTID3);
+		String relinstp = MatomoReleases.getVersionPath(currentRelease, INSTID3);
 		File rootdir = new File(relinstp);
 		Assertions.assertTrue(rootdir.exists());
-		matomoReleases.setConfigIni(currentRelease, INSTID3, CONTENTCONFINI.getBytes());
+		MatomoReleases.setConfigIni(currentRelease, INSTID3, CONTENTCONFINI.getBytes());
 		File configini = new File(rootdir.getPath() + "/config/config.ini.php");
 		Assertions.assertTrue(configini.exists());
 		try {

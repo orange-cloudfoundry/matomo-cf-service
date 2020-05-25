@@ -23,12 +23,17 @@ import java.util.Objects;
  * 
  */
 public class Parameters {
+	public final static int MINMEMORYSIZE = 256;
+	public final static int MAXMEMORYSIZE = 2048;
+	public final static int INCMEMORYSIZE = 256;
+	public final static String UPGRADE_AUTOMATIC = "AUTOMATIC";
+	public final static String UPGRADE_EXPLICIT = "EXPLICIT";
 	private static String defaultVersion;
 	private String version;
 	private String timeZone = "Europe/Paris";
 	private Boolean autoVersionUpgrade = true;
 	private Integer cfInstances = 1;
-	private Integer memorySize = 256;
+	private Integer memorySize = MINMEMORYSIZE; // in MB
 
 	static public void setDefaultVersion(String vers) {
 		defaultVersion = vers;
@@ -100,7 +105,13 @@ public class Parameters {
 	}
 
 	public void setMemorySize(Integer memorySize) {
-		this.memorySize = memorySize;
+		if (memorySize < MINMEMORYSIZE) {
+			this.memorySize = MINMEMORYSIZE;
+		} else if (memorySize > MAXMEMORYSIZE) {
+			this.memorySize = MAXMEMORYSIZE;
+		} else {
+			this.memorySize = memorySize;
+		}
 	}
 
 	@Override

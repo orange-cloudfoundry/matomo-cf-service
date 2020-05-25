@@ -57,6 +57,7 @@ public class CloudFoundryMgrProperties {
 	private String servicePhpBuildpack;
 	@Value("${matomo-service.max-service-instances}")
 	private int maxServiceInstances;
+	private DbCreds sharedCreds = null;
 	@Value("${matomo-service.shared-db.creds}")
 	private String sharedDbCredsStr;
 	private DbCreds sharedDbCreds = null;
@@ -103,18 +104,21 @@ public class CloudFoundryMgrProperties {
 				this.sharedDbCreds = new DbCreds(this.sharedDbCredsStr, GLOBSHAREDDBINSTNAME);
 			}
 			return this.sharedDbCreds;
-		}
-		if (planid.equals(ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID)) {
+		} else if (planid.equals(ServiceCatalogConfiguration.PLANMATOMOSHARDB_UUID)) {
 			if (this.sharedDedicatedDbCreds == null) {
 				this.sharedDedicatedDbCreds = new DbCreds(this.sharedDedicatedDbCredsStr, null);
 			}
 			return this.sharedDedicatedDbCreds;
-		}
-		if (planid.equals(ServiceCatalogConfiguration.PLANDEDICATEDDB_UUID)) {
+		} else if (planid.equals(ServiceCatalogConfiguration.PLANDEDICATEDDB_UUID)) {
 			if (this.dedicatedDbCreds == null) {
 				this.dedicatedDbCreds = new DbCreds(this.dedicatedDbCredsStr, null);
 			}
 			return this.dedicatedDbCreds;
+		} else if (planid.equals(ServiceCatalogConfiguration.PLANSHARED_UUID)) {
+			if (this.sharedCreds == null) {
+				this.sharedCreds = new DbCreds(null, null);
+			}
+			return this.sharedCreds;
 		}
 		LOGGER.error("SERV::createMatomoInstance: unknown plan=" + planid);
 		throw new IllegalArgumentException("Unkown plan");
@@ -177,23 +181,35 @@ public class CloudFoundryMgrProperties {
 
 		DbCreds(String creds, String sharedServiceName) {
 			this.sharedServiceName = sharedServiceName;
-			String[] credsarr = creds.split(":");
-			this.service = credsarr[0];
-			this.plan = credsarr[1];
-			this.name = credsarr[2];
-			this.host = credsarr[3];
-			this.port = credsarr[4];
-			this.user = credsarr[5];
-			this.password = credsarr[6];
+			if (creds != null) {
+				String[] credsarr = creds.split(":");
+				this.service = credsarr[0];
+				this.plan = credsarr[1];
+				this.name = credsarr[2];
+				this.host = credsarr[3];
+				this.port = credsarr[4];
+				this.user = credsarr[5];
+				this.password = credsarr[6];
+			} else {
+				this.service = null;
+				this.plan = null;
+				this.name = null;
+				this.host = null;
+				this.port = null;
+				this.user = null;
+				this.password = null;
+			}
 		}
 
 		public DbCreds addVars(Builder b) {
-			b.environmentVariable("MCFS_DBSRV", this.service);
-			b.environmentVariable("MCFS_DBNAME", this.name);
-			b.environmentVariable("MCFS_DBHOST", this.host);
-			b.environmentVariable("MCFS_DBPORT", this.port);
-			b.environmentVariable("MCFS_DBUSER", this.user);
-			b.environmentVariable("MCFS_DBPASSWD", this.password);
+			if (this.service != null) {
+				b.environmentVariable("MCFS_DBSRV", this.service);
+				b.environmentVariable("MCFS_DBNAME", this.name);
+				b.environmentVariable("MCFS_DBHOST", this.host);
+				b.environmentVariable("MCFS_DBPORT", this.port);
+				b.environmentVariable("MCFS_DBUSER", this.user);
+				b.environmentVariable("MCFS_DBPASSWD", this.password);
+			}
 			return this;
 		}
 
@@ -227,15 +243,17 @@ public class CloudFoundryMgrProperties {
 
 		public String getJdbcUrl(Map<String, Object> vcapServices) {
 			StringBuffer sb = new StringBuffer("jdbc:mysql://");
-			@SuppressWarnings("unchecked")
-			Map<String, Object> creds = (Map<String, Object>)((Map<String, Object>)((List<Object>)vcapServices.get(this.service)).get(0)).get("credentials");
-			sb.append(creds.get(this.host));
-			sb.append(":3306/");
-			sb.append(creds.get(this.name));
-			sb.append("?user=");
-			sb.append(creds.get(this.user));
-			sb.append("&password=");
-			sb.append(creds.get(this.password));
+			if (this.service != null) {
+				@SuppressWarnings("unchecked")
+				Map<String, Object> creds = (Map<String, Object>)((Map<String, Object>)((List<Object>)vcapServices.get(this.service)).get(0)).get("credentials");
+				sb.append(creds.get(this.host));
+				sb.append(":3306/");
+				sb.append(creds.get(this.name));
+				sb.append("?user=");
+				sb.append(creds.get(this.user));
+				sb.append("&password=");
+				sb.append(creds.get(this.password));
+			}
 			return sb.toString();
 		}
 	}

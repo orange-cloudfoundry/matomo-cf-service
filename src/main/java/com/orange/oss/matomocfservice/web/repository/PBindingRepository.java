@@ -16,11 +16,13 @@
 
 package com.orange.oss.matomocfservice.web.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.orange.oss.matomocfservice.web.domain.PBinding;
+import com.orange.oss.matomocfservice.web.domain.PMatomoInstance;
 
 /**
  * @author P. Déchamboux
@@ -28,5 +30,5 @@ import com.orange.oss.matomocfservice.web.domain.PBinding;
  */
 public interface PBindingRepository extends JpaRepository<PBinding, String> {
 	Optional<PBinding> findByUuid(String id);
-	Optional<PBinding> findByTrackedUrl(String url);
+	List<PBinding> findByTrackedUrlAndPmatomoInstanceOrderByCreateTimeDesc(String url, PMatomoInstance pmi);
 }

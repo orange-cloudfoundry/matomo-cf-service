@@ -54,18 +54,16 @@ import reactor.core.publisher.Mono;
 @Service
 public class MatomoServiceInstanceService implements ServiceInstanceService {
 	private final static Logger LOGGER = LoggerFactory.getLogger(MatomoServiceInstanceService.class);
-	private final static String PARAM_VERSION = "matomoVersion";
-	private final static String PARAM_TZ = "matomoTimeZone";
-	private final static String PARAM_INSTANCES = "matomoInstances";
-	private final static String PARAM_VERSIONUPGRADEPOLICY = "versionUpgradePolicy";
-	private final static String PARAM_MEMORYSIZE = "memorySize";
-	private final static int MAX_INSTANCES = 10;
+	final static String PARAM_VERSION = "matomoVersion";
+	final static String PARAM_TZ = "matomoTimeZone";
+	final static String PARAM_INSTANCES = "matomoInstances";
+	final static String PARAM_VERSIONUPGRADEPOLICY = "versionUpgradePolicy";
+	final static String PARAM_MEMORYSIZE = "memorySize";
+	final static int MAX_INSTANCES = 10;
 	private final static int CLUSTERSIZE_DEFAULT = 2;
 	private final static int MEMSIZE_SMALL = 256;
 	private final static int MEMSIZE_DEFAULT = 512;
 	private final static int MEMSIZE_MAX = 2048;
-	@Autowired
-	private MatomoReleases matomoReleases;
 	@Autowired
 	private MatomoInstanceService miServ;
 	@Autowired
@@ -206,12 +204,12 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 	private String getVersion(Map<String, Object> parameters) {
 		String instversion = (String) parameters.get(PARAM_VERSION);
 		if (instversion == null) {
-			instversion = matomoReleases.getDefaultReleaseName();
+			instversion = MatomoReleases.getDefaultReleaseName();
 		} else if (instversion.equals("latest")) {
-			instversion = matomoReleases.getLatestReleaseName();
-		} else if (! matomoReleases.isVersionAvailable(instversion)) {
+			instversion = MatomoReleases.getLatestReleaseName();
+		} else if (! MatomoReleases.isVersionAvailable(instversion)) {
 				LOGGER.warn("SERV::getVersion: version {} is not supported -> switch to default one.", instversion);
-				instversion = matomoReleases.getDefaultReleaseName();
+				instversion = MatomoReleases.getDefaultReleaseName();
 		}
 		LOGGER.debug("SERV::getVersion: {}", instversion);
 		return instversion;
@@ -224,9 +222,9 @@ public class MatomoServiceInstanceService implements ServiceInstanceService {
 			bpol = true;
 		} else {
 			policy = policy.toUpperCase();
-			if (policy.equals("AUTOMATIC")) {
+			if (policy.equals(Parameters.UPGRADE_AUTOMATIC)) {
 				bpol =  true;
-			} else if (policy.equals("EXPLICIT")) {
+			} else if (policy.equals(Parameters.UPGRADE_EXPLICIT)) {
 				bpol =  false;
 			} else {
 				LOGGER.warn("SERV::getAutomaticVersionUpgrade: <{}> is a wrong value for version upgrade policy -> should be either AUTOMATIC or EXPLICIT.", policy);

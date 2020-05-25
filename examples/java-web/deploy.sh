@@ -30,8 +30,8 @@ key="$1"
 case $key in
     -h|--help)
     echo "
-Prepare the deployment of MATOMO to CloudFoundry. By default, it gets the last
-release. The version to get can also be specified through the version option.
+Deploy the example Java application to CloudFoundry. Be careful to setup relevant environment
+variables to fit with your deployment context.
 
 OPTIONS
     -h

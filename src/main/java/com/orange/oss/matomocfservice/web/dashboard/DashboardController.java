@@ -33,8 +33,6 @@ import com.orange.oss.matomocfservice.web.service.MatomoReleases;
 @Controller
 public class DashboardController {
 	private final static Logger LOGGER = LoggerFactory.getLogger(DashboardController.class);
-	@Autowired
-	MatomoReleases matomoReleases;
 
 	@RequestMapping(value = { "/index.html", "/" }, method = RequestMethod.GET)
     public String index() {
@@ -45,8 +43,8 @@ public class DashboardController {
 	@RequestMapping(value = { "/releases.html" }, method = RequestMethod.GET)
     public String releases(Model model) {
 		LOGGER.debug("DASHBOARD::releases");
-		model.addAttribute("defRelease", matomoReleases.getDefaultReleaseName());
-		model.addAttribute("releases", matomoReleases.getReleaseList());
+		model.addAttribute("defRelease", MatomoReleases.getDefaultReleaseName());
+		model.addAttribute("releases", MatomoReleases.getReleaseList());
         return "releases.html";
     }
 }

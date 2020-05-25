@@ -56,18 +56,27 @@ public class MatomoServiceInstanceBindingService implements ServiceInstanceBindi
 				request.getBindingId(),
 				request.getServiceInstanceId(),
 				request.getParameters().toString());
-		boolean existed = bindingServ.createBinding(
+		String errmsg = bindingServ.createBinding(
 				request.getBindingId(),
 				request.getServiceInstanceId(),
 				request.getBindResource().getAppGuid(),
 				request.getParameters());
-		CreateServiceInstanceBindingResponse resp = CreateServiceInstanceAppBindingResponse.builder()
+		if (errmsg != null) {
+			return Mono.just(CreateServiceInstanceAppBindingResponse.builder()
+					.async(false)
+					.operation(errmsg)
+					.bindingExisted(errmsg.startsWith("Mat"))
+					.credentials(bindingServ.getCredentials(request.getBindingId(), request.getServiceInstanceId()))
+					.build());			
+		}
+		return Mono.just(CreateServiceInstanceAppBindingResponse.builder()
 				.async(false)
-				.operation("Bound Matomo Instance <" + request.getServiceInstanceId() + "> to Application <" + request.getBindResource().getAppGuid() + ">")
-				.bindingExisted(existed)
+				.operation(request.getBindResource().getAppGuid() != null ?
+						"Bind Matomo Instance \"" + request.getServiceInstanceId() + "\" to Application \"" + request.getBindResource().getAppGuid() + "\"" :
+						"Bind Matomo Instance \"" + request.getServiceInstanceId() + "\"")
+				.bindingExisted(false)
 				.credentials(bindingServ.getCredentials(request.getBindingId(), request.getServiceInstanceId()))
-				.build();
-		return Mono.just(resp);
+				.build());
 	}
 
 	@Override
@@ -96,7 +105,7 @@ public class MatomoServiceInstanceBindingService implements ServiceInstanceBindi
 	public Mono<DeleteServiceInstanceBindingResponse> deleteServiceInstanceBinding(
 			DeleteServiceInstanceBindingRequest request) {
 		LOGGER.debug("BROKER::deleteServiceInstanceBinding: bindId={}, serviceInstId={}", request.getBindingId(), request.getServiceInstanceId());
-		String error = bindingServ.deleteBinding(request.getPlatformInstanceId(), request.getBindingId());
+		String error = bindingServ.deleteBinding(request.getBindingId(), request.getServiceInstanceId());
 		return Mono.just(DeleteServiceInstanceBindingResponse.builder()
 				.async(false)
 				.operation(error == null ? "Deleting Matomo service instance binding" : error)

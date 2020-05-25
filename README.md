@@ -16,7 +16,7 @@ In any case, as the service and the instances it manages can be provisioned in d
 
 For buidling Matomo service, you need a Unix-like environment such as Linux or Cygwin. Indeed, you need to be able to run shell scripts (sh or bash).
 
-The service has been tested with Matomo versions starting from 3.6 until last version 3.12.
+The service has been tested with Matomo versions starting from 3.6, the last tested version being 3.13.
 
 ## Installation
 
@@ -63,12 +63,12 @@ In order to produce your configured service package, do the following:
 3. Build and package the service code to be deployed to CloudFoundry.
    * Build with maven:
    ```sh
-   mvn clean install -Dmaven.test.skip=true
-   ```
-   or
-   ```sh
    mvn clean package -Dmaven.test.skip=true
    ```   
+   or
+   ```sh
+   mvn clean install -Dmaven.test.skip=true
+   ```
 
    * Result
 

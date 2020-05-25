@@ -37,6 +37,8 @@ public class PBinding extends POperationStatus {
 	private final static int LENGTH_ADMINEMAIL = 256;
 	private final static int LENGTH_USERNAME = 16;
 	private final static int LENGTH_PASSWORD = 16;
+	private final static int NOSITEID = -1;
+	public final static String DELETED = "BINDING_DELETED";
 
 	@ManyToOne
 	@JoinColumn(name = "matomo_instance_id")
@@ -49,13 +51,13 @@ public class PBinding extends POperationStatus {
 	private final String siteName;
 
 	@Column(length = LENGTH_ADMINEMAIL)
-    private String adminEmail;
+    private final String adminEmail;
 
 	@Column(length = LENGTH_SITEURL)
-    private String trackedUrl;
+    private final String trackedUrl;
 
 	@Column(length = LENGTH_SITEURL)
-    private final String matomoUrl;
+    private String matomoUrl;	// if set to DELETED, means the binding has been deleted
 
 	private int siteId;
 
@@ -74,12 +76,12 @@ public class PBinding extends POperationStatus {
 		this.trackedUrl = null;
 		this.adminEmail = null;
 		this.matomoUrl = null;
-		this.siteId = -1;
+		this.siteId = NOSITEID;
 		this.userName = null;
 		this.password = null;
 	}
 
-	public PBinding(String id, PMatomoInstance pmi, String appid, String sitename, String trackedurl, String adminemail, PPlatform ppf, String matomoUrl) {
+	private PBinding(String id, PMatomoInstance pmi, String appid, String sitename, String trackedurl, String adminemail, PPlatform ppf, String matomoUrl, String user, String pwd) {
 		super(id, POperationStatus.OpCode.CREATE_SERVICE_INSTANCE_APP_BINDING, OperationState.IN_PROGRESS, ppf);
 		this.pmatomoInstance = pmi;
 		this.appId = appid;
@@ -87,13 +89,28 @@ public class PBinding extends POperationStatus {
 		this.trackedUrl = trackedurl;
 		this.adminEmail = adminemail;
 		this.matomoUrl = matomoUrl;
-		this.siteId = -1;
-		this.userName = RandomStringUtils.randomAlphanumeric(LENGTH_USERNAME);
-		this.password = RandomStringUtils.randomAlphanumeric(LENGTH_PASSWORD);
+		this.siteId = NOSITEID;
+		this.userName = user;
+		this.password = pwd;
+	}
+
+	public PBinding(String id, PMatomoInstance pmi, String appid, String sitename, String trackedurl, String adminemail, PPlatform ppf, String matomoUrl) {
+		this(id, pmi, appid, sitename, trackedurl, adminemail, ppf, matomoUrl,
+				RandomStringUtils.randomAlphanumeric(LENGTH_USERNAME),
+				RandomStringUtils.randomAlphanumeric(LENGTH_PASSWORD));
+	}
+
+	public PBinding(String id, PMatomoInstance pmi, String appid, String sitename, String trackedurl, String adminemail, PPlatform ppf, String matomoUrl, int siteid, String user, String pwd) {
+		this(id, pmi, appid, sitename, trackedurl, adminemail, ppf, matomoUrl, user, pwd);
+		this.siteId = siteid;
 	}
 
 	public PMatomoInstance getPMatomoInstance() {
 		return this.pmatomoInstance;
+	}
+
+	public String getAppId() {
+		return this.appId;
 	}
 
 	public String getSiteName() {
@@ -106,10 +123,6 @@ public class PBinding extends POperationStatus {
 
 	public String getAdminEmail() {
 		return this.adminEmail;
-	}
-
-	public void setSiteId(int siteid) {
-		this.siteId = siteid;
 	}
 
 	public String getMatomoUrl() {
@@ -126,5 +139,17 @@ public class PBinding extends POperationStatus {
 
 	public String getPassword() {
 		return this.password;
+	}
+
+	public void setSiteId(int siteid) {
+		this.siteId = siteid;
+	}
+
+	public void markDeleted() {
+		this.matomoUrl = DELETED;
+	}
+
+	public boolean isDeleted() {
+		return this.matomoUrl.contentEquals(DELETED);
 	}
 }

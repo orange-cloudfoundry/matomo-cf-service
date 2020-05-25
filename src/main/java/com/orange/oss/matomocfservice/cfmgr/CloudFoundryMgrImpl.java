@@ -83,8 +83,6 @@ public class CloudFoundryMgrImpl extends CloudFoundryMgrAbs {
 	private CloudFoundryOperations cfops;
 	@Autowired
 	private ReactorCloudFoundryClient cfclient;
-	@Autowired
-	private MatomoReleases matomoReleases;
 
 	/**
 	 * Initialize CF manager and especially create the shared database for the dev flavor of
@@ -172,7 +170,7 @@ public class CloudFoundryMgrImpl extends CloudFoundryMgrAbs {
 	 */
 	public Mono<Void> deployMatomoCfApp(String instid, String uuid, String planid, Parameters mip, int memsize, int nbinst) {
 		LOGGER.debug("CFMGR::deployMatomoCfApp: instId={}", instid);
-		String instpath = matomoReleases.getVersionPath(mip.getVersion(), instid);
+		String instpath = MatomoReleases.getVersionPath(mip.getVersion(), instid);
 		LOGGER.debug("File for Matomo bits: " + instpath);
 		ApplicationManifest.Builder manifestbuilder;
 		manifestbuilder = ApplicationManifest.builder()
@@ -313,7 +311,7 @@ public class CloudFoundryMgrImpl extends CloudFoundryMgrAbs {
 						ssh.loadKnownHosts();
 						ssh.connect(sshHost, sshPort);
 						ssh.authPassword("cf:" + appidh.appId + "/0", pwd);
-						String target = matomoReleases.getVersionPath(version, instid) + File.separator + "config" + File.separator;
+						String target = MatomoReleases.getVersionPath(version, instid) + File.separator + "config" + File.separator;
 						ssh.newSCPFileTransfer().download("/home/vcap/app/htdocs/config/config.ini.php", new FileSystemFile(target));
 						Path pcf = Paths.get(target + "config.ini.php");
 						if (properties.getMatomoDebug()) {
