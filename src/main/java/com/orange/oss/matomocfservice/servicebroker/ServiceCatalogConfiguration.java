@@ -75,7 +75,7 @@ public class ServiceCatalogConfiguration {
 		String relEnum[] = new String[lmrs.size()];
 		int i = 0;
 		for (MatomoReleaseSpec mrs : lmrs) {
-			relEnum[i++] = mrs.getName();
+			relEnum[i++] = mrs.getName() + (mrs.isDefault() ? " [default]": "");
 		}
 		if (env_vcapApp != null) {
 			JSONObject jres = new JSONObject(env_vcapApp);

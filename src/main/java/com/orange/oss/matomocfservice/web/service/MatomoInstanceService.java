@@ -108,12 +108,13 @@ public class MatomoInstanceService extends OperationStatusService {
 		try {
 			for (PMatomoInstance pmi : miRepo.findAll()) {
 				if (!pmi.getAutomaticVersionUpgrade()) {
-					continue;
+					if (MatomoReleases.isVersionAvailable(pmi.getInstalledVersion())) {
+						continue;						
+					}
 				}
 				if ((pmi.getConfigFileContent() != null) && (pmi.getLastOperationState() == OperationState.SUCCEEDED)) {
 					LOGGER.debug("SERV::initialize: reactivate instance {}, version={}", pmi.getIdUrlStr(), pmi.getInstalledVersion());
-					if ((MatomoReleases.isHigherVersion(MatomoReleases.getLatestReleaseName(), pmi.getInstalledVersion()))
-							|| MatomoReleases.isVersionAvailable(pmi.getInstalledVersion())) {
+					if (MatomoReleases.isHigherVersion(MatomoReleases.getLatestReleaseName(), pmi.getInstalledVersion())) {
 						// need to upgrade to latest version
 						inst2process.add(new InstIds(pmi.getUuid(), pmi.getPlatform().getId()));
 					}
