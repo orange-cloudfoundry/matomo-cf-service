@@ -387,6 +387,9 @@ public class MatomoInstanceService extends OperationStatusService {
 			}
 			if (pmi.getInstances() == parameters.getCfInstances()) {
 				parameters.setCfInstances(-1);
+			} else if (pmi.getPlanId().equals(ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID)) {
+				LOGGER.warn("Cannot scale service instance for that plan.");
+				parameters.setCfInstances(-1);
 			} else {
 				LOGGER.debug("Upgrade Matomo instance nodes from {} to {}.", pmi.getInstances(), parameters.getCfInstances());
 				pmi.setIntances(parameters.getCfInstances());

@@ -109,7 +109,7 @@ public class ServiceCatalogConfiguration {
 		param_props.put("minimum", Parameters.MINMEMORYSIZE);
 		param_props.put("maximum", Parameters.MAXMEMORYSIZE);
 		param_props.put("multipleOf", Parameters.INCMEMORYSIZE);
-		props.put(MatomoServiceInstanceService.PARAM_INSTANCES, param_props);
+		props.put(MatomoServiceInstanceService.PARAM_MEMORYSIZE, param_props);
 		MethodSchema methodSchema = MethodSchema.builder()
 				.parameters("$schema", "http://json-schema.org/draft-04/schema#")
 				.parameters("type", "object")
