@@ -40,6 +40,10 @@ public class CloudFoundryMgr4Test extends CloudFoundryMgrAbs {
 	private final static Logger LOGGER = LoggerFactory.getLogger(CloudFoundryMgr4Test.class);
 	private CfMgr4TResponseMask respMask;
 
+	public CloudFoundryMgr4Test() {
+		respMask = new CfMgr4TResponseMask();
+	}
+
 	public void setResponseMask(CfMgr4TResponseMask m) {
 		respMask = m;
 	}

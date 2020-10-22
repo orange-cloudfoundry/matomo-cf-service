@@ -16,15 +16,19 @@
 -->
 
 <databaseChangeLog
-	xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+	xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
 	xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd
 		http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
-	<include file="/db/changelog/changes/db-changelog-1.0.xml"/>
-	<include file="/db/changelog/changes/db-changelog-1.1.xml"/>
-	<include file="/db/changelog/changes/db-changelog-1.2.xml"/>
-	<include file="/db/changelog/changes/db-changelog-1.3.xml"/>
-	<include file="/db/changelog/changes/db-changelog-1.4.xml"/>
-	<include file="/db/changelog/changes/db-changelog-1.5.xml"/>
+	<changeSet author="admin" id="1.5_update_table_matomoinstances">
+		<addColumn tableName="matomoinstances">
+			<column name="shared_matomo_instance_id" type="varchar(36)">
+				<constraints nullable="true" />
+			</column>
+		</addColumn>
+		<rollback>
+			<dropColumn tableName="matomoinstances" columnName="shared_matomo_instance_id"/>
+		</rollback>
+	</changeSet>
 </databaseChangeLog>

@@ -43,7 +43,7 @@ public abstract class POperationStatus {
 
 	@Id
 	@Column(length = LENGTH_ID, updatable = false, nullable = false)
-	private final String uuid;
+	private String uuid;
 
 	private final ZonedDateTime createTime;
 
@@ -79,6 +79,9 @@ public abstract class POperationStatus {
 
 	public String getUuid() {
 		return this.uuid;
+	}
+	public void setUuid(String uuid) {
+		this.uuid = uuid;
 	}
 
 	public ZonedDateTime getCreateTime() {

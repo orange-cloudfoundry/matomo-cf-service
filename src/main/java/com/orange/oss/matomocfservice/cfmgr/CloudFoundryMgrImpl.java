@@ -124,7 +124,7 @@ public class CloudFoundryMgrImpl extends CloudFoundryMgrAbs {
 			LOGGER.debug("CONFIG::CloudFoundryMgr-initialize: SMTP service instance already exist");
 			smtpReady = true;
 		})
-		.subscribe();
+		.block();
 		// Check if global shared DB service has already been created and create otherwise
 		cfops.services().getInstance(GetServiceInstanceRequest.builder()
 				.name(properties.getDbCreds(ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID).getInstanceServiceName(null))

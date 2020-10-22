@@ -39,6 +39,7 @@ local.properties
 .settings/
 .loadpath
 .factorypath
+Servers/
 
 # Locally stored "Eclipse launch configurations"
 *.launch
@@ -47,3 +48,4 @@ local.properties
 hs_err_pid*
 headers
 traces
+*.bind.json

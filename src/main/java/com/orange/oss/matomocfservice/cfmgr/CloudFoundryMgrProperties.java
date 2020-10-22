@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.util.Assert;
 
 import com.orange.oss.matomocfservice.servicebroker.ServiceCatalogConfiguration;
 
@@ -45,6 +46,7 @@ public class CloudFoundryMgrProperties {
 	private final static Logger LOGGER = LoggerFactory.getLogger(CloudFoundryMgrProperties.class);
 	private final static String SMTPINSTNAME = "mcfs-smtp";
 	final static String GLOBSHAREDDBINSTNAME = "mcfs-globshared-db";
+	final static String SHAREDDBUNKNOW = "unknown-shared-db";
 	private final static String SERVICESUFFIX = "-DB";
 	@Value("${matomo-service.matomo-debug:false}")
 	private boolean matomoDebug;
@@ -57,6 +59,8 @@ public class CloudFoundryMgrProperties {
 	private String servicePhpBuildpack;
 	@Value("${matomo-service.max-service-instances}")
 	private int maxServiceInstances;
+	@Value("${matomo-service.shared.creds}")
+	private String sharedCredsStr;
 	private DbCreds sharedCreds = null;
 	@Value("${matomo-service.shared-db.creds}")
 	private String sharedDbCredsStr;
@@ -116,7 +120,7 @@ public class CloudFoundryMgrProperties {
 			return this.dedicatedDbCreds;
 		} else if (planid.equals(ServiceCatalogConfiguration.PLANSHARED_UUID)) {
 			if (this.sharedCreds == null) {
-				this.sharedCreds = new DbCreds(null, null);
+				this.sharedCreds = new DbCreds(this.sharedCredsStr, SHAREDDBUNKNOW);
 			}
 			return this.sharedCreds;
 		}
@@ -180,36 +184,25 @@ public class CloudFoundryMgrProperties {
 		private String password;
 
 		DbCreds(String creds, String sharedServiceName) {
+			Assert.notNull(creds, "Should always provide a creds definition string");
 			this.sharedServiceName = sharedServiceName;
-			if (creds != null) {
-				String[] credsarr = creds.split(":");
-				this.service = credsarr[0];
-				this.plan = credsarr[1];
-				this.name = credsarr[2];
-				this.host = credsarr[3];
-				this.port = credsarr[4];
-				this.user = credsarr[5];
-				this.password = credsarr[6];
-			} else {
-				this.service = null;
-				this.plan = null;
-				this.name = null;
-				this.host = null;
-				this.port = null;
-				this.user = null;
-				this.password = null;
-			}
+			String[] credsarr = creds.split(":");
+			this.service = credsarr[0];
+			this.plan = credsarr[1];
+			this.name = credsarr[2];
+			this.host = credsarr[3];
+			this.port = credsarr[4];
+			this.user = credsarr[5];
+			this.password = credsarr[6];
 		}
 
 		public DbCreds addVars(Builder b) {
-			if (this.service != null) {
-				b.environmentVariable("MCFS_DBSRV", this.service);
-				b.environmentVariable("MCFS_DBNAME", this.name);
-				b.environmentVariable("MCFS_DBHOST", this.host);
-				b.environmentVariable("MCFS_DBPORT", this.port);
-				b.environmentVariable("MCFS_DBUSER", this.user);
-				b.environmentVariable("MCFS_DBPASSWD", this.password);
-			}
+			b.environmentVariable("MCFS_DBSRV", this.service);
+			b.environmentVariable("MCFS_DBNAME", this.name);
+			b.environmentVariable("MCFS_DBHOST", this.host);
+			b.environmentVariable("MCFS_DBPORT", this.port);
+			b.environmentVariable("MCFS_DBUSER", this.user);
+			b.environmentVariable("MCFS_DBPASSWD", this.password);
 			return this;
 		}
 
@@ -227,7 +220,7 @@ public class CloudFoundryMgrProperties {
 		}
 
 		public String getInstanceServiceName(String appName) {
-			if (sharedServiceName == null) {
+			if ((sharedServiceName == null) || (sharedServiceName.equals(SHAREDDBUNKNOW))) {
 				return appName + SERVICESUFFIX;
 			}
 			return this.sharedServiceName;

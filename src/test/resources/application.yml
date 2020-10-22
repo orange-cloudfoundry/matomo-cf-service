@@ -1,7 +1,7 @@
 debug: false
 
 test:
-  currentRelease: 3.13.5
+  currentRelease: 3.14.1
   lowerReleaseNotAvailable: 3.6.1
 
 logging:
@@ -52,6 +52,8 @@ matomo-service:
   max-service-instances: 10
   smtp:
     creds: o-smtp:smtpplan:host:port:username:password
+  shared:
+    creds: p-mysql:10MB:name:hostname:port:username:password
   shared-db:
     creds: p-mysql:10MB:name:hostname:port:username:password
   matomo-shared-db:

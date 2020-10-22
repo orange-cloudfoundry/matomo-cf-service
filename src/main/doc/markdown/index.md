@@ -13,13 +13,16 @@ Note that the actual releases proposed by the service can be found [here](releas
 
 Go to your CF marketplace and create a service instance by choosing among the proposed plans. There are three (only the first one is currently implemented, the two others are expected soon). Their objective is to provide different isolation levels in term of load and security of an instance, especially on the management of data (information from tracked Web sites):
 
-1. global-shared-db
+1. shared
+   All Matomo service instances are managed with many others (useful for dev purpose) within a unique Matomo server run in cluster mode within CloudFoundry.
+
+2. global-shared-db
    Data of all instances are stored in a database platform mutualized with many others (useful for dev purpose) within a unique schema. Matomo is run by one container (application instance) within CloudFoundry.
 
-2. matomo-shared-db
+3. matomo-shared-db
    Data of this Matomo service instance is stored in a mutualized database platform with all other Matomo service instances of this kind (useful for tracked Web sites with small / medium traffic) but within dedicated schema. Matomo is run by a cluster of two containers and is configured to run in cluster mode.
 
-3. dedicated-db
+4. dedicated-db
    Data of this Matomo service instance is stored in a dedicated database platform (useful for tracked Web sites with high traffic). Matomo is run by a cluster of at least two containers and is configured to run in cluster mode. It may scale up two a ten containers cluster as requested by the owner of the service instance.
 
 Indeed, the choice among them depends on the traffic of the tracked Web site and has an impact on the cost of the service instance.
@@ -57,6 +60,8 @@ Version upgrade policy (see corresponding parameter name above) allows the creat
 
 * `Explicit`: This policy gives complete control on release management of Matomo instances to its owner. This means that no upgrade of release may happen until explicitly requested by the instance owner. This can only be done by requesting an update of this instance (see section "Update instance").
 
+Notice that no parameter can be specified for instances of the `shared` plan. They are always managed by the latest release available, which is automatically upgraded when a new one is published by the service.
+
 While you have created a service instance, you can access it through the dashboard link associated to your instance. Indeed, to log into that Matomo instance, you need credentials. For that, you have to bind to that instance (see section "Bind to instances").
 
 In case the creation of your instance has failed, you can delete it and retry. Even if an operation is frozen "in progress", it will fail after 30 minutes elapse time in this status. Then it will be finally possible to delete it in the end.
@@ -87,6 +92,10 @@ The fourth possibility is to adjust the memory of containers that run the instan
 cf update-service ms -c '{"memorySize": 768}'
 ```
 This number is forced to stay in the interval [256..2048]. This means that if a lower value than 256 is specified, then 256 is forced. In the same way, if a higher value than 2048 is specified, then 2048 is forced.
+
+## The special case of the instance used for the "shared" plan
+
+MCFS-SharedMatomoInstance
 
 ## Bind to instances
 

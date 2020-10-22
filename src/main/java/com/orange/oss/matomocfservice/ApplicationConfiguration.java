@@ -35,7 +35,6 @@ import com.orange.oss.matomocfservice.cfmgr.CloudFoundryMgrImpl;
 import com.orange.oss.matomocfservice.web.service.ApplicationInformation;
 import com.orange.oss.matomocfservice.web.service.InstanceIdMgr;
 import com.orange.oss.matomocfservice.web.service.MatomoInstanceService;
-import com.orange.oss.matomocfservice.web.service.MatomoReleases;
 import com.orange.oss.matomocfservice.web.service.PlatformService;
 
 /**

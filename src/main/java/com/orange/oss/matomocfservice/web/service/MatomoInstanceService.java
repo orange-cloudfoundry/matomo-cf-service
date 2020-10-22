@@ -61,7 +61,14 @@ public class MatomoInstanceService extends OperationStatusService {
 	private InstanceIdMgr instanceIdMgr;
 	@Autowired
 	private CloudFoundryMgrProperties properties;
+	@Autowired
+	private PlatformService pfs;
+	private boolean sharedReady = false;
 	private final InstIds NOPEINSTIDS = new InstIds(null, null);
+	private final static String SHAREDINSTANCENAME = "MCFS-SharedMatomoInstance";
+	private final static String SHAREDINSTANCEINITUUID = SHAREDINSTANCENAME;
+	private final static int SHAREDDEFAULTNBAPPINSTANCE = 3;
+	private final static int SHAREDDEFAULTMEMSIZE = 512;
 
 	private class InstIds implements Runnable {
 		String id;
@@ -132,6 +139,17 @@ public class MatomoInstanceService extends OperationStatusService {
 		.doOnNext(this::observeInstanceForUpgrade)
 		.take(inst2process.size())
 		.subscribe();
+		Optional<PMatomoInstance> opmi = miRepo.findByName(SHAREDINSTANCENAME);
+		if (opmi.isPresent()) {
+			LOGGER.debug("Matomo Instance for shared plan already exist");
+			sharedReady = true;
+			return;
+		}
+		// Create the Matomo service instance for the shared plan
+		// TODO : formalize constants in following create...
+		createMatomoInstance(SHAREDINSTANCEINITUUID, SHAREDINSTANCENAME, PlatformKind.CLOUDFOUNDRY, "",
+				ServiceCatalogConfiguration.PLANDEDICATEDDB_UUID, pfs.getUnknownPlatformId(),
+				new Parameters().autoVersionUpgrade(true).cfInstances(SHAREDDEFAULTNBAPPINSTANCE).memorySize(SHAREDDEFAULTMEMSIZE));
 	}
 
 	public PMatomoInstance getMatomoInstance(String instanceId, String platformId) {
@@ -139,7 +157,7 @@ public class MatomoInstanceService extends OperationStatusService {
 		Assert.notNull(platformId, "platform id mustn't be null");
 		LOGGER.debug("SERV::getMatomoInstance: instanceId={}, platformId={}", instanceId, platformId);
 		Optional<PMatomoInstance> opmi = miRepo.findById(instanceId);
-		if (! opmi.isPresent()) {
+		if (!opmi.isPresent()) {
 			LOGGER.debug("Matomo Instance with ID=" + instanceId + " not known in Platform with ID=" + platformId);
 			return null;
 		}
@@ -175,13 +193,43 @@ public class MatomoInstanceService extends OperationStatusService {
 		if (apiinfolocation == null) {
 			apiinfolocation = "";
 		}
-		LOGGER.debug("SERV::createMatomoInstance: instanceId={}, platformId={}, instName={}, apiInfoLoc={}", uuid, pfid, instname, apiinfolocation);
-		if (!cfMgr.isSmtpReady()
-				|| (planid.equals(ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID) && !cfMgr.isGlobalSharedReady())) {
-			LOGGER.error("Cannot create any kind of instance: service unavailable (retry later on)");
-			return "Cannot create any kind of instance: service unavailable (retry later on)";
-		}
 		PMatomoInstance pmi;
+		// Shared service bootstrap: test if we want to create the shared Matomo instance
+		// which already exist and associate it with a relevant UUID
+		if (instname.equals(SHAREDINSTANCENAME) && !uuid.equals(SHAREDINSTANCEINITUUID)) {
+			EntityManager em = beginTx();
+			try {
+				pmi = getMatomoInstance(SHAREDINSTANCEINITUUID, pfs.getUnknownPlatformId());
+				if (pmi == null) {
+					LOGGER.warn("Shared Matomo instance has already been associated with the CF platform that host the service: can just do it once, ignored");
+					return "Shared Matomo instance has already been associated with the CF platform that host the service: can just do it once, ignored";
+				}
+				pmi.setUuid(uuid);
+				pmi.setPlatformApiLocation(apiinfolocation);
+				savePMatomoInstance(pmi, pmi.getLastOperationState());
+				LOGGER.info("Shared Matomo instance has been associated with the CF platform that host the service");
+				return "Shared Matomo instance has been associated with the CF platform that host the service";
+			} catch (Exception e) {
+				LOGGER.error("Error while associating shared Matomo instance: " + e.getMessage());
+				return "Error while associating shared Matomo instance: " + e.getMessage();
+			} finally {
+				commitTx(em);
+			}
+		}
+		
+		LOGGER.debug("SERV::createMatomoInstance: instanceId={}, platformId={}, instName={}, apiInfoLoc={}", uuid, pfid, instname, apiinfolocation);
+		if (!cfMgr.isSmtpReady()) {
+			LOGGER.error("Cannot create any kind of instance: service unavailable / no SMTP (retry later on)");
+			return "Cannot create any kind of instance: service unavailable / no SMTP (retry later on)";
+		}
+		if (planid.equals(ServiceCatalogConfiguration.PLANGLOBSHARDB_UUID) && !cfMgr.isGlobalSharedReady()) {
+			LOGGER.error("Cannot create instance (PLANGLOBSHARDB_UUID): service unavailable / no global shared DB (retry later on)");
+			return "Cannot create any kind of instance: service unavailable / no global shared DB (retry later on)";
+		}
+		if (planid.equals(ServiceCatalogConfiguration.PLANSHARED_UUID) && !sharedReady) {
+			LOGGER.error("Cannot create instance (PLANSHARED_UUID): service unavailable / no Matomo shared instance (retry later on)");
+			return "Cannot create any kind of instance: service unavailable / no Matomo shared instance (retry later on)";
+		}
 		synchronized (this) {
 			EntityManager em = beginTx();
 			try {
@@ -190,76 +238,87 @@ public class MatomoInstanceService extends OperationStatusService {
 					return "Matomo Instance with ID=" + uuid + " already exists in Platform with ID=" + pfid;
 				}
 				PPlatform ppf = getPPlatform(pfid);
-				pmi = new PMatomoInstance(uuid, instanceIdMgr.allocateInstanceId(), instname, pfkind, apiinfolocation,
-						planid, ppf, parameters);
-				savePMatomoInstance(pmi, OperationState.IN_PROGRESS);
+				if (planid.equals(ServiceCatalogConfiguration.PLANSHARED_UUID)) {
+					pmi = new PMatomoInstance(uuid, instanceIdMgr.allocateInstanceId(), instname, pfkind, apiinfolocation,
+							planid, ppf, parameters, miRepo.findByName(SHAREDINSTANCENAME).get());
+					savePMatomoInstance(pmi, OperationState.SUCCEEDED);
+					return null;
+				} else {
+					pmi = new PMatomoInstance(uuid, instanceIdMgr.allocateInstanceId(), instname, pfkind, apiinfolocation,
+							planid, ppf, parameters);
+					savePMatomoInstance(pmi, OperationState.IN_PROGRESS);
+				}
 			} catch (Exception e) {
 				return "Error while initializing creation: " + e.getMessage();
 			} finally {
 				commitTx(em);
 			}
 		}
-		MatomoReleases.createLinkedTree(parameters.getVersion(), pmi.getIdUrlStr());
-		Mono<Void> createdb = (properties.getDbCreds(planid).isDedicatedDb())
-				? cfMgr.createDedicatedDb(pmi.getIdUrlStr(), planid)
-				: Mono.empty();
+		final String idurlstr = pmi.getIdUrlStr();
+		final boolean clustmode = pmi.getClusterMode();
+		MatomoReleases.createLinkedTree(parameters.getVersion(), idurlstr);
+		Mono<Void> createdb = uuid.equals(SHAREDINSTANCEINITUUID)
+				? cfMgr.createDedicatedDb(idurlstr, ServiceCatalogConfiguration.PLANSHARED_UUID)
+						: (properties.getDbCreds(planid).isDedicatedDb())
+						? cfMgr.createDedicatedDb(idurlstr, planid)
+								: Mono.empty();
 		createdb.timeout(Duration.ofMinutes(CloudFoundryMgr.CREATEDBSERV_TIMEOUT))
 		.doOnError(t -> {
-			EntityManager nem = beginTx();
+			EntityManager em = beginTx();
 			PMatomoInstance npmi = miRepo.getOne(uuid);
-			nem.unwrap(Session.class).update(npmi);
+			em.unwrap(Session.class).update(npmi);
 			LOGGER.error("Create dedicated DB for instance \"" + npmi.getUuid() + "\" failed.", t);
 			savePMatomoInstance(npmi, OperationState.FAILED);
-			commitTx(nem);
+			commitTx(em);
 		}).doOnSuccess(v -> {
 			LOGGER.debug("Create dedicated DB phase for \"" + uuid + "\" succeeded.");
-			cfMgr.deployMatomoCfApp(pmi.getIdUrlStr(), uuid, planid, parameters, Parameters.MINMEMORYSIZE, 1)
-			.doOnError(tt -> {
-				EntityManager nem = beginTx();
-				PMatomoInstance npmi = miRepo.getOne(uuid);
-				nem.unwrap(Session.class).update(npmi);
-				LOGGER.error("Async create app instance (phase 1) \"" + uuid + "\" failed.", tt);
-				MatomoReleases.deleteLinkedTree(pmi.getIdUrlStr());
-				savePMatomoInstance(npmi, OperationState.FAILED);
-				commitTx(nem);
-			}).doOnSuccess(vv -> {
-				EntityManager nem = beginTx();
-				PMatomoInstance npmi = miRepo.getOne(uuid);
-				nem.unwrap(Session.class).update(npmi);
-				if (npmi.getLastOperationState() == OperationState.FAILED) {
-					LOGGER.debug("Async create app too late (phase 1) \"" + uuid + "\": already failed");
-				} else {
-					LOGGER.debug("Async create app instance (phase 1) \"" + uuid + "\" succeeded");
-					cfMgr.deleteAssociatedDbSchema(npmi); // make sure the DB situation is clean
-					if (!cfMgr.initializeMatomoInstance(npmi.getIdUrlStr(), uuid, npmi.getPassword(),
-							npmi.getPlanId())) {
-						MatomoReleases.deleteLinkedTree(npmi.getIdUrlStr());
-						savePMatomoInstance(npmi, OperationState.FAILED);
-						commitTx(nem);
+			cfMgr.deployMatomoCfApp(idurlstr, uuid, planid, parameters, Parameters.MINMEMORYSIZE, 1)
+				.doOnError(tt -> {
+					EntityManager nem = beginTx();
+					PMatomoInstance npmi = miRepo.getOne(uuid);
+					nem.unwrap(Session.class).update(npmi);
+					LOGGER.error("Async create app instance (phase 1) \"" + uuid + "\" failed.", tt);
+					MatomoReleases.deleteLinkedTree(idurlstr);
+					savePMatomoInstance(npmi, OperationState.FAILED);
+					commitTx(nem);
+				}).doOnSuccess(vv -> {
+					EntityManager nem = beginTx();
+					PMatomoInstance npmi = miRepo.getOne(uuid);
+					nem.unwrap(Session.class).update(npmi);
+					if (npmi.getLastOperationState() == OperationState.FAILED) {
+						LOGGER.debug("Async create app too late (phase 1) \"" + uuid + "\": already failed");
 					} else {
-						commitTx(nem);
-						cfMgr.getInstanceConfigFile(pmi.getIdUrlStr(), parameters.getVersion(), pmi.getClusterMode())
-						.doOnError(ttt -> {
-							EntityManager nnem = beginTx();
-							PMatomoInstance nnpmi = miRepo.getOne(uuid);
-							nnem.unwrap(Session.class).update(nnpmi);
-							LOGGER.debug("Cannot retrieve config file from Matomo instance.", ttt);
-							MatomoReleases.deleteLinkedTree(nnpmi.getIdUrlStr());
-							savePMatomoInstance(nnpmi, OperationState.FAILED);
-							commitTx(nnem);
-						}).doOnSuccess(ach -> {
-							EntityManager nnem = beginTx();
-							PMatomoInstance nnpmi = miRepo.getOne(uuid);
-							nnem.unwrap(Session.class).update(nnpmi);
-							nnpmi.setConfigFileContent(ach.fileContent);
-							savePMatomoInstance(nnpmi, null);
-							commitTx(nnem);
-							settleMatomoInstance(nnpmi, NOPEINSTIDS, parameters, true,
-									properties.getDbCreds(nnpmi.getPlanId())).subscribe();
-						}).subscribe();
+						LOGGER.debug("Async create app instance (phase 1) \"" + uuid + "\" succeeded");
+						cfMgr.deleteAssociatedDbSchema(npmi); // make sure the DB situation is clean
+						if (!cfMgr.initializeMatomoInstance(idurlstr, uuid, npmi.getPassword(),
+								npmi.getPlanId())) {
+							MatomoReleases.deleteLinkedTree(idurlstr);
+							savePMatomoInstance(npmi, OperationState.FAILED);
+							commitTx(nem);
+						} else {
+							commitTx(nem);
+							cfMgr.getInstanceConfigFile(idurlstr, parameters.getVersion(), clustmode)
+							.doOnError(ttt -> {
+								EntityManager nnem = beginTx();
+								PMatomoInstance nnpmi = miRepo.getOne(uuid);
+								nnem.unwrap(Session.class).update(nnpmi);
+								LOGGER.debug("Cannot retrieve config file from Matomo instance.", ttt);
+								MatomoReleases.deleteLinkedTree(idurlstr);
+								savePMatomoInstance(nnpmi, OperationState.FAILED);
+								commitTx(nnem);
+							}).doOnSuccess(ach -> {
+								EntityManager nnem = beginTx();
+								PMatomoInstance nnpmi = miRepo.getOne(uuid);
+								nnem.unwrap(Session.class).update(nnpmi);
+								nnpmi.setConfigFileContent(ach.fileContent);
+								savePMatomoInstance(nnpmi, null);
+								commitTx(nnem);
+								settleMatomoInstance(nnpmi, NOPEINSTIDS, parameters, true,
+										properties.getDbCreds(nnpmi.getPlanId())).subscribe();
+							}).subscribe();
+						}
 					}
-				}
-			}).subscribe();
+				}).subscribe();
 		}).subscribe();
 		return null;
 	}
@@ -292,6 +351,11 @@ public class MatomoInstanceService extends OperationStatusService {
 				return "Error: cannot delete Matomo service instance with ID=" + uuid + ": operation already in progress.";
 			}
 			pmi.setLastOperation(POperationStatus.OpCode.DELETE_SERVICE_INSTANCE);
+			if (pmi.isSharedPlan()) {
+				pmi.setConfigFileContent(null);
+				savePMatomoInstance(pmi, OperationState.SUCCEEDED);
+				return "Delete completed for instance with ID=" + uuid;
+			}
 			savePMatomoInstance(pmi, OperationState.IN_PROGRESS);
 			// delete data associated with the instance under deletion
 			cfMgr.deleteAssociatedDbSchema(pmi);
@@ -367,6 +431,9 @@ public class MatomoInstanceService extends OperationStatusService {
 			}
 			if (pmi.getLastOperationState() == OperationState.IN_PROGRESS) {
 				LOGGER.debug("SERV::updateMatomoInstance: KO -> operation in progress.");
+				return null;
+			}
+			if (pmi.isSharedPlan()) {
 				return null;
 			}
 			pmi.setLastOperation(POperationStatus.OpCode.UPDATE_SERVICE_INSTANCE);
@@ -487,7 +554,7 @@ public class MatomoInstanceService extends OperationStatusService {
 
 	@SuppressWarnings("unchecked")
 	private Mono<Void> settleMatomoInstance(PMatomoInstance pmi, InstIds instids, Parameters mip, boolean retrievetoken, CloudFoundryMgrProperties.DbCreds dbCreds) {
-		String uuid = pmi.getUuid();
+		String uuid = pmi.getUuid(), instname = pmi.getName();
 		return cfMgr.deployMatomoCfApp(pmi.getIdUrlStr(), pmi.getUuid(), pmi.getPlanId(), mip, pmi.getMemorySize(), pmi.getInstances())
 				.doOnError(t -> {
 					EntityManager nem = beginTx();
@@ -531,6 +598,9 @@ public class MatomoInstanceService extends OperationStatusService {
 							} else {
 								nnpmi.setTokenAuth(token);
 								savePMatomoInstance(nnpmi, OperationState.SUCCEEDED);
+								if (instname.equals(SHAREDINSTANCENAME) && uuid.equals(SHAREDINSTANCEINITUUID)) {
+									sharedReady = true;
+								}
 								LOGGER.debug("Async settle app instance (phase 2) \"" + nnpmi.getUuid() + "\" succeeded");
 							}
 							commitTx(nnem);

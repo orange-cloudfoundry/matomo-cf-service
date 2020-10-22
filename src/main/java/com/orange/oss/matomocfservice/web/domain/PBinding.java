@@ -43,7 +43,7 @@ public class PBinding extends POperationStatus {
 	@ManyToOne
 	@JoinColumn(name = "matomo_instance_id")
 	private final PMatomoInstance pmatomoInstance;
-	
+
 	@Column(length = LENGTH_ID)
 	private final String appId;
 

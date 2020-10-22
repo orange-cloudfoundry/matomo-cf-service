@@ -127,7 +127,7 @@ public class BindingService extends OperationStatusService {
 					if (epb.isDeleted()) {
 						LOGGER.debug("Reactivate an older binding with the same site name");
 						pb = new PBinding(bindid, opmi.get(), appid, sn, tu, am, opmi.get().getPlatform(),
-								getMatomoUrl(opmi.get().getUuid()), epb.getSiteId(), epb.getUserName(), epb.getPassword());
+								getMatomoUrl(opmi.get()), epb.getSiteId(), epb.getUserName(), epb.getPassword());
 						pbindingRepo.save(pb);
 						break;
 					} else {
@@ -143,9 +143,9 @@ public class BindingService extends OperationStatusService {
 			}
 			if (pb == null) {
 				pb = new PBinding(bindid, opmi.get(), appid, sn, tu, am, opmi.get().getPlatform(),
-						getMatomoUrl(opmi.get().getUuid()));
+						getMatomoUrl(opmi.get()));
 				pbindingRepo.save(pb);
-				defineNewMatomoSite(opmi.get(), pb, (String) parameters.get(PARAM_SITENAME),
+				defineNewMatomoSite(pb, (String) parameters.get(PARAM_SITENAME),
 						(String) parameters.get(PARAM_TRACKEDURL), (String) parameters.get(PARAM_ADMINEMAIL));
 			}
 			pb.setLastOperationState(OperationState.SUCCEEDED);
@@ -194,11 +194,12 @@ public class BindingService extends OperationStatusService {
 		return null;
 	}
 
-	private void defineNewMatomoSite(PMatomoInstance pmi, PBinding pb, String sitename, String trackedurl, String adminemail) {
+	private void defineNewMatomoSite(PBinding pb, String sitename, String trackedurl, String adminemail) {
+		PMatomoInstance pmi = pb.getPMatomoInstance();
 		LOGGER.debug("SERV::defineNewMatomoSite: instId={}, siteName{}, trackedUrl={}", pmi.getUuid(), sitename, trackedurl);
 		RestTemplate restTemplate = new RestTemplate();
 		try {
-			URI uri = new URI("https://" + getMatomoUrl(pb.getPMatomoInstance().getUuid()) + "/index.php");
+			URI uri = new URI("https://" + getMatomoUrl(pmi) + "/index.php");
 			MultipartBodyBuilder mbb = new MultipartBodyBuilder();
 			mbb.part("module", "API");
 			mbb.part("method", "SitesManager.addSite");
@@ -266,7 +267,13 @@ public class BindingService extends OperationStatusService {
 //		}
 //	}
 
-	private String getMatomoUrl(String miid) {
-		return miid + "." + properties.getDomain();
+	private String getMatomoUrl(PMatomoInstance pmi) {
+		String uuid;
+		if (pmi.isSharedPlan()) {
+			uuid = pmi.getSharedInstance().getUuid();
+		} else {
+			uuid = pmi.getUuid();
+		}
+		return uuid + "." + properties.getDomain();
 	}
 }
