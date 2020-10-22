@@ -4,7 +4,7 @@ applications:
   instances: 1
   routes:
     - route: $YOUR_ROUTE$
-  path: target/matomo-cf-service-0.8.2.jar
+  path: target/matomo-cf-service-0.9.0.jar
   buildpacks:
     - java_buildpack
   services:

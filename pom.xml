@@ -8,7 +8,7 @@
 	<organization>
 		<name>Orange S.A. - Open Source Software</name>
 	</organization>
-	<version>0.8.2</version>
+	<version>0.9.0</version>
 	<name>matomo-cf-service</name>
 	<description>An implementation of "Matomo as a Service" exposed through an OSB API and relying on SpringBoot and CloudFoundry</description>
 
